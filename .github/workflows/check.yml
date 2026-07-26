@@ -1,0 +1,89 @@
+name: check
+
+# Runs the headless suite against a real Blender 5.0 with a real Bonsai, so a
+# fork or a pull request gets the same verification the maintainer runs locally.
+#
+# The GUI suite (tools/ui_check.py) is deliberately not here: it needs a window
+# and a working GPU context, which a headless runner does not have. Anything it
+# covers -- toolbar activation, the workspace layout, the keymap swap -- has to
+# be checked by a human before a release.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # Pinned, not "latest". Bonsai's compiled wheels are tagged cp310/cp311, so
+  # the Blender version and the Bonsai version have to move together and
+  # deliberately -- see blender_manifest.toml.
+  BLENDER_VERSION: "5.0.0"
+  BLENDER_DIR: "blender-5.0.0-linux-x64"
+  BONSAI_VERSION: "0.8.4"
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Blender
+        id: cache-blender
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.BLENDER_DIR }}
+          key: blender-${{ env.BLENDER_VERSION }}-linux-x64
+
+      - name: Download Blender
+        if: steps.cache-blender.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          MAJOR_MINOR="${BLENDER_VERSION%.*}"
+          URL="https://download.blender.org/release/Blender${MAJOR_MINOR}/${BLENDER_DIR}.tar.xz"
+          echo "Fetching $URL"
+          curl -fsSL "$URL" -o blender.tar.xz
+          tar -xf blender.tar.xz
+          rm blender.tar.xz
+
+      - name: Install Bonsai
+        run: |
+          set -euo pipefail
+          BLENDER="$PWD/$BLENDER_DIR/blender"
+          # Bonsai is a hard runtime dependency but Blender's extension system
+          # has no way to declare that, so CI installs it the same way a user
+          # would: from the official extensions platform. --sync refreshes the
+          # remote listing first, which a fresh runner has never fetched.
+          "$BLENDER" --command extension install bonsai --sync --enable
+          "$BLENDER" -b --python-expr "
+          import bonsai.tool
+          print('Bonsai import OK')
+          "
+
+      - name: Install BonsaiSketch from a built package
+        run: |
+          set -euo pipefail
+          BLENDER="$PWD/$BLENDER_DIR/blender"
+          # Build and install the real artifact rather than pointing Blender at
+          # the source tree: that way CI also proves the packaged zip is
+          # installable, which is what a tester actually receives.
+          "$BLENDER" --command extension build \
+            --source-dir bonsaibim_sketch_mode --output-dir dist
+          "$BLENDER" --command extension validate dist/*.zip
+          "$BLENDER" --command extension install-file \
+            --repo user_default --enable dist/*.zip
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          "$PWD/$BLENDER_DIR/blender" -b --python tools/smoke_test.py
+
+      - name: Upload the package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bonsaibim-sketch-mode-zip
+          path: dist/*.zip
+          if-no-files-found: warn

@@ -4,7 +4,10 @@ id = "bonsaibim_sketch_mode"
 version = "0.2.0"
 name = "BonsaiBIM Sketch Mode"
 tagline = "Direct-modelling interaction for Bonsai IFC authoring"
-maintainer = "TODO <you@example.com>"
+# A GitHub noreply address: this string ships inside every release zip, so it
+# is a stable identifier rather than a mailbox. Report problems on the issue
+# tracker linked from `website`.
+maintainer = "Innovations & Integrations <integrations-space@users.noreply.github.com>"
 type = "add-on"
 
 website = "https://github.com/integrations-space/BonsaiSketch"

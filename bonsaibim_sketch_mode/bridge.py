@@ -1,5 +1,5 @@
 # BonsaiBIM Sketch Mode - direct-modelling interaction for Bonsai
-# Copyright (C) 2026 TODO
+# Copyright (C) 2026 Innovations & Integrations
 #
 # This file is part of BonsaiBIM Sketch Mode.
 #

@@ -100,6 +100,45 @@ IFC elements. `F`, `B` and `E` are left unbound rather than pointed at an
 approximation. See the roadmap in
 [bonsaibim_sketch_mode/README.md](bonsaibim_sketch_mode/README.md).
 
+## Testing it, and telling us what broke
+
+This is early software. The most useful thing a tester can do is try to build
+something small and real — a room, a slab, a couple of walls — and report where
+the interaction fought back.
+
+Worth reporting even when it feels minor:
+
+- A tool that did nothing, or did something other than what the status bar said
+- Geometry that came out wrong: a face that should have closed and did not, a
+  push that went the wrong way, a solid that renders with holes in it
+- A key that did nothing. `F`, `B` and `E` are unbound on purpose; anything
+  else is a bug
+- Anything printed to Blender's console (`Window > Toggle System Console`)
+
+Open an issue at
+[github.com/integrations-space/BonsaiSketch/issues](https://github.com/integrations-space/BonsaiSketch/issues).
+Include your Blender and Bonsai versions, and the output of the headless check
+below if you can run it — it takes about a minute and rules out a broken
+install before anyone spends time on a bug that is not there.
+
+## Building it yourself, or a fork
+
+The licence is GPL-3.0-or-later, so forking, modifying and redistributing is
+explicitly allowed — provided your version ships its complete source under the
+same terms. Nothing here is locked down.
+
+```text
+git clone https://github.com/integrations-space/BonsaiSketch
+cd BonsaiSketch
+blender --command extension build --source-dir bonsaibim_sketch_mode --output-dir dist
+```
+
+That produces `dist/bonsaibim_sketch_mode-<version>.zip`, which installs
+exactly like a release build via `Install from Disk`. A fork needs no other
+change — but do give it a different `id` and `name` in
+`bonsaibim_sketch_mode/blender_manifest.toml` if both versions might end up
+installed side by side, since Blender keys extensions by `id`.
+
 ## Development
 
 Junction the add-on directory into Blender's user extension repository so edits
