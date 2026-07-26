@@ -101,31 +101,40 @@ def extruded(
         return bm
     bm.faces.ensure_lookup_table()
     face = bm.faces[face_index]
+    offset = to_local @ (world_normal * distance)
 
-    # The face being pushed stays put and a copy of it travels. Its own edges
-    # therefore become a ring between the old surface and the new side walls.
-    ring = list(face.edges)
+    if not keep_face:
+        # The face already belongs to a solid, so this is not an extrusion at
+        # all -- it is the face moving, with the walls around it following.
+        # Sliding its own vertices does exactly that: every wall sharing them
+        # stretches or shrinks to match, and a box pushed down is simply a
+        # shorter box.
+        #
+        # Extruding here instead builds a *second* set of walls running inward
+        # from the original rim, and leaves the first set standing at full
+        # height. The result reads as a recess with a lip around it rather than
+        # a shorter box -- the leftover shell that made this obviously wrong
+        # the first time anyone pushed a face in.
+        bmesh.ops.translate(bm, verts=list(face.verts), vec=offset)
+        bm.normal_update()
+        return bm
 
+    # A flat sheet has no walls yet, so here an extrusion is the point: the
+    # original face stays as the bottom cap and a copy of it travels.
     result = bmesh.ops.extrude_face_region(bm, geom=[face])
     verts = [g for g in result["geom"] if isinstance(g, bmesh.types.BMVert)]
-    bmesh.ops.translate(bm, verts=verts, vec=to_local @ (world_normal * distance))
+    bmesh.ops.translate(bm, verts=verts, vec=offset)
 
-    if keep_face:
-        # A sheet has just become a solid. Which way its one face pointed was
-        # arbitrary until now, and the new walls inherit that arbitrary
-        # winding -- extruding "up" from a face that happened to point down
-        # turns every side wall inside out. Left alone the solid renders with
-        # holes in it and exports worse.
-        #
-        # Consistency is a property of a whole connected shell, so that is the
-        # scope: not the extrusion's own geometry, which does not include the
-        # side walls that need flipping, and not the entire mesh, which may
-        # hold sketch work we were not asked to touch.
-        bmesh.ops.recalc_face_normals(bm, faces=_shell_faces(face))
-    else:
-        bmesh.ops.delete(bm, geom=[face], context="FACES_ONLY")
-
-    _dissolve_flat_ring(bm, ring)
+    # Which way the sheet's one face pointed was arbitrary until now, and the
+    # new walls inherit that arbitrary winding -- extruding "up" from a face
+    # that happened to point down turns every side wall inside out, and the
+    # solid then renders with holes in it and exports worse.
+    #
+    # Consistency is a property of a whole connected shell, so that is the
+    # scope: not the extrusion's own geometry, which does not include the side
+    # walls that need flipping, and not the entire mesh, which may hold sketch
+    # work we were not asked to touch.
+    bmesh.ops.recalc_face_normals(bm, faces=_shell_faces(face))
     bm.normal_update()
     return bm
 
@@ -142,34 +151,6 @@ def _shell_faces(face: bmesh.types.BMFace) -> list:
                     seen.add(neighbour)
                     frontier.append(neighbour)
     return list(seen)
-
-
-def _dissolve_flat_ring(bm: bmesh.types.BMesh, ring: list) -> None:
-    """Merge the seam an extrusion leaves behind, where it is not a real edge.
-
-    Pulling the top of a box should give a taller box. Blender's extrude leaves
-    the original edge loop in place, so what you actually get is a box with a
-    redundant ring around it -- invisible until someone selects an edge, or
-    until the mesh becomes an IfcProduct carrying vertices that mean nothing.
-
-    Only seams whose two faces ended up coplanar are dissolved. Where the wall
-    below meets the new wall at an angle the ring is a genuine feature of the
-    shape, and removing it would change the geometry rather than tidy it.
-    """
-    seams = []
-    for edge in ring:
-        if not edge.is_valid or len(edge.link_faces) != 2:
-            continue
-        first, second = edge.link_faces
-        if abs(first.normal.dot(second.normal) - 1.0) <= COPLANAR:
-            seams.append(edge)
-    if not seams:
-        return
-    try:
-        bmesh.ops.dissolve_edges(bm, edges=seams, use_verts=True, use_face_split=False)
-    except (RuntimeError, ValueError):
-        # A tidier mesh is not worth failing the extrusion over.
-        pass
 
 
 class BONSAIBIM_SKETCH_OT_push_pull(bpy.types.Operator):

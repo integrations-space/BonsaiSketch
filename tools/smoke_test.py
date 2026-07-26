@@ -322,6 +322,15 @@ check("pushing inward keeps it closed", all(len(e.link_faces) == 2 for e in shor
 check("volume shrinks to 2x2x2", abs(shorter.calc_volume(signed=False) - 8.0) < 1e-6,
       f"got {shorter.calc_volume(signed=False)}")
 
+# Pushing a face into a solid must move the walls with it, not build a second
+# set of walls inside the first. Extruding here left the original rim standing
+# at full height around a recessed face -- a shorter box with a lip on it.
+# Nothing may remain at the height the face came from.
+heights = sorted({round(v.co.z, 6) for v in shorter.verts})
+check("no shell left at the original height", heights == [0.0, 2.0], f"heights {heights}")
+check("pushing in leaves 8 vertices", len(shorter.verts) == 8, f"got {len(shorter.verts)}")
+check("pushing in leaves 6 faces", len(shorter.faces) == 6, f"got {len(shorter.faces)}")
+
 # Zero distance must not duplicate geometry -- it is the state the tool sits in
 # before the user has dragged, and every mouse move rebuilds from here.
 unchanged = pushpull.extruded(flat, 0, identity, up, 0.0, keep_face=True)
