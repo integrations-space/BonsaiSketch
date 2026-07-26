@@ -103,6 +103,11 @@ def run():
             any("VIEW_3D" in types for types in screens.values()),
             f"screens {screens}",
         )
+        check(
+            "the layout is a single viewport, nothing else",
+            all(types == ["VIEW_3D"] for types in screens.values()),
+            f"screens {screens}",
+        )
 
         space = None
         for screen in sketch.screens:

@@ -53,27 +53,32 @@ controls until this tool can drive them directly.
 
 ## The Sketch workspace
 
-The `Sketch` tab is Blender's standard layout with the viewport tuned: tool
-palette shown, properties sidebar hidden, perspective, ground plane and the
-red/green axes, solid shading with outlines.
+The `Sketch` tab is a single 3D viewport — no outliner, no properties editor,
+no timeline — with the tool palette shown, the properties sidebar hidden,
+perspective, ground plane and red/green axes, and solid shading with outlines.
 
-It is **not** the single stripped-down viewport it should be, and that gap is
-still open. Blender exposes no data-level way to remove an area — the only
-route is `screen.area_close`, which deadlocks under `-b` and in a scripted GUI
-session alike (verified on 5.0; it hangs until the process is killed).
+Building it took three attempts, because Blender has no data-level way to
+remove an area and its screen operators all appear broken:
 
-`screen.screen_full_area` does run headlessly, and 0.2.0 shipped using it. That
-was a mistake: it does not build a one-area screen, it triggers Blender's
-*temporary fullscreen overlay*. The tab opened with the workspace switcher
-replaced by a "Back to Previous" button, no route to any other tab, and an
-empty viewport. The automated checks all passed, because they asked whether a
-screen with one area existed — which was true, and beside the point. They now
-assert what a user is actually left in: no fullscreen overlay, switcher
-reachable, viewport present.
+- `screen.area_close` hangs until the process is killed, headless or GUI.
+- `screen.screen_full_area` runs, but does not build a one-area screen — it
+  triggers the *temporary fullscreen overlay*, which hides the workspace
+  switcher and shows an empty viewport. 0.2.0 shipped that. It was a real bug.
+- `screen.area_join` returns `FINISHED` under `-b` while the area list *grows*.
 
-Doing this properly means building the screen by hand in a GUI session and
-saving it to `data/workspace.blend`. That is a mouse job, and treating it as a
-script job is what produced the broken build.
+The common cause: screen surgery is applied by Blender's event loop, not by the
+operator call. Under `-b` there is no loop, so nothing is applied and repeated
+calls pile up unresolved areas; in a GUI session there is one, but calling the
+operators back-to-back inside a single callback never yields to it, which is
+what made `area_close` look like a deadlock.
+
+So `tools/gen_workspace.py` runs in a GUI session and performs exactly one join
+per timer tick. Two further traps are worth knowing. `area_join` removes the
+area at `target_xy` and keeps the one at `source_xy` — passing them the
+intuitive way round merges the viewport into the timeline and deletes it. And
+`Window.workspace` assignment is deferred too, so reading it straight after
+`workspace.duplicate()` returns the *old* workspace; renaming there names the
+original and leaves the joined layout on an orphan.
 
 Entering the tab activates the Sketch keymap and leaving it restores whichever
 keymap was in use before, so this never strands anyone in an unfamiliar keymap.
@@ -85,7 +90,7 @@ a new user enables Sketch Mode, looks at the top bar, and sees nothing.
 Working:
 
 - Add-on registration, Bonsai detection and version guard
-- The `Sketch` workspace tab, with the viewport tuned (layout not yet stripped down)
+- The `Sketch` workspace tab: a single tuned viewport
 - A complete `Sketch` keyconfig
 - Line, Rectangle, Push/Pull and Tape Measure, in the toolbar and on keys
 
@@ -176,7 +181,7 @@ Bonsai already provides the machinery this add-on builds on:
 - [x] Rectangle
 - [x] Push/Pull for sketch meshes
 - [x] Tape Measure
-- [ ] Stripped-down workspace layout (needs a hand-built .blend; see above)
+- [x] Stripped-down workspace layout: a single viewport
 - [ ] Live rectangle preview while dragging the second corner
 - [ ] Push/Pull for typed IFC elements, driving Bonsai's parametric depth
 - [ ] Offset, Follow Me, Eraser, Paint

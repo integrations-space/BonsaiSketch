@@ -57,7 +57,7 @@ tab appears in the bar across the top of the window.
 
 ### Step 3 — Install BonsaiSketch
 
-Download **`bonsaibim_sketch_mode-0.2.1.zip`** from
+Download **`bonsaibim_sketch_mode-0.2.2.zip`** from
 [the latest release](https://github.com/integrations-space/BonsaiSketch/releases/latest).
 Do not unzip it. Then, in Blender:
 
@@ -76,10 +76,9 @@ Click the **`Sketch`** tab. The single-key shortcuts are live on this tab and
 your normal Blender keymap comes back the moment you leave it, so nothing is
 taken away from the rest of Blender.
 
-The viewport is tuned for drawing — tool palette shown, properties sidebar
-hidden, perspective, ground plane and coloured axes. It is still Blender's
-standard layout around it; stripping that down to a single viewport is on the
-roadmap and is not done.
+One full-width viewport, tools down the left, nothing else — no outliner, no
+properties editor, no timeline. Perspective, ground plane and coloured axes,
+solid shading with outlines.
 
 Try exactly this:
 
