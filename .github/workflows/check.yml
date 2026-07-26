@@ -55,8 +55,10 @@ jobs:
           # Bonsai is a hard runtime dependency but Blender's extension system
           # has no way to declare that, so CI installs it the same way a user
           # would: from the official extensions platform. --sync refreshes the
-          # remote listing first, which a fresh runner has never fetched.
-          "$BLENDER" --command extension install bonsai --sync --enable
+          # remote listing first, which a fresh runner has never fetched, and
+          # --online-mode is required because Blender refuses all network
+          # access until a preference is set -- which no runner has.
+          "$BLENDER" --online-mode --command extension install bonsai --sync --enable
           "$BLENDER" -b --python-expr "
           import bonsai.tool
           print('Bonsai import OK')
