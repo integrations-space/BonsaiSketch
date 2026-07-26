@@ -138,6 +138,17 @@ def _load_post(_dummy) -> None:
     subscribe()
 
 
+def _append_once() -> None:
+    """Deferred first append, run from a one-shot timer. Never reschedules."""
+    prefs = get_prefs()
+    if prefs is None or not prefs.setup_workspace:
+        return
+    ok, message = append(activate=prefs.activate_workspace)
+    if not ok:
+        print(f"[bonsaibim_sketch_mode] workspace: {message}")
+    subscribe()
+
+
 def get_prefs():
     try:
         addon = bpy.context.preferences.addons.get(__package__)
@@ -150,8 +161,32 @@ def register_handlers() -> None:
     if _load_post not in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.append(_load_post)
 
+    # load_post covers opening a file, but enabling the add-on mid-session does
+    # not fire it -- and that is the first thing a new user does. Without this
+    # they enable Sketch Mode, look at the top bar, and see nothing.
+    #
+    # The append cannot happen during register(): Blender is explicit that
+    # add-ons must not touch bpy.data there, and in a --background run there is
+    # no window to append into at all. A zero-delay timer runs on the next
+    # event loop tick, by which point both are true.
+    if not bpy.app.background:
+        bpy.app.timers.register(_run_once, first_interval=0.0)
+
+
+def _run_once() -> None:
+    """Timer entry point. Returning None unregisters it after one call."""
+    try:
+        _append_once()
+    except Exception as exc:  # pragma: no cover - depends on host state
+        print(f"[bonsaibim_sketch_mode] workspace: {exc}")
+    return None
+
 
 def unregister_handlers() -> None:
     if _load_post in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(_load_post)
+    # Disabling the add-on before the tick fires would otherwise leave a timer
+    # pointing into an unregistered module.
+    if bpy.app.timers.is_registered(_run_once):
+        bpy.app.timers.unregister(_run_once)
     unsubscribe()

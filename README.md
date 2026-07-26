@@ -24,18 +24,46 @@ it and calls into it.
 
 ## Install
 
-1. Install [Blender](https://www.blender.org/) 4.2 LTS or 5.0
+1. Install [Blender](https://www.blender.org/) **5.0**
 2. Install [Bonsai](https://bonsaibim.org/) 0.8.4
 3. Download the latest `bonsaibim_sketch_mode-*.zip` from Releases
 4. In Blender: `Edit > Preferences > Add-ons > Install from Disk`
-5. A **`Sketch` tab** appears in the top bar, next to Bonsai's `BIM` tab
+5. A **`Sketch` tab** appears in the top bar, next to Bonsai's `BIM` tab —
+   immediately, without restarting or reopening a file
 
 If Bonsai is missing, the add-on's preferences panel says so rather than
 failing silently.
 
-> Bonsai ships 17 compiled wheels tagged `cp310`/`cp311`, so it needs a Blender
-> built against Python 3.10 or 3.11. Newer Blender releases may ship a Python
-> those wheels do not support — check before upgrading.
+> **Supported Blender: 5.0 only.** Bonsai 0.8.4 ships 17 compiled wheels tagged
+> `cp310`/`cp311`, so it needs a Blender on Python 3.10 or 3.11. Blender 5.0 is
+> on 3.11. Blender 5.2 LTS is on 3.13, where those wheels will not load and
+> Bonsai cannot run at all — so the manifest bounds the top of the range as
+> well as the bottom.
+
+## Using it
+
+Click the **`Sketch` tab** in the top bar. That is Sketch Mode: one full-width
+viewport, tools down the left, nothing else. No outliner, no properties editor,
+no timeline. The single-key shortcuts go live on that tab and hand your usual
+keymap back when you leave it, so nothing is taken away from the rest of
+Blender.
+
+Then:
+
+1. **`R`** and drag out a rectangle. Two clicks, opposite corners. Type a
+   number at any point for an exact one.
+2. **`P`** and drag that face upward. Type a height and press Enter.
+3. **`L`** to draw edges freehand — click to place points, `C` to close the
+   loop, Enter to stop.
+4. **`T`** to measure between any two snapped points.
+
+`Esc` abandons whatever you are drawing. Backspace walks points back one at a
+time. `X`/`Y`/`Z` lock an axis; `Shift` with them locks a plane.
+
+You are drawing plain geometry at this stage, not IFC. When a shape is right,
+select it and use Bonsai's **Assign IFC Class** on the `BIM` tab to make it a
+wall, a slab, whatever it is. That is the whole point of the split: sketch
+first, decide what it *is* second.
 
 ## The tools
 
@@ -77,13 +105,13 @@ approximation. See the roadmap in
 Junction the add-on directory into Blender's user extension repository so edits
 are picked up in place:
 
-```
+```text
 mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsaibim_sketch_mode" "C:\2026_bonsai\bonsaibim_sketch_mode"
 ```
 
 Check it registers and its geometry is correct:
 
-```
+```text
 blender -b --python tools/smoke_test.py
 ```
 
@@ -94,13 +122,13 @@ Push/Pull ultimately perform. Verified against Blender 5.0 and Bonsai 0.8.4.
 
 Build a distributable package:
 
-```
+```text
 blender --command extension build --source-dir bonsaibim_sketch_mode --output-dir dist
 ```
 
 Regenerate the workspace `.blend` after changing the layout:
 
-```
+```text
 blender -b --factory-startup --python tools/gen_workspace.py -- bonsaibim_sketch_mode/data/workspace.blend
 ```
 

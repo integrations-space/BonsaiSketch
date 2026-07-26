@@ -11,7 +11,15 @@ website = "https://github.com/integrations-space/BonsaiSketch"
 
 tags = ["3D View", "Modeling", "User Interface"]
 
-blender_version_min = "4.2.0"
+# Supported Blender: 5.0 only.
+#
+# Not a floor with an open top -- an actual range. Bonsai 0.8.4 ships 17
+# compiled wheels tagged cp310/cp311, so it needs a Blender on Python 3.10 or
+# 3.11. Blender 5.0 is on 3.11; 5.2 LTS is on 3.13, where those wheels will not
+# load and Bonsai cannot run at all. Bounding the top stops Blender offering to
+# install this into a version where its one dependency is broken.
+blender_version_min = "5.0.0"
+blender_version_max = "5.1.0"  # exclusive
 
 # Must remain GPL-compatible: this add-on imports and derives from Bonsai,
 # which is licensed GPL-3.0-or-later.

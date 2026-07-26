@@ -51,12 +51,28 @@ material layers or a profile, and overwriting that with a tessellated mesh
 would silently discard the parametric definition. Depth belongs to Bonsai's own
 controls until this tool can drive them directly.
 
+## The Sketch workspace
+
+The `Sketch` tab is one maximized viewport with the tool palette down the left
+and nothing else — no outliner, no properties editor, no timeline. Blender's
+full layout is still there on `Ctrl+Space`; it is just not in the way.
+
+Getting there is less obvious than it looks. Blender exposes no data-level way
+to remove an area: only `screen.area_close`, an operator that deadlocks under
+`-b` and in a scripted GUI session alike. `screen.screen_full_area` does work
+headlessly and reaches the same place, so `tools/gen_workspace.py` uses that.
+
+Entering the tab activates the Sketch keymap and leaving it restores whichever
+keymap was in use before, so this never strands anyone in an unfamiliar keymap.
+The tab appears as soon as the add-on is enabled — `load_post` alone would mean
+a new user enables Sketch Mode, looks at the top bar, and sees nothing.
+
 ## Status
 
 Working:
 
 - Add-on registration, Bonsai detection and version guard
-- The `Sketch` workspace tab, added automatically on file load
+- The `Sketch` workspace tab and its stripped-down layout
 - A complete `Sketch` keyconfig
 - Line, Rectangle, Push/Pull and Tape Measure, in the toolbar and on keys
 
@@ -71,28 +87,38 @@ Blender's defaults.
 
 ## Requirements
 
-- Blender 5.0 (verified) or 4.2 LTS
+- Blender **5.0** — the only supported version, top and bottom
 - Bonsai 0.8.4
 
 Bonsai ships 17 compiled wheels tagged `cp310`/`cp311`, so it requires a
-Blender built against Python 3.10 or 3.11. Newer Blender releases may ship a
-Python version those wheels do not support — verify before upgrading.
+Blender on Python 3.10 or 3.11. Blender 5.0 is on 3.11; 5.2 LTS is on 3.13,
+where those wheels will not load and Bonsai cannot run at all. The manifest
+therefore sets `blender_version_max` as well as `blender_version_min`, so
+Blender will not offer to install this somewhere its one dependency is broken.
 
 ## Development install
 
 Junction this directory into Blender's user extension repository so edits are
 picked up in place:
 
-```
+```text
 mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsaibim_sketch_mode" "C:\2026_bonsai\bonsaibim_sketch_mode"
 ```
 
 Then enable **BonsaiBIM Sketch Mode** in Preferences > Add-ons.
 
-Headless check:
+Two check suites. Headless, for registration and geometry:
 
-```
+```text
 blender -b --python tools/smoke_test.py
+```
+
+And one that needs a real window, for the things the first cannot reach — poll
+methods, toolbar activation, the workspace layout, and the keymap swapping in
+and out as you move between tabs:
+
+```text
+blender --python tools/ui_check.py -- report.txt
 ```
 
 ## Architecture
@@ -137,10 +163,11 @@ Bonsai already provides the machinery this add-on builds on:
 - [x] Rectangle
 - [x] Push/Pull for sketch meshes
 - [x] Tape Measure
+- [x] Stripped-down workspace layout
 - [ ] Live rectangle preview while dragging the second corner
 - [ ] Push/Pull for typed IFC elements, driving Bonsai's parametric depth
 - [ ] Offset, Follow Me, Eraser, Paint
-- [ ] Theme, workspace layout, condensed Entity Info panel
+- [ ] Theme, condensed Entity Info panel
 - [ ] Instructor panel
 
 ## Licence
