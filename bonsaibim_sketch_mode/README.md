@@ -53,14 +53,27 @@ controls until this tool can drive them directly.
 
 ## The Sketch workspace
 
-The `Sketch` tab is one maximized viewport with the tool palette down the left
-and nothing else — no outliner, no properties editor, no timeline. Blender's
-full layout is still there on `Ctrl+Space`; it is just not in the way.
+The `Sketch` tab is Blender's standard layout with the viewport tuned: tool
+palette shown, properties sidebar hidden, perspective, ground plane and the
+red/green axes, solid shading with outlines.
 
-Getting there is less obvious than it looks. Blender exposes no data-level way
-to remove an area: only `screen.area_close`, an operator that deadlocks under
-`-b` and in a scripted GUI session alike. `screen.screen_full_area` does work
-headlessly and reaches the same place, so `tools/gen_workspace.py` uses that.
+It is **not** the single stripped-down viewport it should be, and that gap is
+still open. Blender exposes no data-level way to remove an area — the only
+route is `screen.area_close`, which deadlocks under `-b` and in a scripted GUI
+session alike (verified on 5.0; it hangs until the process is killed).
+
+`screen.screen_full_area` does run headlessly, and 0.2.0 shipped using it. That
+was a mistake: it does not build a one-area screen, it triggers Blender's
+*temporary fullscreen overlay*. The tab opened with the workspace switcher
+replaced by a "Back to Previous" button, no route to any other tab, and an
+empty viewport. The automated checks all passed, because they asked whether a
+screen with one area existed — which was true, and beside the point. They now
+assert what a user is actually left in: no fullscreen overlay, switcher
+reachable, viewport present.
+
+Doing this properly means building the screen by hand in a GUI session and
+saving it to `data/workspace.blend`. That is a mouse job, and treating it as a
+script job is what produced the broken build.
 
 Entering the tab activates the Sketch keymap and leaving it restores whichever
 keymap was in use before, so this never strands anyone in an unfamiliar keymap.
@@ -72,7 +85,7 @@ a new user enables Sketch Mode, looks at the top bar, and sees nothing.
 Working:
 
 - Add-on registration, Bonsai detection and version guard
-- The `Sketch` workspace tab and its stripped-down layout
+- The `Sketch` workspace tab, with the viewport tuned (layout not yet stripped down)
 - A complete `Sketch` keyconfig
 - Line, Rectangle, Push/Pull and Tape Measure, in the toolbar and on keys
 
@@ -163,7 +176,7 @@ Bonsai already provides the machinery this add-on builds on:
 - [x] Rectangle
 - [x] Push/Pull for sketch meshes
 - [x] Tape Measure
-- [x] Stripped-down workspace layout
+- [ ] Stripped-down workspace layout (needs a hand-built .blend; see above)
 - [ ] Live rectangle preview while dragging the second corner
 - [ ] Push/Pull for typed IFC elements, driving Bonsai's parametric depth
 - [ ] Offset, Follow Me, Eraser, Paint

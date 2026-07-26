@@ -79,12 +79,30 @@ def run():
     # register_handlers schedules a deferred append.
     check("Sketch tab exists after enabling", workspace.exists())
 
-    # The layout a SketchUp user should land in: one viewport, nothing else.
+    # This block previously asked "is there a screen with exactly one area?".
+    # It passed on a workspace that was unusable: screen_full_area had put the
+    # tab into Blender's temporary fullscreen overlay, which hides the
+    # workspace switcher and shows an empty viewport. One area, no way out.
+    #
+    # So these check the state a user is actually left in.
     if workspace.exists():
         sketch = bpy.data.workspaces[workspace.WORKSPACE_NAME]
         screens = {s.name: [a.type for a in s.areas] for s in sketch.screens}
-        single = [name for name, types in screens.items() if types == ["VIEW_3D"]]
-        check("Sketch workspace has a viewport-only screen", bool(single), f"screens {screens}")
+
+        check(
+            "no screen is stuck in a fullscreen overlay",
+            not any(s.show_fullscreen for s in sketch.screens),
+            f"screens {screens}",
+        )
+        check(
+            "the workspace switcher is still reachable",
+            not bpy.context.window.screen.show_fullscreen,
+        )
+        check(
+            "workspace has a 3D viewport",
+            any("VIEW_3D" in types for types in screens.values()),
+            f"screens {screens}",
+        )
 
         space = None
         for screen in sketch.screens:

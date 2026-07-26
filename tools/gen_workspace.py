@@ -2,18 +2,26 @@
 
 Run with: blender -b --factory-startup --python gen_workspace.py -- <out.blend>
 
-SketchUp puts one large viewport on screen and nothing else: no outliner, no
-properties editor, no timeline. Blender's "Layout" carries all three, and for
-someone who came here to draw a wall they are the clutter that makes Blender
-feel like Blender. So the Sketch workspace ships maximized.
+A single large viewport with no outliner, properties editor or timeline is the
+goal, and this script does not achieve it. What it does is tune the viewport
+inside Blender's standard layout. That is a deliberate retreat from something
+worse -- read on before trying again.
 
-Getting there is not obvious. Blender exposes no data-level way to remove an
-area -- only `screen.area_close`, an operator that deadlocks under `-b` and in
-a scripted GUI session alike (verified on 5.0, both hang indefinitely).
-`screen.screen_full_area` does work headlessly, and it reaches the same place
-by a different route: it parks the full layout on a second screen and makes a
-single-area screen active. Ctrl+Space restores the full layout, so nothing is
-taken away -- it is just not in the way.
+Blender exposes no data-level way to remove an area. The only route is
+`screen.area_close`, an operator that deadlocks: verified on 5.0, under `-b`
+and in a scripted GUI session alike, it hangs until the process is killed.
+
+`screen.screen_full_area` does run headlessly, and an earlier version of this
+script used it. That was wrong. It does not build a one-area screen; it
+triggers Blender's *temporary fullscreen overlay*, and the workspace shipped in
+that state opened with the workspace switcher replaced by a "Back to Previous"
+button, no route to any other tab, and an empty viewport. Every automated check
+passed, because they asked "is there a screen with one area" -- which was true,
+and irrelevant.
+
+So the layout stays normal until someone builds the stripped-down screen by
+hand in a GUI session and saves it here. That is a mouse job, not a script job,
+and pretending otherwise is what produced the broken build.
 
 bpy.data.libraries.write() does NOT persist WorkSpace datablocks -- it silently
 produces a file with no workspaces, which makes workspace.append_activate()
@@ -88,21 +96,22 @@ log.append(f"tuned {tuned} VIEW_3D space(s)")
 
 ws.use_filter_by_owner = False
 
-# --- Maximize the viewport ---------------------------------------------------
-maximized = False
-for screen in [ws.screens[i] for i in range(len(ws.screens))]:
-    view3d = next((a for a in screen.areas if a.type == "VIEW_3D"), None)
-    if view3d is None:
-        continue
-    with bpy.context.temp_override(window=win, screen=screen, area=view3d):
-        bpy.ops.screen.screen_full_area(use_hide_panels=False)
-    maximized = True
-    break
-
+# --- Sanity check ------------------------------------------------------------
+# Whatever this produces has to be a *normal* screen. An earlier version called
+# screen.screen_full_area here to get a single-area layout, which passed every
+# automated check and was unusable in practice: that operator does not build a
+# one-area screen, it triggers Blender's temporary fullscreen overlay. The tab
+# opened with the workspace switcher replaced by a "Back to Previous" button,
+# no way to reach another workspace, and an empty viewport.
+#
+# So the check is on the state a user actually lands in, not on area counts.
 active = win.screen
-log.append(f"maximized={maximized} active screen={active.name!r} areas={[a.type for a in active.areas]}")
-if not maximized or len(active.areas) != 1:
-    print("\n!! Sketch workspace is not a single maximized viewport; aborting.\n")
+log.append(f"active screen={active.name!r} areas={[a.type for a in active.areas]}")
+if active.show_fullscreen:
+    print("\n!! Sketch workspace is in a fullscreen overlay; that state is unusable.\n")
+    sys.exit(1)
+if not any(a.type == "VIEW_3D" for a in active.areas):
+    print("\n!! Sketch workspace has no 3D viewport.\n")
     sys.exit(1)
 
 # Start on a clean scene rather than shipping the default cube.
