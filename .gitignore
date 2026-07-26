@@ -1,0 +1,13 @@
+# Blender installers / large binaries
+*.msi
+*.exe
+
+# Built extension packages -- ship these via GitHub Releases, not the tree
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Blender
+*.blend1

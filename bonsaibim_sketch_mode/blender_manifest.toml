@@ -1,0 +1,27 @@
+schema_version = "1.0.0"
+
+id = "bonsaibim_sketch_mode"
+version = "0.1.0"
+name = "BonsaiBIM Sketch Mode"
+tagline = "Direct-modelling interaction for Bonsai IFC authoring"
+maintainer = "TODO <you@example.com>"
+type = "add-on"
+
+website = "https://github.com/integrations-space/BonsaiSketch"
+
+tags = ["3D View", "Modeling", "User Interface"]
+
+blender_version_min = "4.2.0"
+
+# Must remain GPL-compatible: this add-on imports and derives from Bonsai,
+# which is licensed GPL-3.0-or-later.
+license = ["SPDX:GPL-3.0-or-later"]
+
+# NOTE: Blender's extension system has no inter-extension dependency
+# declaration as of 4.2/5.0, so the Bonsai dependency is enforced at
+# runtime in bridge.py rather than declared here.
+#
+# TRADEMARK NOTE: SketchUp is a trademark of Trimble Inc. This add-on is not
+# affiliated with, endorsed by, or sponsored by Trimble. SketchUp is referred
+# to descriptively only, to identify the interaction model that users may
+# already be familiar with. All icons and visual design are original work.
