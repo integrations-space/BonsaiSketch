@@ -105,14 +105,14 @@ Blender's defaults.
 
 ## Requirements
 
-- Blender **5.0** — the only supported version, top and bottom
-- Bonsai 0.8.4
+- Blender **5.0** or **5.2 LTS** — both tested, both ends bounded
+- Bonsai **0.8.4** or **0.8.5**
 
-Bonsai ships 17 compiled wheels tagged `cp310`/`cp311`, so it requires a
-Blender on Python 3.10 or 3.11. Blender 5.0 is on 3.11; 5.2 LTS is on 3.13,
-where those wheels will not load and Bonsai cannot run at all. The manifest
-therefore sets `blender_version_max` as well as `blender_version_min`, so
-Blender will not offer to install this somewhere its one dependency is broken.
+The constraint is Bonsai's, not ours. It ships compiled wheels, so it only runs
+where those match the host Python: 0.8.4 stopped at cp311, which ruled out
+Blender 5.2 on Python 3.13, and 0.8.5 ships 3.13 wheels, which lets it in. The
+manifest sets `blender_version_max` as well as `blender_version_min` so Blender
+never offers to install this into a release nobody has run it on.
 
 ## Development install
 

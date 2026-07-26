@@ -260,7 +260,7 @@ plate_obj, _ = sketchmesh.commit(context, plate, close=True)
 flat = bmesh.new()
 flat.from_mesh(plate_obj.data)
 flat.faces.ensure_lookup_table()
-check("a drawn face reads as an open sheet", pushpull.face_is_open_sheet(flat.faces[0]))
+check("a drawn face reads as an open sheet", pushpull.face_is_in_flat_sheet(flat.faces[0]))
 
 box = pushpull.extruded(flat, 0, identity, up, 3.0, keep_face=True)
 check("sheet extrudes to 8 vertices", len(box.verts) == 8, f"got {len(box.verts)}")
@@ -276,7 +276,7 @@ check("new solid's normals all point outward", box.calc_volume(signed=True) > 0,
 # Pulling a face of that solid must consume the original face, not bury it.
 box.faces.ensure_lookup_table()
 top = max(box.faces, key=lambda f: f.calc_center_median().z)
-check("a solid's face is not an open sheet", not pushpull.face_is_open_sheet(top))
+check("a solid's face is not an open sheet", not pushpull.face_is_in_flat_sheet(top))
 
 taller = pushpull.extruded(box, top.index, identity, up, 2.0, keep_face=False)
 check("pulling a solid keeps 8 vertices", len(taller.verts) == 8, f"got {len(taller.verts)}")
@@ -292,6 +292,29 @@ check("widening a box keeps 8 vertices", len(wider.verts) == 8, f"got {len(wider
 check("widening a box keeps 6 faces", len(wider.faces) == 6, f"got {len(wider.faces)}")
 check("volume grows to 3x2x3", abs(wider.calc_volume(signed=False) - 18.0) < 1e-6,
       f"got {wider.calc_volume(signed=False)}")
+
+# Two rectangles drawn side by side into the same sketch share an edge. That
+# edge has two faces, which an earlier version read as "part of a solid" -- so
+# it deleted the cap and the push came out with its sides missing. Coplanar
+# neighbours are still a flat sheet.
+pair = bmesh.new()
+pv = [pair.verts.new(c) for c in [(0, 0, 0), (2, 0, 0), (2, 2, 0), (0, 2, 0), (4, 0, 0), (4, 2, 0)]]
+pair.faces.new([pv[0], pv[1], pv[2], pv[3]])
+pair.faces.new([pv[1], pv[4], pv[5], pv[2]])
+pair.normal_update()
+pair.faces.ensure_lookup_table()
+
+check("coplanar neighbours still count as a flat sheet",
+      pushpull.face_is_in_flat_sheet(pair.faces[0]))
+adjacent = pushpull.extruded(pair, 0, identity, up, 3.0, keep_face=True)
+check("pushing one of two adjacent rectangles keeps its cap",
+      len(adjacent.faces) == 7, f"got {len(adjacent.faces)} faces")
+# Only the untouched neighbour should still have free edges: 3 of its 4.
+check("the pushed box has no missing sides",
+      len([e for e in adjacent.edges if len(e.link_faces) == 1]) == 3,
+      f"got {len([e for e in adjacent.edges if len(e.link_faces) == 1])} open edges")
+check("pushed volume is 2x2x3", abs(adjacent.calc_volume(signed=False) - 12.0) < 1e-6,
+      f"got {adjacent.calc_volume(signed=False)}")
 
 # Pushing inward is the same operation with a negative distance.
 shorter = pushpull.extruded(box, top.index, identity, up, -1.0, keep_face=False)

@@ -14,8 +14,8 @@ layer underneath is untouched.
 Three layers, each running inside the one below:
 
 ```
-Blender 5.0            the application you install and launch
-  └─ Bonsai 0.8.4      add-on: turns Blender into an IFC/BIM authoring tool
+Blender 5.0 / 5.2      the application you install and launch
+  └─ Bonsai 0.8.4/0.8.5  add-on: turns Blender into an IFC/BIM authoring tool
        └─ BonsaiSketch add-on: gives Bonsai a direct-modelling UI
 ```
 
@@ -27,18 +27,18 @@ it and calls into it.
 Nothing here assumes you have used Blender before. Roughly fifteen minutes,
 most of it downloading.
 
-### Step 1 — Install Blender 5.0
+### Step 1 — Install Blender
 
-Download from [blender.org/download](https://www.blender.org/download/) and
-install it. **Version 5.0 specifically.**
+Download from [blender.org/download](https://www.blender.org/download/).
+**5.0 or 5.2 LTS** — both are tested.
 
-Not 5.2 LTS, and not the newest release. Bonsai ships compiled Python
-components built for Python 3.11; Blender 5.0 runs 3.11, and 5.2 runs 3.13,
-where Bonsai will not load at all. BonsaiSketch declares that limit, so
-installing it on 5.2 fails with a clear message rather than breaking oddly:
+Newer releases are refused on purpose. Bonsai ships compiled Python components,
+so it only runs where those match the host Python, and a Blender nobody has run
+this against is a silent breakage waiting to happen. Installing outside the
+supported range fails with a clear message instead:
 
 ```text
-This Blender version (5.2.0) must be less than the maximum version (5.1.0)
+This Blender version (5.3.0) must be less than the maximum version (5.3.0)
 ```
 
 ### Step 2 — Install Bonsai, inside Blender
@@ -50,14 +50,14 @@ Open Blender, then:
 It is a large download and takes a few minutes. When it finishes, a **`BIM`**
 tab appears in the bar across the top of the window.
 
-> Built and hand-tested against Bonsai **0.8.4**. Automated tests also pass
-> against **0.8.5-post1**, which is what Get Extensions installs today, so
-> either should work. If something misbehaves, your Bonsai version is the first
+> Tested against Bonsai **0.8.4** and **0.8.5**. Get Extensions installs 0.8.5
+> today, which is also what makes Blender 5.2 possible — 0.8.4's wheels stopped
+> at Python 3.11. If something misbehaves, your Bonsai version is the first
 > thing to put in a bug report.
 
 ### Step 3 — Install BonsaiSketch
 
-Download **`bonsaibim_sketch_mode-0.2.2.zip`** from
+Download **`bonsaibim_sketch_mode-0.2.3.zip`** from
 [the latest release](https://github.com/integrations-space/BonsaiSketch/releases/latest).
 Do not unzip it. Then, in Blender:
 
@@ -119,7 +119,7 @@ own depth controls for those.
 
 | Symptom | Cause |
 | --- | --- |
-| Install fails, "must be less than the maximum version" | You are on Blender 5.2 or newer. Use 5.0 |
+| Install fails, "must be less than the maximum version" | Your Blender is newer than 5.2. Use 5.0 or 5.2 |
 | No `Sketch` tab after installing | The add-on is installed but not ticked in `Preferences > Add-ons` |
 | `Sketch` tab present, letter keys do nothing | You are on a different tab. The keymap is only live on `Sketch` |
 | Tools greyed out, or an error in their settings bar | Bonsai is missing or failed to load — check the `BIM` tab exists |

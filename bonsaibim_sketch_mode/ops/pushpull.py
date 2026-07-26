@@ -52,8 +52,8 @@ NEGLIGIBLE = 1e-9
 COPLANAR = 1e-5
 
 
-def face_is_open_sheet(face: bmesh.types.BMFace) -> bool:
-    """True if the face borders nothing on any edge.
+def face_is_in_flat_sheet(face: bmesh.types.BMFace) -> bool:
+    """True if nothing rises out of the plane of this face along its edges.
 
     This decides the fate of the face being pushed. On a flat sheet -- the
     rectangle a user has just drawn -- the face becomes the bottom cap of the
@@ -61,8 +61,23 @@ def face_is_open_sheet(face: bmesh.types.BMFace) -> bool:
     an interior wall, so it has to go. Getting this backwards produces a mesh
     that looks right and is not: either a hollow shell or a solid with a
     membrane through it.
+
+    The test is coplanarity, not edge valency. An earlier version asked whether
+    every edge was a boundary, which meant two rectangles drawn side by side
+    into the same sketch disqualified each other: their shared edge has two
+    faces, so the face was read as part of a solid, its cap deleted, and the
+    push came out with sides missing. Faces meeting in the same plane are still
+    a flat sheet.
     """
-    return all(len(edge.link_faces) == 1 for edge in face.edges)
+    for edge in face.edges:
+        for neighbour in edge.link_faces:
+            if neighbour is face:
+                continue
+            # abs(): a neighbour wound the opposite way is still coplanar, and
+            # winding across a freshly drawn sheet is arbitrary.
+            if abs(neighbour.normal.dot(face.normal)) < 1.0 - COPLANAR:
+                return False
+    return True
 
 
 def extruded(
@@ -229,7 +244,7 @@ class BONSAIBIM_SKETCH_OT_push_pull(bpy.types.Operator):
         self.source.faces.ensure_lookup_table()
         face = self.source.faces[self.face_index]
 
-        self.keep_face = face_is_open_sheet(face)
+        self.keep_face = face_is_in_flat_sheet(face)
 
         normal_matrix = obj.matrix_world.to_3x3().inverted().transposed()
         self.normal = (normal_matrix @ face.normal).normalized()

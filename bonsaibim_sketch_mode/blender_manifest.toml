@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "bonsaibim_sketch_mode"
-version = "0.2.2"
+version = "0.2.3"
 name = "BonsaiBIM Sketch Mode"
 tagline = "Direct-modelling interaction for Bonsai IFC authoring"
 # A GitHub noreply address: this string ships inside every release zip, so it
@@ -14,15 +14,19 @@ website = "https://github.com/integrations-space/BonsaiSketch"
 
 tags = ["3D View", "Modeling", "User Interface"]
 
-# Supported Blender: 5.0 only.
+# Supported Blender: 5.0 through 5.2.
 #
-# Not a floor with an open top -- an actual range. Bonsai 0.8.4 ships 17
-# compiled wheels tagged cp310/cp311, so it needs a Blender on Python 3.10 or
-# 3.11. Blender 5.0 is on 3.11; 5.2 LTS is on 3.13, where those wheels will not
-# load and Bonsai cannot run at all. Bounding the top stops Blender offering to
-# install this into a version where its one dependency is broken.
+# The constraint is Bonsai's, not ours: it ships compiled wheels, so it only
+# runs where those match the host Python. Bonsai 0.8.4's were cp310/cp311,
+# which put Blender 5.2 (Python 3.13) out of reach. Bonsai 0.8.5 ships wheels
+# for 3.13, and `import bonsai.tool` succeeds on 5.2 -- verified, not assumed.
+#
+# The upper bound stays, one minor version past the last one tested. Without it
+# Blender would offer to install this into releases nobody has run it on, and
+# the failure mode when Bonsai's wheels next fall behind is silent breakage
+# rather than a clear refusal.
 blender_version_min = "5.0.0"
-blender_version_max = "5.1.0"  # exclusive
+blender_version_max = "5.3.0"  # exclusive; 5.0 and 5.2 tested, 5.1 assumed
 
 # Must remain GPL-compatible: this add-on imports and derives from Bonsai,
 # which is licensed GPL-3.0-or-later.
