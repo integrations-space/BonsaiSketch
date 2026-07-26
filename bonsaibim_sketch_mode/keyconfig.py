@@ -18,7 +18,7 @@
 
 SketchUp drives everything from unmodified letter keys. Blender's defaults
 claim those keys 232 times across its keymaps, so shadowing them from an addon
-keymap is not workable â€” a user would hit unpredictable behaviour depending on
+keymap is not workable -- a user would hit unpredictable behaviour depending on
 mode and editor.
 
 Instead this builds a complete keyconfig the same way Blender's bundled
@@ -37,7 +37,7 @@ import os
 
 import bpy
 
-from . import bridge
+from . import tools
 
 KEYCONFIG_NAME = "Sketch"
 
@@ -55,22 +55,29 @@ SCOPED_KEYMAPS = {
 CLAIMED_KEYS = {"L", "R", "P", "M", "Q", "S", "T", "E", "F", "B", "O", "H", "Z", "SPACE"}
 
 
+def _tool_key(key: str, tool_idname: str, **modifiers) -> tuple:
+    params = {"type": key, "value": "PRESS"}
+    params.update(modifiers)
+    return ("wm.tool_set_by_id", params, {"properties": [("name", tool_idname)]})
+
+
 def _su_bindings() -> list:
     """SketchUp bindings, in Blender keyconfig item format.
 
     Only bindings with a verified target are included. Tools that still need
-    building (Rectangle, Push/Pull, Offset, Tape, Eraser, Paint) are
-    deliberately left unbound rather than pointed at an approximation â€” an
-    unbound key is honest, a wrong one teaches the wrong muscle memory.
+    building (Offset, Follow Me, Eraser, Paint) are deliberately left unbound
+    rather than pointed at an approximation -- an unbound key is honest, a wrong
+    one teaches the wrong muscle memory.
     """
     items = [
         # Select is Space in SketchUp.
-        ("wm.tool_set_by_id", {"type": "SPACE", "value": "PRESS"},
-         {"properties": [("name", "builtin.select_box")]}),
+        _tool_key("SPACE", tools.SELECT_TOOL),
 
-        # Line -> Bonsai's generic authoring tool (polyline + snapping).
-        ("wm.tool_set_by_id", {"type": "L", "value": "PRESS"},
-         {"properties": [("name", bridge.BIM_TOOL)]}),
+        # Drawing.
+        _tool_key("L", tools.LINE_TOOL),
+        _tool_key("R", tools.RECTANGLE_TOOL),
+        _tool_key("P", tools.PUSH_PULL_TOOL),
+        _tool_key("T", tools.TAPE_TOOL),
 
         # Transforms map cleanly onto SketchUp's Move / Rotate / Scale.
         ("transform.translate", {"type": "M", "value": "PRESS"}, None),

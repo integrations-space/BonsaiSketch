@@ -32,10 +32,11 @@ from __future__ import annotations
 
 import bpy
 
-from . import bridge, keyconfig, workspace
+from . import bridge, keyconfig, ops, tools, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
+_tools_status: tuple[bool, str] = (False, "Not yet loaded")
 
 
 class BONSAIBIM_SKETCH_OT_activate_keyconfig(bpy.types.Operator):
@@ -134,6 +135,18 @@ class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
             if not (active and active.name == keyconfig.KEYCONFIG_NAME):
                 box.operator(BONSAIBIM_SKETCH_OT_activate_keyconfig.bl_idname, icon="PLAY")
 
+        ok, message = _tools_status
+        box = layout.box()
+        box.label(text="Tools", icon="TOOL_SETTINGS")
+        box.label(text=message, icon="CHECKMARK" if ok else "ERROR")
+        if ok and not bridge.polyline_engine_available():
+            sub = box.row()
+            sub.alert = True
+            sub.label(
+                text=bridge.polyline_unavailable_reason() or "Drawing tools unavailable",
+                icon="ERROR",
+            )
+
 
 classes = (
     BONSAIBIM_SKETCH_OT_activate_keyconfig,
@@ -143,7 +156,7 @@ classes = (
 
 
 def register() -> None:
-    global _keyconfig_status
+    global _keyconfig_status, _tools_status
 
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -153,6 +166,14 @@ def register() -> None:
         # instead of a silent no-op.
         print(f"[bonsaibim_sketch_mode] {bridge.unavailable_reason()}")
         return
+
+    # Operators first: the toolbar entries reference them by idname, and
+    # register_tool validates that the keymap targets exist.
+    ops.register()
+
+    _tools_status = tools.register()
+    if not _tools_status[0]:
+        print(f"[bonsaibim_sketch_mode] tools: {_tools_status[1]}")
 
     _keyconfig_status = keyconfig.load()
     if not _keyconfig_status[0]:
@@ -168,6 +189,8 @@ def register() -> None:
 def unregister() -> None:
     workspace.unregister_handlers()
     keyconfig.unload()
+    tools.unregister()
+    ops.unregister()
 
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

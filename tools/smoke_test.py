@@ -1,0 +1,326 @@
+"""Headless check that the add-on registers and its geometry layer is correct.
+
+Run with:
+    blender -b --python tools/smoke_test.py
+
+Exits non-zero on the first failure, so it works as a CI gate. This does not
+drive the modal tools -- those need a real 3D View and a mouse -- but it does
+cover everything underneath them: registration, the keyconfig, the toolbar, and
+the mesh operations Line, Rectangle and Push/Pull ultimately perform.
+"""
+
+import sys
+import traceback
+
+import bpy
+
+BONSAI = "bl_ext.blender_org.bonsai"
+ADDON = "bl_ext.user_default.bonsaibim_sketch_mode"
+
+failures = []
+checks = 0
+
+
+def check(label, condition, detail=""):
+    global checks
+    checks += 1
+    if condition:
+        print(f"  ok    {label}")
+    else:
+        print(f"  FAIL  {label}" + (f" -- {detail}" if detail else ""))
+        failures.append(label)
+
+
+def section(title):
+    print(f"\n{title}")
+
+
+# --- Enable ------------------------------------------------------------------
+
+section("Add-ons")
+try:
+    bpy.ops.preferences.addon_enable(module=BONSAI)
+    bonsai_enabled = BONSAI in bpy.context.preferences.addons
+except Exception as exc:
+    bonsai_enabled = False
+    print(f"  note  Bonsai could not be enabled: {exc}")
+check("Bonsai enabled", bonsai_enabled)
+
+bpy.ops.preferences.addon_enable(module=ADDON)
+check("Sketch Mode enabled", ADDON in bpy.context.preferences.addons)
+
+addon = sys.modules.get(ADDON)
+check("add-on module importable", addon is not None)
+if addon is None:
+    print("\nCannot continue without the add-on module.")
+    sys.exit(1)
+
+bridge = addon.bridge
+sketchmesh = addon.sketchmesh
+tools = addon.tools
+rectangle = sys.modules[ADDON + ".ops.rectangle"]
+
+
+# --- Bonsai surface ----------------------------------------------------------
+
+section("Bonsai bridge")
+check("Bonsai available", bridge.is_available(), bridge.unavailable_reason() or "")
+check(
+    f"version {bridge.version()} matches tested {bridge.TESTED_BONSAI_VERSION}",
+    not bridge.is_untested_version(),
+)
+check(
+    "polyline engine available",
+    bridge.polyline_engine_available(),
+    bridge.polyline_unavailable_reason() or "",
+)
+check("Polyline namespace bound", bridge.Polyline is not None)
+check("Model namespace bound", bridge.Model is not None)
+check("measure operator exists", hasattr(bpy.ops.bim, bridge.MEASURE_OP.split(".")[1]))
+check(
+    "clear measurement operator exists",
+    hasattr(bpy.ops.bim, bridge.CLEAR_MEASUREMENT_OP.split(".")[1]),
+)
+
+# What PolylineToolBase.init_polyline calls. A signature change here is the
+# most likely way a Bonsai upgrade breaks the drawing tools.
+try:
+    tool_state = bridge.Polyline.create_tool_state()
+    input_ui = bridge.Polyline.create_input_ui(input_options=["D", "A", "X", "Y", "Z"])
+    polyline_api = tool_state is not None and input_ui is not None
+    detail = ""
+except Exception as exc:
+    polyline_api = False
+    detail = str(exc)
+check("polyline tool state and input UI construct", polyline_api, detail)
+check("polyline props readable", bridge.Model.get_polyline_props() is not None)
+
+# The measurement box Push/Pull types into.
+check("parses a plain number", bridge.parse_length("2.5") == 2.5, f"got {bridge.parse_length('2.5')!r}")
+check("parses an expression", bridge.parse_length("=1+2") == 3.0, f"got {bridge.parse_length('=1+2')!r}")
+check("rejects nonsense", bridge.parse_length("banana") is None, f"got {bridge.parse_length('banana')!r}")
+check("rejects empty input", bridge.parse_length("") is None)
+check("formats a length", isinstance(bridge.format_length(2.5), str))
+
+
+# --- Registration ------------------------------------------------------------
+
+section("Registration")
+check("Sketch keyconfig present", "Sketch" in bpy.context.window_manager.keyconfigs)
+for op_name in ("line", "rectangle", "push_pull"):
+    check(f"operator bonsaibim_sketch_mode.{op_name}", hasattr(bpy.ops.bonsaibim_sketch_mode, op_name))
+
+# Mirrors how bpy.utils.register_tool finds the list it appends to.
+from bl_ui.space_toolsystem_common import ToolSelectPanelHelper
+
+registered_tools = set()
+try:
+    panel = ToolSelectPanelHelper._tool_class_from_space_type("VIEW_3D")
+    for item in ToolSelectPanelHelper._tools_flatten(panel._tools["OBJECT"]):
+        if item is not None:
+            registered_tools.add(item.idname)
+except Exception:
+    traceback.print_exc()
+
+for tool_cls in tools.tools:
+    check(f"toolbar entry {tool_cls.bl_label}", tool_cls.bl_idname in registered_tools)
+
+
+# --- Keymap ------------------------------------------------------------------
+
+section("Keymap")
+kc = bpy.context.window_manager.keyconfigs.get("Sketch")
+bound = {}
+if kc is not None:
+    km = kc.keymaps.get("3D View")
+    if km is not None:
+        for kmi in km.keymap_items:
+            if kmi.idname == "wm.tool_set_by_id" and not (kmi.ctrl or kmi.alt or kmi.shift):
+                bound[kmi.type] = kmi.properties.name
+
+expected = {
+    "SPACE": tools.SELECT_TOOL,
+    "L": tools.LINE_TOOL,
+    "R": tools.RECTANGLE_TOOL,
+    "P": tools.PUSH_PULL_TOOL,
+    "T": tools.TAPE_TOOL,
+}
+for key, idname in expected.items():
+    check(f"{key} -> {idname}", bound.get(key) == idname, f"got {bound.get(key)!r}")
+
+for key in ("F", "B", "E"):
+    check(f"{key} left unbound (tool not built)", key not in bound, f"got {bound.get(key)!r}")
+
+
+# --- Sketch geometry ---------------------------------------------------------
+
+from mathutils import Vector
+
+section("Sketch geometry")
+context = bpy.context
+for obj in list(bpy.data.objects):
+    bpy.data.objects.remove(obj, do_unlink=True)
+context.view_layer.objects.active = None
+
+square = [Vector((0, 0, 0)), Vector((4, 0, 0)), Vector((4, 3, 0)), Vector((0, 3, 0))]
+obj, faces = sketchmesh.commit(context, square, close=True)
+check("closed loop creates an object", obj is not None)
+check("closed loop is faced", faces == 1, f"got {faces}")
+check("4 vertices", len(obj.data.vertices) == 4, f"got {len(obj.data.vertices)}")
+check("4 edges", len(obj.data.edges) == 4, f"got {len(obj.data.edges)}")
+check("marked as sketch geometry", sketchmesh.is_sketch_object(obj))
+check("left active for the next stroke", context.view_layer.objects.active is obj)
+
+# A second stroke should join the first, not start a new object.
+tail = [Vector((4, 3, 0)), Vector((8, 3, 0))]
+obj2, faces2 = sketchmesh.commit(context, tail, close=False)
+check("second stroke reuses the object", obj2 is obj)
+check("shared endpoint welds", len(obj.data.vertices) == 5, f"got {len(obj.data.vertices)}")
+check("open stroke adds no face", faces2 == 0, f"got {faces2}")
+check("5 edges", len(obj.data.edges) == 5, f"got {len(obj.data.edges)}")
+
+# An open stroke that walks back to its start still closes.
+context.view_layer.objects.active = None
+triangle = [Vector((0, 0, 9)), Vector((2, 0, 9)), Vector((1, 2, 9)), Vector((0, 0, 9))]
+tri_obj, tri_faces = sketchmesh.commit(context, triangle, close=False)
+check("stroke back onto its start is faced", tri_faces == 1, f"got {tri_faces}")
+check("start point not duplicated", len(tri_obj.data.vertices) == 3, f"got {len(tri_obj.data.vertices)}")
+
+# Degenerate input.
+none_obj, none_faces = sketchmesh.commit(context, [Vector((0, 0, 0))], close=False)
+check("single point draws nothing", none_obj is None and none_faces == 0)
+
+
+# --- Rectangle geometry ------------------------------------------------------
+
+section("Rectangle")
+a = Vector((1.0, 2.0, 3.0))
+check("flat pair infers XY", rectangle.infer_plane(a, Vector((5.0, 7.0, 3.0))) == "XY")
+check("constant Y infers XZ", rectangle.infer_plane(a, Vector((5.0, 2.0, 8.0))) == "XZ")
+check("constant X infers YZ", rectangle.infer_plane(a, Vector((1.0, 7.0, 8.0))) == "YZ")
+
+corners = rectangle.corners(a, Vector((5.0, 7.0, 3.0)), "XY")
+check("XY rectangle has 4 corners", corners is not None and len(corners) == 4)
+check("XY rectangle stays level", all(abs(c.z - 3.0) < 1e-9 for c in corners))
+check(
+    "XY corners wind around the diagonal",
+    corners[1] == Vector((5.0, 2.0, 3.0)) and corners[3] == Vector((1.0, 7.0, 3.0)),
+    f"got {corners}",
+)
+
+vertical = rectangle.corners(a, Vector((5.0, 2.0, 8.0)), "XZ")
+check("XZ rectangle holds Y", all(abs(c.y - 2.0) < 1e-9 for c in vertical))
+check("XZ rectangle spans X and Z", vertical[2] == Vector((5.0, 2.0, 8.0)), f"got {vertical}")
+
+side = rectangle.corners(a, Vector((1.0, 7.0, 8.0)), "YZ")
+check("YZ rectangle holds X", all(abs(c.x - 1.0) < 1e-9 for c in side))
+
+check("zero-width rectangle rejected", rectangle.corners(a, Vector((1.0, 7.0, 3.0)), "XY") is None)
+check("zero-height rectangle rejected", rectangle.corners(a, Vector((5.0, 2.0, 3.0)), "XY") is None)
+
+# The rectangle a user actually gets.
+context.view_layer.objects.active = None
+rect_obj, rect_faces = sketchmesh.commit(context, corners, close=True)
+check("rectangle is one face", rect_faces == 1, f"got {rect_faces}")
+check("rectangle area is 4x5", abs(rect_obj.data.polygons[0].area - 20.0) < 1e-6)
+
+
+# --- Push/Pull ---------------------------------------------------------------
+#
+# The modal loop needs a viewport and a mouse, but the geometry it performs
+# does not -- and that is where a mistake would silently produce a mesh that
+# looks solid and is not.
+
+import bmesh
+from mathutils import Matrix
+
+section("Push/Pull")
+pushpull = sys.modules[ADDON + ".ops.pushpull"]
+identity = Matrix.Identity(3)
+up = Vector((0.0, 0.0, 1.0))
+
+context.view_layer.objects.active = None
+plate = [Vector((0, 0, 0)), Vector((2, 0, 0)), Vector((2, 2, 0)), Vector((0, 2, 0))]
+plate_obj, _ = sketchmesh.commit(context, plate, close=True)
+
+flat = bmesh.new()
+flat.from_mesh(plate_obj.data)
+flat.faces.ensure_lookup_table()
+check("a drawn face reads as an open sheet", pushpull.face_is_open_sheet(flat.faces[0]))
+
+box = pushpull.extruded(flat, 0, identity, up, 3.0, keep_face=True)
+check("sheet extrudes to 8 vertices", len(box.verts) == 8, f"got {len(box.verts)}")
+check("sheet extrudes to 6 faces", len(box.faces) == 6, f"got {len(box.faces)}")
+check("box is closed", all(len(e.link_faces) == 2 for e in box.edges))
+check("box volume is 2x2x3", abs(box.calc_volume(signed=False) - 12.0) < 1e-6,
+      f"got {box.calc_volume(signed=False)}")
+# A signed volume matching the unsigned one means every face points outward.
+# A sheet's winding is arbitrary, so closing it into a solid has to fix that.
+check("new solid's normals all point outward", box.calc_volume(signed=True) > 0,
+      f"signed volume {box.calc_volume(signed=True)}")
+
+# Pulling a face of that solid must consume the original face, not bury it.
+box.faces.ensure_lookup_table()
+top = max(box.faces, key=lambda f: f.calc_center_median().z)
+check("a solid's face is not an open sheet", not pushpull.face_is_open_sheet(top))
+
+taller = pushpull.extruded(box, top.index, identity, up, 2.0, keep_face=False)
+check("pulling a solid keeps 8 vertices", len(taller.verts) == 8, f"got {len(taller.verts)}")
+check("pulling a solid keeps 6 faces", len(taller.faces) == 6, f"got {len(taller.faces)}")
+check("no interior face left behind", all(len(e.link_faces) == 2 for e in taller.edges))
+check("volume grows to 2x2x5", abs(taller.calc_volume(signed=False) - 20.0) < 1e-6,
+      f"got {taller.calc_volume(signed=False)}")
+
+# Widening a box sideways: the seam merges into the caps it extends.
+side = max(box.faces, key=lambda f: f.calc_center_median().x)
+wider = pushpull.extruded(box, side.index, identity, side.normal.copy(), 1.0, keep_face=False)
+check("widening a box keeps 8 vertices", len(wider.verts) == 8, f"got {len(wider.verts)}")
+check("widening a box keeps 6 faces", len(wider.faces) == 6, f"got {len(wider.faces)}")
+check("volume grows to 3x2x3", abs(wider.calc_volume(signed=False) - 18.0) < 1e-6,
+      f"got {wider.calc_volume(signed=False)}")
+
+# Pushing inward is the same operation with a negative distance.
+shorter = pushpull.extruded(box, top.index, identity, up, -1.0, keep_face=False)
+check("pushing inward keeps it closed", all(len(e.link_faces) == 2 for e in shorter.edges))
+check("volume shrinks to 2x2x2", abs(shorter.calc_volume(signed=False) - 8.0) < 1e-6,
+      f"got {shorter.calc_volume(signed=False)}")
+
+# Zero distance must not duplicate geometry -- it is the state the tool sits in
+# before the user has dragged, and every mouse move rebuilds from here.
+unchanged = pushpull.extruded(flat, 0, identity, up, 0.0, keep_face=True)
+check("zero distance changes nothing", len(unchanged.verts) == 4 and len(unchanged.faces) == 1)
+
+# Non-uniform object scale must not distort the requested distance.
+half = Matrix.Diagonal(Vector((2.0, 1.0, 4.0))).to_3x3()
+scaled = pushpull.extruded(flat, 0, half.inverted(), up, 4.0, keep_face=True)
+heights = sorted({round(v.co.z, 6) for v in scaled.verts})
+check("world distance survives object scale", heights == [0.0, 1.0], f"local heights {heights}")
+
+for mesh in (flat, box, taller, wider, shorter, unchanged, scaled):
+    mesh.free()
+
+
+# --- Unregister --------------------------------------------------------------
+
+section("Unregister")
+try:
+    bpy.ops.preferences.addon_disable(module=ADDON)
+    clean = True
+    message = ""
+except Exception as exc:
+    clean = False
+    message = str(exc)
+check("disables cleanly", clean, message)
+check("keyconfig removed", "Sketch" not in bpy.context.window_manager.keyconfigs)
+
+
+# --- Result ------------------------------------------------------------------
+
+print(f"\n{checks - len(failures)}/{checks} checks passed")
+if failures:
+    print("failed:")
+    for name in failures:
+        print(f"  - {name}")
+    sys.exit(1)
+print("SMOKE TEST PASSED")
+sys.exit(0)

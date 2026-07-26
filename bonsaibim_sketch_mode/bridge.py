@@ -113,3 +113,166 @@ WINDOW_TOOL = "bim.window_tool"
 ROOF_TOOL = "bim.roof_tool"
 RAILING_TOOL = "bim.railing_tool"
 STAIR_FLIGHT_TOOL = "bim.stair_flight_tool"
+
+# Operator idnames, read from the modules named in the comments (Bonsai 0.8.4).
+MEASURE_OP = "bim.measure_tool"  # bim/module/project/operator.py
+MEASURE_FACE_AREA_OP = "bim.measure_face_area_tool"  # bim/module/project/operator.py
+CLEAR_MEASUREMENT_OP = "bim.clear_measurement"  # bim/module/project/operator.py
+ASSIGN_CLASS_OP = "bim.assign_class"  # bim/module/root/operator.py
+UPDATE_REPRESENTATION_OP = "bim.update_representation"  # bim/module/geometry/operator.py
+DELETE_OP = "bim.override_object_delete"  # bim/module/geometry/operator.py
+
+
+# --- Bonsai's polyline engine ------------------------------------------------
+# Bonsai already implements the hard parts of a direct modeller: inference
+# snapping, axis and plane locking, and a measurement box that parses metric
+# and imperial input. Our drawing tools subclass its PolylineOperator rather
+# than reimplement any of it.
+#
+# These are Bonsai internals, not a public API. That is exactly why they live
+# here: an upgrade that moves them breaks this file and nothing else.
+
+_polyline_reason: Optional[str] = None
+_PolylineOperator: Any = None
+_PolylineDecorator: Any = None
+
+if _tool is not None:
+    try:
+        from bonsai.bim.module.model.polyline import PolylineOperator as _PolylineOperator
+        from bonsai.bim.module.model.decorator import PolylineDecorator as _PolylineDecorator
+    except Exception as exc:  # pragma: no cover - depends on host install
+        _polyline_reason = f"Bonsai's polyline engine could not be imported: {exc}"
+else:
+    _polyline_reason = _unavailable_reason
+
+
+class _InertPolylineOperator:
+    """Stand-in base class used when Bonsai's polyline engine is missing.
+
+    The drawing tools subclass PolylineOperator at import time, so they need
+    something to inherit from even on a broken install. Operators built on this
+    never poll true, so they are inert rather than half-working.
+    """
+
+    @classmethod
+    def poll(cls, context: Any) -> bool:
+        return False
+
+    def __init__(self) -> None:
+        pass
+
+
+class _InertPolylineDecorator:
+    """No-op stand-in for Bonsai's viewport overlay."""
+
+    @classmethod
+    def install(cls, context: Any) -> None:
+        pass
+
+    @classmethod
+    def uninstall(cls) -> None:
+        pass
+
+    @classmethod
+    def update(cls, *args: Any, **kwargs: Any) -> None:
+        pass
+
+
+PolylineOperator: Any = _PolylineOperator or _InertPolylineOperator
+PolylineDecorator: Any = _PolylineDecorator or _InertPolylineDecorator
+
+
+def polyline_engine_available() -> bool:
+    """True if the drawing tools can run."""
+    return _PolylineOperator is not None
+
+
+def polyline_unavailable_reason() -> Optional[str]:
+    return _polyline_reason
+
+
+# --- Bonsai tool namespaces --------------------------------------------------
+# Bound once at import so callers write ``bridge.Polyline.foo()`` rather than
+# threading a namespace object around. None when Bonsai is absent; the
+# operators that use them do not poll true in that case.
+
+
+def _namespace(name: str) -> Any:
+    return getattr(_tool, name, None) if _tool is not None else None
+
+
+Blender: Any = _namespace("Blender")
+Cad: Any = _namespace("Cad")
+Ifc: Any = _namespace("Ifc")
+Model: Any = _namespace("Model")
+Polyline: Any = _namespace("Polyline")
+Raycast: Any = _namespace("Raycast")
+Root: Any = _namespace("Root")
+Snap: Any = _namespace("Snap")
+
+
+# --- Convenience wrappers ----------------------------------------------------
+
+
+def has_project() -> bool:
+    """True if an IFC project is currently open."""
+    if _tool is None:
+        return False
+    try:
+        return _tool.Ifc.get() is not None
+    except Exception:
+        return False
+
+
+def get_entity(obj: Any) -> Any:
+    """The IFC element an object represents, or None if it is plain geometry."""
+    if _tool is None or obj is None:
+        return None
+    try:
+        return _tool.Ifc.get_entity(obj)
+    except Exception:
+        return None
+
+
+def default_selection_keymap() -> tuple:
+    """Blender's stock click and box selection bindings, for our tool keymaps."""
+    if _tool is None:
+        return ()
+    try:
+        return tuple(_tool.Blender.get_default_selection_keypmap())
+    except Exception:
+        return ()
+
+
+def parse_length(text: str) -> Optional[float]:
+    """Parse typed length input, or None if it is not valid.
+
+    Accepts everything Bonsai's measurement box does, including imperial
+    (``5' 6"``), fractions and ``=``-prefixed expressions.
+    """
+    if _tool is None or not text:
+        return None
+    try:
+        is_valid, value = _tool.Polyline.validate_input(text, "D")
+        return float(value) if is_valid else None
+    except Exception:
+        return None
+
+
+def format_length(value: float) -> str:
+    """Format a length in the project's unit system."""
+    if _tool is None:
+        return f"{value:.3f}"
+    try:
+        return _tool.Polyline.format_input_ui_units(value)
+    except Exception:
+        return f"{value:.3f}"
+
+
+def update_viewport() -> None:
+    if _tool is None:
+        return
+    try:
+        _tool.Blender.update_viewport()
+    except Exception:
+        pass

@@ -37,15 +37,39 @@ failing silently.
 > built against Python 3.10 or 3.11. Newer Blender releases may ship a Python
 > those wheels do not support — check before upgrading.
 
+## The tools
+
+| Key | Tool |
+| --- | --- |
+| `Space` | Select |
+| `L` | Line |
+| `R` | Rectangle |
+| `P` | Push/Pull |
+| `T` | Tape Measure |
+| `M` `Q` `S` | Move / Rotate / Scale |
+| `O` `H` `Z` | Orbit / Pan / Zoom (`Shift+Z` for zoom extents) |
+
+All of them are in the 3D View toolbar too. Line, Rectangle and Tape run on
+Bonsai's polyline engine, so they share its inference snapping, axis and plane
+locks, and its measurement box — imperial input and typed expressions included.
+
+Line, Rectangle and Push/Pull produce plain Blender meshes, not IFC elements: a
+direct modeller's workflow is to sketch first and assign meaning second, and
+Bonsai's own **Assign IFC Class** completes it. Push/Pull declines to touch an
+IFC element rather than tessellate away its parametric definition.
+
 ## Status
 
-Early. Working:
+Early, but usable for sketching. Working:
 
 - Add-on registration, Bonsai detection and version guard
-- A complete `Sketch` keyconfig (Select / Line / Move / Rotate / Scale / Orbit / Pan / Zoom)
 - The `Sketch` workspace tab, added automatically on file load
+- A complete `Sketch` keyconfig
+- Line, Rectangle, Push/Pull and Tape Measure
 
-Not yet built: most of the tool set. See the roadmap in
+Not yet built: Offset, Follow Me, Eraser, Paint, and Push/Pull on parametric
+IFC elements. `F`, `B` and `E` are left unbound rather than pointed at an
+approximation. See the roadmap in
 [bonsaibim_sketch_mode/README.md](bonsaibim_sketch_mode/README.md).
 
 ## Development
@@ -56,6 +80,17 @@ are picked up in place:
 ```
 mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsaibim_sketch_mode" "C:\2026_bonsai\bonsaibim_sketch_mode"
 ```
+
+Check it registers and its geometry is correct:
+
+```
+blender -b --python tools/smoke_test.py
+```
+
+This exits non-zero on the first failure, so it works as a CI gate. It cannot
+drive the modal tools — those need a viewport and a mouse — but it covers
+everything underneath them, including the mesh operations Line, Rectangle and
+Push/Pull ultimately perform. Verified against Blender 5.0 and Bonsai 0.8.4.
 
 Build a distributable package:
 
