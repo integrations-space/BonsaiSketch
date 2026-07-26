@@ -118,6 +118,16 @@ def run():
         check("tool palette shown", space is not None and space.show_region_toolbar)
         check("properties sidebar hidden", space is not None and not space.show_region_ui)
         check("perspective view", space is not None and space.region_3d.view_perspective == "PERSP")
+        check("solid shading", space is not None and space.shading.type == "SOLID")
+        # Without this, Object Mode draws no mesh edges at all and Push/Pull
+        # has nothing to aim at: a box is an untextured blob with no visible
+        # face boundaries.
+        check("mesh edges drawn over solid faces", space is not None and space.overlay.show_wireframes)
+        check(
+            "every edge shown, not just creases",
+            space is not None and abs(space.overlay.wireframe_threshold - 1.0) < 1e-6,
+            f"threshold {space.overlay.wireframe_threshold if space else '?'}",
+        )
 
     window, area, region = find_view3d()
     check("found a 3D viewport", area is not None)

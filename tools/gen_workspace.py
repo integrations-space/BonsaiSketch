@@ -146,6 +146,18 @@ def tune(workspace):
                 space.shading.show_object_outline = True
                 space.shading.show_specular_highlight = False
 
+                # Every mesh edge drawn over the solid faces. This is not
+                # decoration -- it is what makes Push/Pull usable. Blender
+                # draws no mesh edges in Object Mode, and `show_object_outline`
+                # only rings the whole object, so a box reads as an untextured
+                # blob with no visible face boundaries: nothing tells you which
+                # face is under the cursor or where it ends. It is also the
+                # look a direct modeller expects, where edges are geometry you
+                # can see rather than a mode you switch into.
+                space.overlay.show_wireframes = True
+                space.overlay.wireframe_threshold = 1.0  # every edge, not just creases
+                space.overlay.wireframe_opacity = 1.0
+
                 # Ground plane and the red/green axes.
                 space.overlay.show_floor = True
                 space.overlay.show_axis_x = True
