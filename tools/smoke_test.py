@@ -65,10 +65,24 @@ rectangle = sys.modules[ADDON + ".ops.rectangle"]
 
 section("Bonsai bridge")
 check("Bonsai available", bridge.is_available(), bridge.unavailable_reason() or "")
+check("Bonsai version detected", bridge.version() is not None)
+
+# Deliberately not asserting the versions match. The add-on treats an untested
+# Bonsai as a warning, not an error -- it says so in the preferences panel and
+# carries on -- so a test that fails on any mismatch would contradict the
+# design and turn every Bonsai release into a red build. What is worth
+# asserting is that the guard agrees with reality.
+detected = bridge.version()
 check(
-    f"version {bridge.version()} matches tested {bridge.TESTED_BONSAI_VERSION}",
-    not bridge.is_untested_version(),
+    "untested-version guard tracks the installed version",
+    bridge.is_untested_version() == (detected != bridge.TESTED_BONSAI_VERSION),
 )
+if bridge.is_untested_version():
+    print(
+        f"  NOTE  running against Bonsai {detected}, "
+        f"built against {bridge.TESTED_BONSAI_VERSION} -- "
+        "everything below is therefore also an untested-version report"
+    )
 check(
     "polyline engine available",
     bridge.polyline_engine_available(),
