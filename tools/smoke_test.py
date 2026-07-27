@@ -695,7 +695,14 @@ ifcopenshell.api.pset.edit_pset(
 ifcopenshell.api.pset.edit_pset(
     typed, pset=type_pset, properties={"Fire Rating": "2h"}, should_purge=False)
 
-occurrence = ifcopenshell.api.root.create_entity(typed, ifc_class="IfcDoor", name="D1")
+# Created with listeners off: this fixture is the door that is *already
+# typed* when the sweep meets it -- the library-template scenario. With the
+# add-on's creation listener live, the untyped just-created door would get
+# the full set (Fire Rating included) a moment before assign_type runs,
+# which is the separate, accepted create-then-type ordering -- real, but
+# not what these checks pin.
+occurrence = ifcopenshell.api.root.create_entity(
+    typed, ifc_class="IfcDoor", name="D1", should_run_listeners=False)
 ifcopenshell.api.type.assign_type(typed, related_objects=[occurrence], relating_type=door_type)
 psets.forget()
 psets.sweep(typed, psets.AttachSettings(stage="detailed"))
