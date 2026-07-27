@@ -159,28 +159,46 @@ def _required_names(element: Any, settings: AttachSettings) -> dict[str, list[st
 
 
 def missing_names(element: Any, settings: AttachSettings) -> dict[str, list[str]]:
-    """pset name -> required names the element does not yet carry itself.
+    """pset name -> required names neither the element nor its type answers.
 
-    Deliberately blind to what the element's *type* carries, matching where
-    :func:`ensure` writes. Counting an inherited name as present would leave an
-    occurrence permanently short of its own copy: a door typed to a library
-    type that already holds the whole set gets nothing at creation, and no
-    later sweep tops it up, because every name looks accounted for. The
-    standard asks its questions of the element.
+    Presence is judged against the element's *own* set, matching where
+    :func:`ensure` writes. Counting an inherited placeholder as present would
+    leave an occurrence permanently short of its own copy: a door typed to a
+    library type that already holds the whole set gets nothing at creation,
+    and no later sweep tops it up, because every name looks accounted for.
+    The standard asks its questions of the element.
 
-    Writing a null beside a type's real answer is safe, which is what makes
-    this the right way round: ifcopenshell's inherited view still returns the
-    type's filled value, so the occurrence's placeholder cannot hide it. The
-    check suite pins that down rather than trusting it.
+    With one exception: a name the type has *answered* -- filled, not just
+    listed -- is never re-asked on the occurrence. A null written beside a
+    filled answer hides it from the merged views: ``get_psets`` and the dict
+    form of ``get_pset`` let an occurrence's null shadow the type's value,
+    and only the single-property accessor falls back through it. An answered
+    question needs no placeholder; an unanswered one gets the occurrence's
+    own. The check suite pins the shadowing rather than trusting either
+    accessor to keep behaving.
     """
+    element_type = None
+    try:
+        element_type = ifcopenshell.util.element.get_type(element)
+    except Exception:
+        element_type = None
     missing = {}
     for pset_name, required in _required_names(element, settings).items():
         if not required:
             continue
-        existing = (
+        own = (
             ifcopenshell.util.element.get_pset(element, pset_name, should_inherit=False) or {}
         )
-        names = [name for name in required if name not in existing]
+        names = [name for name in required if name not in own]
+        if names and element_type is not None:
+            answered = {
+                key
+                for key, value in (
+                    ifcopenshell.util.element.get_pset(element_type, pset_name) or {}
+                ).items()
+                if value is not None
+            }
+            names = [name for name in names if name not in answered]
         if names:
             missing[pset_name] = names
     return missing

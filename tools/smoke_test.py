@@ -701,13 +701,24 @@ psets.forget()
 psets.sweep(typed, psets.AttachSettings(stage="detailed"))
 own = ifcopenshell.util.element.get_pset(occurrence, psets.PSET_NAME, should_inherit=False) or {}
 wanted = requirements.parameter_names("IfcDoor", "detailed")
-check("a typed occurrence gets its own copy, not the type's",
-      all(name in own for name in wanted),
-      f"absent from the occurrence: {[n for n in wanted if n not in own]}")
-# Which is only safe because a placeholder cannot hide a real answer: the type
-# still wins when the occurrence's own value is null. If that ever stops being
-# true, the line above turns from thorough into destructive.
-check("the occurrence's null does not shadow the type's filled value",
+unanswered = [n for n in wanted if n != "Fire Rating"]
+check("a typed occurrence gets its own copy of the unanswered questions",
+      all(name in own for name in unanswered),
+      f"absent from the occurrence: {[n for n in unanswered if n not in own]}")
+# ...but a question the type has answered is not re-asked. This is not a
+# nicety: in the merged dict views (get_psets, and get_pset without a prop) an
+# occurrence's null SHADOWS the type's filled value -- only the single-property
+# accessor falls back through it. A placeholder written beside the type's "2h"
+# would report the fire rating as unanswered to every consumer of those views.
+# Both halves are pinned here so a change in either accessor's behaviour shows
+# up as a failure rather than as silently hidden data.
+check("a question the type has answered is not re-asked on the occurrence",
+      "Fire Rating" not in own,
+      f"occurrence carries Fire Rating = {own.get('Fire Rating')!r}")
+check("the type's answer stays visible in the merged dict view",
+      (ifcopenshell.util.element.get_psets(occurrence).get(psets.PSET_NAME) or {}).get("Fire Rating") == "2h",
+      f"got {(ifcopenshell.util.element.get_psets(occurrence).get(psets.PSET_NAME) or {}).get('Fire Rating')!r}")
+check("and in the single-property accessor",
       ifcopenshell.util.element.get_pset(occurrence, psets.PSET_NAME, "Fire Rating") == "2h",
       f"got {ifcopenshell.util.element.get_pset(occurrence, psets.PSET_NAME, 'Fire Rating')!r}")
 
