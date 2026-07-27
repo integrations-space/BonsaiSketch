@@ -15,7 +15,7 @@ import traceback
 import bpy
 
 BONSAI = "bl_ext.blender_org.bonsai"
-ADDON = "bl_ext.user_default.bonsaibim_sketch_mode"
+ADDON = "bl_ext.user_default.bonsai_sketch_mode"
 
 failures = []
 checks = 0
@@ -122,7 +122,7 @@ check("formats a length", isinstance(bridge.format_length(2.5), str))
 section("Registration")
 check("Sketch keyconfig present", "Sketch" in bpy.context.window_manager.keyconfigs)
 for op_name in ("line", "rectangle", "push_pull"):
-    check(f"operator bonsaibim_sketch_mode.{op_name}", hasattr(bpy.ops.bonsaibim_sketch_mode, op_name))
+    check(f"operator bonsai_sketch_mode.{op_name}", hasattr(bpy.ops.bonsai_sketch_mode, op_name))
 
 # Mirrors how bpy.utils.register_tool finds the list it appends to.
 from bl_ui.space_toolsystem_common import ToolSelectPanelHelper

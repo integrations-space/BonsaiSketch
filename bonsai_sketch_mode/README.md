@@ -120,10 +120,10 @@ Junction this directory into Blender's user extension repository so edits are
 picked up in place:
 
 ```text
-mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsaibim_sketch_mode" "C:\2026_bonsai\bonsaibim_sketch_mode"
+mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsai_sketch_mode" "C:\2026_bonsai\bonsai_sketch_mode"
 ```
 
-Then enable **BonsaiBIM Sketch Mode** in Preferences > Add-ons.
+Then enable **Bonsai Sketch Mode** in Preferences > Add-ons.
 
 Two check suites. Headless, for registration and geometry:
 

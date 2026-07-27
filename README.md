@@ -57,7 +57,7 @@ tab appears in the bar across the top of the window.
 
 ### Step 3 — Install BonsaiSketch
 
-Download **`bonsaibim_sketch_mode-0.3.0.zip`** from
+Download **`bonsai_sketch_mode-0.3.0.zip`** from
 [the latest release](https://github.com/integrations-space/BonsaiSketch/releases/latest).
 Do not unzip it. Then, in Blender:
 
@@ -161,7 +161,7 @@ Early, but usable for sketching. Working:
 Not yet built: Offset, Follow Me, Eraser, Paint, and Push/Pull on parametric
 IFC elements. `F`, `B` and `E` are left unbound rather than pointed at an
 approximation. See the roadmap in
-[bonsaibim_sketch_mode/README.md](bonsaibim_sketch_mode/README.md).
+[bonsai_sketch_mode/README.md](bonsai_sketch_mode/README.md).
 
 ## Testing it, and telling us what broke
 
@@ -193,13 +193,13 @@ same terms. Nothing here is locked down.
 ```text
 git clone https://github.com/integrations-space/BonsaiSketch
 cd BonsaiSketch
-blender --command extension build --source-dir bonsaibim_sketch_mode --output-dir dist
+blender --command extension build --source-dir bonsai_sketch_mode --output-dir dist
 ```
 
-That produces `dist/bonsaibim_sketch_mode-<version>.zip`, which installs
+That produces `dist/bonsai_sketch_mode-<version>.zip`, which installs
 exactly like a release build via `Install from Disk`. A fork needs no other
 change — but do give it a different `id` and `name` in
-`bonsaibim_sketch_mode/blender_manifest.toml` if both versions might end up
+`bonsai_sketch_mode/blender_manifest.toml` if both versions might end up
 installed side by side, since Blender keys extensions by `id`.
 
 ## Development
@@ -208,7 +208,7 @@ Junction the add-on directory into Blender's user extension repository so edits
 are picked up in place:
 
 ```text
-mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsaibim_sketch_mode" "C:\2026_bonsai\bonsaibim_sketch_mode"
+mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsai_sketch_mode" "C:\2026_bonsai\bonsai_sketch_mode"
 ```
 
 Check it registers and its geometry is correct:
@@ -225,23 +225,23 @@ Push/Pull ultimately perform. Verified against Blender 5.0 and Bonsai 0.8.4.
 Build a distributable package:
 
 ```text
-blender --command extension build --source-dir bonsaibim_sketch_mode --output-dir dist
+blender --command extension build --source-dir bonsai_sketch_mode --output-dir dist
 ```
 
 Regenerate the workspace `.blend` after changing the layout:
 
 ```text
-blender -b --factory-startup --python tools/gen_workspace.py -- bonsaibim_sketch_mode/data/workspace.blend
+blender -b --factory-startup --python tools/gen_workspace.py -- bonsai_sketch_mode/data/workspace.blend
 ```
 
 All coupling to Bonsai is confined to
-[bonsaibim_sketch_mode/bridge.py](bonsaibim_sketch_mode/bridge.py). Bonsai is a
+[bonsai_sketch_mode/bridge.py](bonsai_sketch_mode/bridge.py). Bonsai is a
 rolling release with no stable public API contract, so when an upgrade breaks
 this add-on, that file should be the only one needing attention.
 
 ## Licence
 
-GPL-3.0-or-later. See [LICENSE](bonsaibim_sketch_mode/LICENSE).
+GPL-3.0-or-later. See [LICENSE](bonsai_sketch_mode/LICENSE).
 
 This add-on imports Bonsai, which is GPL-3.0-or-later, and is therefore a
 derivative work. If you distribute it — free or paid — you must ship the

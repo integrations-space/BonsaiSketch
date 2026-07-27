@@ -1,4 +1,4 @@
-# BonsaiBIM Sketch Mode - direct-modelling interaction for Bonsai
+# Bonsai Sketch Mode - direct-modelling interaction for Bonsai
 # Copyright (C) 2026 Innovations & Integrations
 #
 # This program is free software: you can redistribute it and/or modify
@@ -153,8 +153,8 @@ def _shell_faces(face: bmesh.types.BMFace) -> list:
     return list(seen)
 
 
-class BONSAIBIM_SKETCH_OT_push_pull(bpy.types.Operator):
-    bl_idname = "bonsaibim_sketch_mode.push_pull"
+class BONSAI_SKETCH_OT_push_pull(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.push_pull"
     bl_label = "Push/Pull"
     bl_description = "Extrude the face under the cursor along its normal"
     bl_options = {"REGISTER", "UNDO"}

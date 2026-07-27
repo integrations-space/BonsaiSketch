@@ -1,4 +1,4 @@
-# BonsaiBIM Sketch Mode - direct-modelling interaction for Bonsai
+# Bonsai Sketch Mode - direct-modelling interaction for Bonsai
 # Copyright (C) 2026 Innovations & Integrations
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""BonsaiBIM Sketch Mode.
+"""Bonsai Sketch Mode.
 
 An add-on layered on top of Bonsai (https://bonsaibim.org/) that presents
 Bonsai's IFC authoring capability through SketchUp's interaction model, to
@@ -39,8 +39,8 @@ _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
 _tools_status: tuple[bool, str] = (False, "Not yet loaded")
 
 
-class BONSAIBIM_SKETCH_OT_activate_keyconfig(bpy.types.Operator):
-    bl_idname = "bonsaibim_sketch_mode.activate_keyconfig"
+class BONSAI_SKETCH_OT_activate_keyconfig(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.activate_keyconfig"
     bl_label = "Activate Sketch Keymap"
     bl_description = "Switch Blender's active keymap to the Sketch Mode preset"
 
@@ -54,8 +54,8 @@ class BONSAIBIM_SKETCH_OT_activate_keyconfig(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class BONSAIBIM_SKETCH_OT_open_workspace(bpy.types.Operator):
-    bl_idname = "bonsaibim_sketch_mode.open_workspace"
+class BONSAI_SKETCH_OT_open_workspace(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.open_workspace"
     bl_label = "Open Sketch Workspace"
     bl_description = "Add the Sketch tab to the top bar and switch to it"
 
@@ -71,8 +71,8 @@ class BONSAIBIM_SKETCH_OT_open_workspace(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class BONSAIBIM_SKETCH_OT_apply_theme(bpy.types.Operator):
-    bl_idname = "bonsaibim_sketch_mode.apply_theme"
+class BONSAI_SKETCH_OT_apply_theme(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.apply_theme"
     bl_label = "Use the Sketch Canvas"
     bl_description = (
         "Sky-and-ground gradient behind the model, with a pale measuring grid.\n\n"
@@ -100,8 +100,8 @@ class BONSAIBIM_SKETCH_OT_apply_theme(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class BONSAIBIM_SKETCH_OT_restore_theme(bpy.types.Operator):
-    bl_idname = "bonsaibim_sketch_mode.restore_theme"
+class BONSAI_SKETCH_OT_restore_theme(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.restore_theme"
     bl_label = "Restore Previous Colours"
     bl_description = "Put the viewport colours back the way they were before the Sketch canvas"
 
@@ -119,7 +119,7 @@ class BONSAIBIM_SKETCH_OT_restore_theme(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
+class BONSAI_SKETCH_Preferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     #: The theme values as they were before we touched them, as JSON. Kept in
@@ -173,7 +173,7 @@ class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
         if workspace.exists():
             box.label(text="Sketch tab is in the top bar.", icon="CHECKMARK")
         else:
-            box.operator(BONSAIBIM_SKETCH_OT_open_workspace.bl_idname, icon="ADD")
+            box.operator(BONSAI_SKETCH_OT_open_workspace.bl_idname, icon="ADD")
 
         ok, message = _keyconfig_status
         box = layout.box()
@@ -186,14 +186,14 @@ class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
             )
             active = context.window_manager.keyconfigs.active
             if not (active and active.name == keyconfig.KEYCONFIG_NAME):
-                box.operator(BONSAIBIM_SKETCH_OT_activate_keyconfig.bl_idname, icon="PLAY")
+                box.operator(BONSAI_SKETCH_OT_activate_keyconfig.bl_idname, icon="PLAY")
 
         box = layout.box()
         box.label(text="Viewport", icon="SHADING_RENDERED")
         applied = theme.looks_applied()
         if self.theme_applied and applied:
             box.label(text="Sketch canvas is on.", icon="CHECKMARK")
-            box.operator(BONSAIBIM_SKETCH_OT_restore_theme.bl_idname, icon="LOOP_BACK")
+            box.operator(BONSAI_SKETCH_OT_restore_theme.bl_idname, icon="LOOP_BACK")
         else:
             if self.theme_applied and applied is False:
                 box.label(text="Something else has changed the theme since.", icon="INFO")
@@ -205,7 +205,7 @@ class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
             )
             col.label(text="so this restyles the 3D viewport in every workspace.")
             col.label(text="Your current colours are recorded and can be restored.")
-            box.operator(BONSAIBIM_SKETCH_OT_apply_theme.bl_idname, icon="COLOR")
+            box.operator(BONSAI_SKETCH_OT_apply_theme.bl_idname, icon="COLOR")
 
         ok, message = _tools_status
         box = layout.box()
@@ -221,11 +221,11 @@ class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
 
 
 classes = (
-    BONSAIBIM_SKETCH_OT_activate_keyconfig,
-    BONSAIBIM_SKETCH_OT_open_workspace,
-    BONSAIBIM_SKETCH_OT_apply_theme,
-    BONSAIBIM_SKETCH_OT_restore_theme,
-    BONSAIBIM_SKETCH_Preferences,
+    BONSAI_SKETCH_OT_activate_keyconfig,
+    BONSAI_SKETCH_OT_open_workspace,
+    BONSAI_SKETCH_OT_apply_theme,
+    BONSAI_SKETCH_OT_restore_theme,
+    BONSAI_SKETCH_Preferences,
 )
 
 
@@ -238,7 +238,7 @@ def register() -> None:
     if not bridge.is_available():
         # Register preferences anyway so the user gets a readable explanation
         # instead of a silent no-op.
-        print(f"[bonsaibim_sketch_mode] {bridge.unavailable_reason()}")
+        print(f"[bonsai_sketch_mode] {bridge.unavailable_reason()}")
         return
 
     # Operators first: the toolbar entries reference them by idname, and
@@ -247,11 +247,11 @@ def register() -> None:
 
     _tools_status = tools.register()
     if not _tools_status[0]:
-        print(f"[bonsaibim_sketch_mode] tools: {_tools_status[1]}")
+        print(f"[bonsai_sketch_mode] tools: {_tools_status[1]}")
 
     _keyconfig_status = keyconfig.load()
     if not _keyconfig_status[0]:
-        print(f"[bonsaibim_sketch_mode] keymap: {_keyconfig_status[1]}")
+        print(f"[bonsai_sketch_mode] keymap: {_keyconfig_status[1]}")
 
     # The Sketch tab is added on file load (Bonsai does the same for its BIM
     # tab). Enabling the add-on mid-session does not fire load_post, so the

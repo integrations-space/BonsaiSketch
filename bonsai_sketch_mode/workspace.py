@@ -1,4 +1,4 @@
-# BonsaiBIM Sketch Mode - direct-modelling interaction for Bonsai
+# Bonsai Sketch Mode - direct-modelling interaction for Bonsai
 # Copyright (C) 2026 Innovations & Integrations
 #
 # This program is free software: you can redistribute it and/or modify
@@ -134,7 +134,7 @@ def _load_post(_dummy) -> None:
         return
     ok, message = append(activate=prefs.activate_workspace)
     if not ok:
-        print(f"[bonsaibim_sketch_mode] workspace: {message}")
+        print(f"[bonsai_sketch_mode] workspace: {message}")
     subscribe()
 
 
@@ -145,7 +145,7 @@ def _append_once() -> None:
         return
     ok, message = append(activate=prefs.activate_workspace)
     if not ok:
-        print(f"[bonsaibim_sketch_mode] workspace: {message}")
+        print(f"[bonsai_sketch_mode] workspace: {message}")
     subscribe()
 
 
@@ -178,7 +178,7 @@ def _run_once() -> None:
     try:
         _append_once()
     except Exception as exc:  # pragma: no cover - depends on host state
-        print(f"[bonsaibim_sketch_mode] workspace: {exc}")
+        print(f"[bonsai_sketch_mode] workspace: {exc}")
     return None
 
 

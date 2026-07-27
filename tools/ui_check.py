@@ -23,7 +23,7 @@ import traceback
 
 import bpy
 
-ADDON = "bl_ext.user_default.bonsaibim_sketch_mode"
+ADDON = "bl_ext.user_default.bonsai_sketch_mode"
 
 REPORT = sys.argv[-1] if "--" in sys.argv else "ui_check.txt"
 

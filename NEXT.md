@@ -22,14 +22,14 @@ not exist, so its wording lists them as unbuilt. #1 builds them.
 
 Resolving #2 after #1 lands:
 
-- `bonsaibim_sketch_mode/keyconfig.py` — take #2's `_su_bindings` docstring, then
+- `bonsai_sketch_mode/keyconfig.py` — take #2's `_su_bindings` docstring, then
   drop `Offset,` from its list of tools still to build. `CLAIMED_KEYS` and
   `UNBUILT_KEYS` need no change: `F` and `E` are already claimed on both sides,
   and neither is in `UNBUILT_KEYS`.
 - `tools/smoke_test.py` — take #2's block wholesale. It reads
   `keyconfig.UNBUILT_KEYS` from the module rather than repeating a literal, so
   it adjusts itself.
-- `bonsaibim_sketch_mode/README.md` — take #2's paragraph, but open it with
+- `bonsai_sketch_mode/README.md` — take #2's paragraph, but open it with
   ``` `B`, `A`, `C` and `G` ``` instead of ``` `F`, `B`, `E`, `A`, `C` and `G` ```,
   since `F` and `E` are bound once #1 is in.
 
@@ -114,7 +114,7 @@ section, which reads as a broken suite rather than a stale install.
 Either rebuild and reinstall before running the suite:
 
 ```text
-blender --command extension build --source-dir bonsaibim_sketch_mode --output-dir dist
+blender --command extension build --source-dir bonsai_sketch_mode --output-dir dist
 blender --command extension install-file --repo user_default --enable dist/*.zip
 ```
 
