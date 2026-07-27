@@ -1,11 +1,11 @@
-# BonsaiSketch
+# Bonsai Sketch Mode
 
 A direct-modelling interaction layer for [Bonsai](https://bonsaibim.org/), the
 open-source native IFC authoring platform for Blender.
 
 Bonsai's IFC capability is excellent. Its adoption barrier is Blender's
-interface — and most architects already know a direct modeller. BonsaiSketch
-presents Bonsai's existing authoring tools through a familiar interaction
+interface — and most architects already know a direct modeller. Bonsai Sketch
+Mode presents Bonsai's existing authoring tools through a familiar interaction
 model: single-key tools, inference snapping, and a measurement box. The IFC
 layer underneath is untouched.
 
@@ -16,11 +16,11 @@ Three layers, each running inside the one below:
 ```
 Blender 5.0 / 5.2      the application you install and launch
   └─ Bonsai 0.8.4/0.8.5  add-on: turns Blender into an IFC/BIM authoring tool
-       └─ BonsaiSketch add-on: gives Bonsai a direct-modelling UI
+       └─ Bonsai Sketch Mode add-on: gives Bonsai a direct-modelling UI
 ```
 
-You install all three. BonsaiSketch does not replace Bonsai — it sits on top of
-it and calls into it.
+You install all three. Bonsai Sketch Mode does not replace Bonsai — it sits on
+top of it and calls into it.
 
 ## Quick start
 
@@ -55,7 +55,7 @@ tab appears in the bar across the top of the window.
 > at Python 3.11. If something misbehaves, your Bonsai version is the first
 > thing to put in a bug report.
 
-### Step 3 — Install BonsaiSketch
+### Step 3 — Install Bonsai Sketch Mode
 
 Download the add-on zip — **`bonsai_sketch_mode-<version>.zip`** — from
 [the latest release](https://github.com/integrations-space/BonsaiSketch/releases/latest).
@@ -208,6 +208,12 @@ git clone https://github.com/integrations-space/BonsaiSketch
 cd BonsaiSketch
 blender --command extension build --source-dir bonsai_sketch_mode --output-dir dist
 ```
+
+The repository is still called `BonsaiSketch`, from before the add-on settled on
+its name. That is an address rather than a name — renaming it would break every
+existing clone, issue link and release URL — so it stays as it is, the same way
+Bonsai's own docs read "Bonsai" while living at `bonsaibim.org`. Everything the
+software calls itself is **Bonsai Sketch Mode**.
 
 That produces `dist/bonsai_sketch_mode-<version>.zip`, which installs
 exactly like a release build via `Install from Disk`. A fork needs no other

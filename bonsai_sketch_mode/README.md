@@ -1,4 +1,4 @@
-# BonsaiSketch
+# Bonsai Sketch Mode
 
 A direct-modelling interaction layer for [Bonsai](https://bonsaibim.org/), the
 open-source native IFC authoring platform for Blender.
