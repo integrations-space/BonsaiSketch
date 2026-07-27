@@ -119,6 +119,53 @@ class BONSAI_SKETCH_OT_restore_theme(bpy.types.Operator):
         return {"FINISHED"}
 
 
+def _recolour(self, context: bpy.types.Context) -> None:
+    """Repaint the moment a colour changes, but only if the canvas is on.
+
+    Picking a colour you cannot see the effect of is guesswork, and Blender's
+    colour picker updates continuously while dragging. Applying when the canvas
+    is off would switch it on behind the user's back, so this stays quiet then.
+    """
+    if self.theme_applied:
+        theme.apply()
+
+
+def _colour_prop(name: str, default, description: str, size: int = 3):
+    """A 0-1 colour swatch that repaints the canvas when changed."""
+    return bpy.props.FloatVectorProperty(
+        name=name,
+        description=description,
+        subtype="COLOR",
+        size=size,
+        min=0.0,
+        max=1.0,
+        default=default,
+        update=_recolour,
+    )
+
+
+class BONSAI_SKETCH_OT_reset_colours(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.reset_colours"
+    bl_label = "Reset All"
+    bl_description = "Put every canvas colour back to the shipped SketchUp-style default"
+
+    def execute(self, context: bpy.types.Context):
+        prefs = workspace.get_prefs()
+        if prefs is None:
+            self.report({"ERROR"}, "Add-on preferences unavailable")
+            return {"CANCELLED"}
+
+        for field in theme.COLOUR_DEFAULTS:
+            prefs.property_unset(field)
+        prefs.property_unset("use_sky_ground")
+
+        # property_unset does not fire the update callback, so repaint by hand.
+        if prefs.theme_applied:
+            theme.apply()
+        self.report({"INFO"}, "Canvas colours reset")
+        return {"FINISHED"}
+
+
 class BONSAI_SKETCH_Preferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
@@ -126,6 +173,28 @@ class BONSAI_SKETCH_Preferences(bpy.types.AddonPreferences):
     #: preferences rather than memory so a restore still works next session.
     saved_theme: bpy.props.StringProperty(default="")
     theme_applied: bpy.props.BoolProperty(default=False)
+
+    use_sky_ground: bpy.props.BoolProperty(
+        name="Sky and ground",
+        description=(
+            "Fade a sky colour down to a ground colour at the horizon. "
+            "Off gives one flat background colour instead, as SketchUp does "
+            "when its sky and ground are switched off"
+        ),
+        default=True,
+        update=_recolour,
+    )
+    sky_colour: _colour_prop("Sky", theme.SKY, "Above the horizon")
+    ground_colour: _colour_prop("Ground", theme.GROUND, "Below the horizon")
+    background_colour: _colour_prop(
+        "Background", theme.BACKGROUND, "Used when sky and ground are switched off"
+    )
+    grid_colour: _colour_prop(
+        "Grid", theme.GRID, "The measuring grid. The fourth slider is opacity", size=4
+    )
+    axis_x_colour: _colour_prop("Red Axis", theme.AXIS_X, "The X axis")
+    axis_y_colour: _colour_prop("Green Axis", theme.AXIS_Y, "The Y axis")
+    axis_z_colour: _colour_prop("Blue Axis", theme.AXIS_Z, "The Z axis")
 
     setup_workspace: bpy.props.BoolProperty(
         name="Add Sketch workspace tab",
@@ -207,6 +276,25 @@ class BONSAI_SKETCH_Preferences(bpy.types.AddonPreferences):
             col.label(text="Your current colours are recorded and can be restored.")
             box.operator(BONSAI_SKETCH_OT_apply_theme.bl_idname, icon="COLOR")
 
+        # Editable whether or not the canvas is on, so colours can be chosen
+        # first and switched on once. Grouped the way SketchUp groups them.
+        box.separator()
+        box.prop(self, "use_sky_ground")
+        col = box.column(align=True)
+        if self.use_sky_ground:
+            col.prop(self, "sky_colour")
+            col.prop(self, "ground_colour")
+        else:
+            col.prop(self, "background_colour")
+        col.prop(self, "grid_colour")
+
+        col = box.column(align=True)
+        col.label(text="Axis and direction colours")
+        col.prop(self, "axis_x_colour")
+        col.prop(self, "axis_y_colour")
+        col.prop(self, "axis_z_colour")
+        box.operator(BONSAI_SKETCH_OT_reset_colours.bl_idname, icon="LOOP_BACK")
+
         ok, message = _tools_status
         box = layout.box()
         box.label(text="Tools", icon="TOOL_SETTINGS")
@@ -225,6 +313,7 @@ classes = (
     BONSAI_SKETCH_OT_open_workspace,
     BONSAI_SKETCH_OT_apply_theme,
     BONSAI_SKETCH_OT_restore_theme,
+    BONSAI_SKETCH_OT_reset_colours,
     BONSAI_SKETCH_Preferences,
 )
 

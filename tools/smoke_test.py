@@ -407,6 +407,61 @@ check("restore is byte-exact, not approximate", theme.snapshot() == original)
 check("restoring nothing is refused", theme.restore("")[0] is False)
 check("unreadable saved values are refused", theme.restore("{not json")[0] is False)
 
+# Colours are user-configurable. Everything reachable from preferences has to
+# be both applied and restorable, or "you can undo this" stops being true.
+prefs = bpy.context.preferences.addons[ADDON].preferences
+ui = bpy.context.preferences.themes[0].user_interface
+gradients = bpy.context.preferences.themes[0].view_3d.space.gradients
+
+
+def close(actual, expected):
+    # Theme colours are stored as bytes, so a round trip lands within one
+    # 8-bit step of what was asked for, never exactly on it.
+    return all(
+        abs(a - b) <= theme.SAME_COLOUR for a, b in zip(list(actual), list(expected))
+    )
+
+
+theme.apply()
+check("apply sets the three axis colours",
+      close(ui.axis_x, theme.AXIS_X)
+      and close(ui.axis_y, theme.AXIS_Y)
+      and close(ui.axis_z, theme.AXIS_Z),
+      f"got {list(ui.axis_x)}, {list(ui.axis_y)}, {list(ui.axis_z)}")
+check("axis colours are recorded for restore",
+      "user_interface::axis_x" in theme.snapshot())
+
+prefs.sky_colour = (0.1, 0.2, 0.3)
+theme.apply()
+check("a chosen sky colour is used, not the default",
+      close(gradients.high_gradient, (0.1, 0.2, 0.3)),
+      f"got {list(gradients.high_gradient)}")
+check("the canvas still reads as on after recolouring", theme.looks_applied() is True)
+
+prefs.axis_x_colour = (0.5, 0.25, 0.75)
+theme.apply()
+check("a chosen axis colour is used", close(ui.axis_x, (0.5, 0.25, 0.75)),
+      f"got {list(ui.axis_x)}")
+
+prefs.use_sky_ground = False
+prefs.background_colour = (0.2, 0.4, 0.6)
+theme.apply()
+check("sky and ground off gives a flat background",
+      gradients.background_type == "SINGLE_COLOR", gradients.background_type)
+check("the flat background uses the background colour",
+      close(gradients.high_gradient, (0.2, 0.4, 0.6)),
+      f"got {list(gradients.high_gradient)}")
+check("a flat canvas still reads as on", theme.looks_applied() is True)
+
+bpy.ops.bonsai_sketch_mode.reset_colours()
+check("reset puts the sky colour back", close(prefs.sky_colour, theme.SKY))
+check("reset puts the axis colour back", close(prefs.axis_x_colour, theme.AXIS_X))
+check("reset turns sky and ground back on", prefs.use_sky_ground is True)
+
+check("restore is still byte-exact after all of that",
+      theme.restore(original)[0] and theme.snapshot() == original)
+check("the canvas reads as off again", theme.looks_applied() is False)
+
 
 # --- Unregister --------------------------------------------------------------
 

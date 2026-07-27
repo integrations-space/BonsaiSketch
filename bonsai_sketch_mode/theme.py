@@ -30,6 +30,13 @@ rather than what we guessed the defaults were.
 Only 3D-viewport colours are touched. Menus, buttons, the outliner and the rest
 of Blender's interface are left alone -- restyling the whole application would
 be a much larger promise than "make the canvas look familiar".
+
+Every colour here is a default rather than a fixed value: the add-on's
+preferences expose sky, ground, background, grid and the three axes, in the same
+grouping SketchUp's own Accessibility preferences use. The constants below are
+what "Reset All" returns to, and what applies when preferences cannot be read.
+Adding a colour means adding it to `_TARGETS` and `COLOUR_DEFAULTS` -- snapshot
+and restore then cover it without further work.
 """
 
 from __future__ import annotations
@@ -45,16 +52,32 @@ SKY = (0.639, 0.745, 0.855)
 #: Ground. Warm light grey, the colour SketchUp's default templates sit on.
 GROUND = (0.878, 0.867, 0.827)
 
+#: Background, used when sky and ground are switched off. SketchUp's own
+#: default here is plain white, and this is the one place it is worth copying
+#: literally -- a "no sky, no ground" canvas that is not white reads as a
+#: mistake rather than a choice.
+BACKGROUND = (1.0, 1.0, 1.0)
+
 #: Grid. Pale enough to read as paper ruling rather than as geometry -- the
 #: AutoCAD convention of a grid you measure against but never mistake for a
 #: line you drew.
 GRID = (0.451, 0.451, 0.451, 0.32)
+
+#: Axes. SketchUp uses fully saturated red, green and blue, which looks crude
+#: written down and is instantly readable on screen. Blender's defaults are
+#: prettier and half a hue away from what the muscle memory expects, so the
+#: point of this add-on argues for SketchUp's.
+AXIS_X = (1.0, 0.0, 0.0)
+AXIS_Y = (0.0, 1.0, 0.0)
+AXIS_Z = (0.0, 0.0, 1.0)
 
 #: Edges. Near-black, because on a light canvas Blender's default mid-grey
 #: wire disappears into the ground.
 WIRE = (0.09, 0.09, 0.09)
 
 #: Values we set, as (path, attribute) pairs into preferences.themes[0].
+#: Anything listed here is snapshotted before apply() and put back by
+#: restore(), so adding a colour needs no other bookkeeping.
 _TARGETS = (
     ("view_3d.space.gradients", "background_type"),
     ("view_3d.space.gradients", "high_gradient"),
@@ -62,11 +85,64 @@ _TARGETS = (
     ("view_3d", "grid"),
     ("view_3d", "wire"),
     ("view_3d", "wire_edit"),
+    # Axis colours live on user_interface, not view_3d, which only carries
+    # grid, wire and wire_edit. Easy hour to lose.
+    ("user_interface", "axis_x"),
+    ("user_interface", "axis_y"),
+    ("user_interface", "axis_z"),
 )
+
+#: How close two colours must be to count as the same one.
+#:
+#: Blender stores theme colours as bytes, so a preference of 0.1 reads back as
+#: 26/255 = 0.10196 -- a round trip that loses up to half a step either way.
+#: The shipped defaults all happen to sit near 8-bit boundaries, so a tighter
+#: tolerance appears to work right up until someone picks their own colour and
+#: the canvas starts reporting itself as switched off.
+SAME_COLOUR = 1.0 / 255.0
+
+#: Preference field -> module default, for the colours a user can override.
+#: Drives both the reset operator and the fallback when preferences cannot be
+#: reached, so the two cannot drift apart.
+COLOUR_DEFAULTS = {
+    "sky_colour": SKY,
+    "ground_colour": GROUND,
+    "background_colour": BACKGROUND,
+    "grid_colour": GRID,
+    "axis_x_colour": AXIS_X,
+    "axis_y_colour": AXIS_Y,
+    "axis_z_colour": AXIS_Z,
+}
 
 
 def _theme() -> Any:
     return bpy.context.preferences.themes[0]
+
+
+def _prefs() -> Any:
+    """This add-on's preferences, or None when they cannot be reached.
+
+    Genuinely absent in ordinary situations -- mid-registration, and under
+    ``--factory-startup``, which is how `tools/gen_workspace.py` runs. Every
+    read below therefore falls back to the module default rather than raising.
+    """
+    try:
+        return bpy.context.preferences.addons[__package__].preferences
+    except (KeyError, AttributeError):  # pragma: no cover - host dependent
+        return None
+
+
+def colour(field: str) -> tuple:
+    """A user-set colour, or this module's default if none is readable."""
+    prefs = _prefs()
+    value = getattr(prefs, field, None) if prefs is not None else None
+    return tuple(value) if value is not None else COLOUR_DEFAULTS[field]
+
+
+def sky_and_ground() -> bool:
+    """Whether to draw a sky/ground gradient rather than a flat background."""
+    prefs = _prefs()
+    return True if prefs is None else bool(prefs.use_sky_ground)
 
 
 def _resolve(path: str) -> Any:
@@ -92,14 +168,27 @@ def snapshot() -> str:
 
 
 def apply() -> tuple[bool, str]:
-    """Paint the SketchUp canvas. Returns (ok, message)."""
+    """Paint the SketchUp canvas, in the user's colours. Returns (ok, message).
+
+    Safe to call repeatedly. Changing a colour re-runs this rather than
+    computing a delta, which is why the preference fields update live.
+    """
+    gradients = "view_3d.space.gradients"
     try:
-        _write("view_3d.space.gradients", "background_type", "LINEAR")
-        _write("view_3d.space.gradients", "high_gradient", SKY)
-        _write("view_3d.space.gradients", "gradient", GROUND)
-        _write("view_3d", "grid", GRID)
+        if sky_and_ground():
+            _write(gradients, "background_type", "LINEAR")
+            _write(gradients, "high_gradient", colour("sky_colour"))
+            _write(gradients, "gradient", colour("ground_colour"))
+        else:
+            # SINGLE_COLOR reads high_gradient and ignores gradient entirely.
+            _write(gradients, "background_type", "SINGLE_COLOR")
+            _write(gradients, "high_gradient", colour("background_colour"))
+        _write("view_3d", "grid", colour("grid_colour"))
         _write("view_3d", "wire", WIRE)
         _write("view_3d", "wire_edit", WIRE)
+        _write("user_interface", "axis_x", colour("axis_x_colour"))
+        _write("user_interface", "axis_y", colour("axis_y_colour"))
+        _write("user_interface", "axis_z", colour("axis_z_colour"))
     except Exception as exc:  # pragma: no cover - depends on host Blender
         return False, f"Could not apply the Sketch theme: {exc}"
     return True, "Sketch canvas applied"
@@ -163,13 +252,24 @@ def _set_background(workspace_name: str, kind: str) -> int:
 
 
 def looks_applied() -> Optional[bool]:
-    """True if the canvas currently matches ours. None if it cannot be read."""
+    """True if the canvas currently matches ours. None if it cannot be read.
+
+    Compares against the colours in force now, not the shipped defaults, so a
+    user who has recoloured the canvas is not told it is switched off.
+    """
     try:
         gradients = _resolve("view_3d.space.gradients")
-        if gradients.background_type != "LINEAR":
-            return False
+        if sky_and_ground():
+            if gradients.background_type != "LINEAR":
+                return False
+            expected = colour("sky_colour")
+        else:
+            if gradients.background_type != "SINGLE_COLOR":
+                return False
+            expected = colour("background_colour")
         return all(
-            abs(a - b) < 1e-3 for a, b in zip(list(gradients.high_gradient), SKY)
+            abs(a - b) <= SAME_COLOUR
+            for a, b in zip(list(gradients.high_gradient), expected)
         )
     except Exception:  # pragma: no cover - depends on host Blender
         return None
