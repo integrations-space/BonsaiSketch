@@ -107,3 +107,71 @@ def has_modifiers(obj: bpy.types.Object) -> bool:
     on that assumption silently modifies the wrong part of the mesh.
     """
     return bool(obj.modifiers)
+
+
+class EdgeHit:
+    """An edge near the cursor, and how near, in screen pixels."""
+
+    __slots__ = ("obj", "edge_index", "pixels")
+
+    def __init__(self, obj: bpy.types.Object, edge_index: int, pixels: float) -> None:
+        self.obj = obj
+        self.edge_index = edge_index
+        self.pixels = pixels
+
+
+def point_segment_distance_2d(point: Vector, a: Vector, b: Vector) -> float:
+    """Distance from a 2D point to the segment a-b, not the infinite line."""
+    span = b - a
+    length_squared = span.length_squared
+    if length_squared <= 0.0:
+        return (point - a).length
+    t = (point - a).dot(span) / length_squared
+    t = max(0.0, min(1.0, t))
+    return (point - (a + span * t)).length
+
+
+def nearest_edge_2d(
+    context: bpy.types.Context,
+    mouse: tuple[int, int],
+    objects: list[bpy.types.Object],
+    max_pixels: float = 10.0,
+) -> Optional[EdgeHit]:
+    """The edge nearest the cursor on screen, or None if none is close enough.
+
+    Screen space rather than a raycast, deliberately: a sketch is mostly bare
+    edges -- strokes whose loops have not closed yet -- and ``Scene.ray_cast``
+    only ever reports faces. Projecting the (small) sketch meshes to 2D finds
+    an edge whether or not anything is filled in around it. Occlusion is not
+    considered; on the wireframe-with-faces meshes this serves, the nearest
+    edge on screen is overwhelmingly the one under the cursor.
+    """
+    region = context.region
+    rv3d = context.region_data
+    if region is None or rv3d is None:
+        return None
+    cursor = Vector(mouse)
+
+    best: Optional[EdgeHit] = None
+    for obj in objects:
+        if obj.type != "MESH" or obj.data is None:
+            continue
+        matrix = obj.matrix_world
+        vertices = obj.data.vertices
+        projected: dict[int, Optional[Vector]] = {}
+
+        def screen(index: int) -> Optional[Vector]:
+            if index not in projected:
+                world = matrix @ vertices[index].co
+                projected[index] = view3d_utils.location_3d_to_region_2d(region, rv3d, world)
+            return projected[index]
+
+        for edge in obj.data.edges:
+            a = screen(edge.vertices[0])
+            b = screen(edge.vertices[1])
+            if a is None or b is None:
+                continue  # behind the view; nothing to click on
+            pixels = point_segment_distance_2d(cursor, a, b)
+            if pixels <= max_pixels and (best is None or pixels < best.pixels):
+                best = EdgeHit(obj, edge.index, pixels)
+    return best

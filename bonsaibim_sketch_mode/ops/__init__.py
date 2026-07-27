@@ -25,18 +25,24 @@ from __future__ import annotations
 
 import bpy
 
+from .eraser import BONSAIBIM_SKETCH_OT_eraser
 from .line import BONSAIBIM_SKETCH_OT_line
+from .offset import BONSAIBIM_SKETCH_OT_offset
 from .pushpull import BONSAIBIM_SKETCH_OT_push_pull
 from .rectangle import BONSAIBIM_SKETCH_OT_rectangle
 
 LINE_OP = BONSAIBIM_SKETCH_OT_line.bl_idname
 RECTANGLE_OP = BONSAIBIM_SKETCH_OT_rectangle.bl_idname
 PUSH_PULL_OP = BONSAIBIM_SKETCH_OT_push_pull.bl_idname
+OFFSET_OP = BONSAIBIM_SKETCH_OT_offset.bl_idname
+ERASER_OP = BONSAIBIM_SKETCH_OT_eraser.bl_idname
 
 classes = (
     BONSAIBIM_SKETCH_OT_line,
     BONSAIBIM_SKETCH_OT_rectangle,
     BONSAIBIM_SKETCH_OT_push_pull,
+    BONSAIBIM_SKETCH_OT_offset,
+    BONSAIBIM_SKETCH_OT_eraser,
 )
 
 

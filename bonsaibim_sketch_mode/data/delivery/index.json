@@ -1,0 +1,37 @@
+{
+ "source": "IFC+SG Model Content Requirements V2.0, 20 Mar 2026",
+ "typologies": [
+  {
+   "key": "commercial",
+   "label": "Commercial"
+  },
+  {
+   "key": "healthcare",
+   "label": "Healthcare"
+  },
+  {
+   "key": "industrial",
+   "label": "Industrial"
+  },
+  {
+   "key": "public_residential",
+   "label": "Public Residential"
+  },
+  {
+   "key": "private_residential",
+   "label": "Private Residential"
+  },
+  {
+   "key": "retail",
+   "label": "Retail"
+  },
+  {
+   "key": "infra_road",
+   "label": "Infrastructure (Road)"
+  },
+  {
+   "key": "infra_rail",
+   "label": "Infrastructure (Rail)"
+  }
+ ]
+}
