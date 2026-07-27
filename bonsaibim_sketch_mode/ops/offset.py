@@ -62,17 +62,64 @@ def offsetted(
         return bm
     bm.faces.ensure_lookup_table()
     face = bm.faces[face_index]
-    bmesh.ops.inset_region(
-        bm,
-        faces=[face],
-        thickness=abs(distance),
-        depth=0.0,
-        use_boundary=True,
-        use_even_offset=True,
-        use_outset=distance < 0.0,
-    )
+    if distance > 0.0:
+        bmesh.ops.inset_region(
+            bm,
+            faces=[face],
+            thickness=distance,
+            depth=0.0,
+            use_boundary=True,
+            use_even_offset=True,
+        )
+    else:
+        _outset_ring(bm, face, -distance)
     bm.normal_update()
     return bm
+
+
+def _outset_ring(bm: bmesh.types.BMesh, face: bmesh.types.BMFace, distance: float) -> None:
+    """Grow a ring of faces outside ``face``'s boundary, ``distance`` wide.
+
+    Built by hand because inset_region's own ``use_outset`` works by insetting
+    the faces *around* the target -- and a lone sheet face, the very thing
+    Offset outward is for, has nothing around it, so the flag silently does
+    nothing there. Each boundary vertex instead slides along its exterior
+    mitre, scaled so every edge of the new loop sits exactly ``distance`` from
+    the edge it came from -- the same even-offset rule the inward case gets
+    from inset_region.
+    """
+    normal = face.normal
+    old = [loop.vert for loop in face.loops]
+    count = len(old)
+
+    grown = []
+    for i in range(count):
+        before = old[i - 1].co
+        here = old[i].co
+        after = old[(i + 1) % count].co
+        arriving = (here - before).normalized()
+        leaving = (after - here).normalized()
+        # Loop order follows the face winding, so cross(edge, normal) points
+        # away from the interior.
+        out_arriving = arriving.cross(normal).normalized()
+        out_leaving = leaving.cross(normal).normalized()
+        mitre = out_arriving + out_leaving
+        if mitre.length <= NEGLIGIBLE:
+            mitre = out_arriving.copy()  # a hairpin corner; no bisector to bisect
+        mitre.normalize()
+        # The clamp stops a near-hairpin corner shooting its mitre to infinity.
+        reach = distance / max(mitre.dot(out_leaving), 0.05)
+        grown.append(bm.verts.new(here + mitre * reach))
+
+    for i in range(count):
+        after = (i + 1) % count
+        ring = bm.faces.new((old[i], grown[i], grown[after], old[after]))
+        # The quad's winding above is arbitrary; the sheet's orientation is
+        # not. Recalc is avoided on purpose -- on an open sheet its inside /
+        # outside heuristic may flip the original face too.
+        ring.normal_update()
+        if ring.normal.dot(normal) < 0:
+            ring.normal_flip()
 
 
 class BONSAIBIM_SKETCH_OT_offset(bpy.types.Operator):

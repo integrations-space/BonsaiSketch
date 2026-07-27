@@ -53,8 +53,13 @@ def erased(source: bmesh.types.BMesh, edge_indices: Iterable[int]) -> bmesh.type
     bm = source.copy()
     bm.edges.ensure_lookup_table()
     doomed = [bm.edges[i] for i in edge_indices]
-    if doomed:
-        bmesh.ops.delete(bm, geom=doomed, context="EDGES")
+    # Removed one by one rather than through bmesh.ops.delete: its "EDGES"
+    # context handles face-bearing edges but leaves *wire* edges standing,
+    # and bare strokes are most of what a sketch is. BMEdgeSeq.remove is
+    # BM_edge_kill underneath, which takes the faces using the edge with it
+    # -- exactly the eraser's contract -- wire or not.
+    for edge in doomed:
+        bm.edges.remove(edge)
     stranded = [v for v in bm.verts if not v.link_edges]
     if stranded:
         bmesh.ops.delete(bm, geom=stranded, context="VERTS")
