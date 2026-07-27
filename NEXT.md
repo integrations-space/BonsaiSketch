@@ -99,44 +99,96 @@ It is a Line-tool question, not an Eraser one, so it was kept out of #1 rather
 than smuggled in. Worth reproducing first: draw an open three-point collinear
 polyline and count the edges against the arithmetic.
 
-## 4. Agreed: configurable canvas colours
+## 4. Done: configurable canvas colours
 
-Give the Sketch canvas the same colour controls SketchUp puts in Preferences >
-Accessibility: Ground, Background, and the three axis colours.
+Built in `bb97923`. Sky, ground, background, grid and the three axes are
+preference fields on `BONSAI_SKETCH_MODE_Preferences`, grouped as SketchUp
+groups them, repainting live while the picker is open, with a Reset All. In
+`056278b` the canvas also stopped waiting to be switched on: it goes up with the
+Sketch tab, and `canvas_on_setup` turns that off.
 
-Most of this is already built. [`theme.py`](bonsai_sketch_mode/theme.py) holds
-`SKY`, `GROUND`, `GRID` and `WIRE` as module constants, a `_TARGETS` table of
-`(path, attribute)` pairs, and exact JSON `snapshot()` / `restore()`. The work is
-adding `FloatVectorProperty(subtype="COLOR")` fields to
-`BONSAI_SKETCH_Preferences` and reading those instead of the constants. Anything
-added to `_TARGETS` inherits snapshot and restore for free.
+Kept here because three facts cost time to establish and would cost it again:
 
-The axis colours are the one thing that needs looking up rather than guessing.
-They are **not** on `view_3d`, which exposes only `grid`, `wire` and `wire_edit`.
-They live at `preferences.themes[0].user_interface.axis_x` / `axis_y` / `axis_z`.
-Blender 5.0 defaults are `(1.0, 0.2, 0.32)`, `(0.545, 0.863, 0.0)` and
-`(0.157, 0.565, 1.0)` — near SketchUp's red/green/blue but not the pure RGB
-SketchUp actually ships.
+- Axis colours are on `preferences.themes[0].user_interface.axis_x` / `_y` / `_z`.
+  **Not** `view_3d`, which carries only `grid`, `wire` and `wire_edit`.
+- Blender stores theme colours as **bytes**. Writing `0.1` reads back
+  `26/255 = 0.10196`, so any comparison needs a tolerance of a full 8-bit step --
+  `theme.SAME_COLOUR`. The shipped defaults sit near byte boundaries, which hid
+  this until a user-chosen colour made `looks_applied()` report the canvas as
+  off while it was plainly on.
+- Blender **auto-saves preferences** by default, and the theme is a preference.
+  The canvas therefore persists across sessions and every file until restored.
+  That also broke the theme suite, which had been asserting a clean starting
+  theme against whatever the previous run left behind; it now builds its own
+  baseline.
 
-Two constraints worth keeping in view:
+Grid, wire and axis colours are global theme values with no per-workspace
+override, so they restyle every viewport in Blender. Sky and ground need not
+be -- see section 5.
 
-- These are global Blender theme values. There is no per-workspace override, so
-  changing them restyles every viewport in Blender, not just the Sketch tab.
-  That is exactly why the canvas is opt-in today, and it is the reason the
-  existing docstring at the top of `theme.py` is as long as it is. Do not
-  quietly make this apply on install.
-- SketchUp treats Sky, Ground and Background as three separate colours, with
-  Background used when sky and ground are switched off. Blender's gradient gives
-  `high_gradient` and `gradient` plus a `background_type` of `SINGLE_COLOR`,
-  `LINEAR` or `RADIAL`. Mapping three SketchUp fields onto that needs a decision,
-  not a straight copy.
+The floor grid's *visibility* is the exception, and is a plain toggle:
+`show_floor_grid` drives `overlay.show_floor`, an overlay rather than a theme
+value, so it is genuinely per-viewport and scoped to the Sketch tab. Visibility
+only -- Blender's grid snapping is a scene setting and keeps working with the
+grid hidden.
 
 SketchUp's magenta parallel/perpendicular and cyan tangent are *inference*
-colours. There is no inference indicator to colour yet — that is issue
-[#7](https://github.com/integrations-space/BonsaiSketch/issues/7) below — so
-leave them out of this change rather than adding dead preferences.
+colours. There is no inference indicator to colour yet -- that is issue
+[#7](https://github.com/integrations-space/BonsaiSketch/issues/7) below -- so
+they were deliberately left out rather than shipped as dead preferences.
 
-## 5. Agreed: DXF import
+## 5. Agreed: a real horizon, drawn rather than themed
+
+The canvas is currently Blender's theme gradient, and it is not what SketchUp
+looks like. Two differences, both structural rather than a matter of colour:
+
+- The fade is **screen-space**. It runs top to bottom of the viewport and does
+  not move as you orbit. SketchUp's sky and ground meet at the true horizon.
+- There is **no opaque ground**, so no horizon line at all.
+
+The colours are already right and are not the problem. Ours are sky
+`(163, 190, 218)` and ground `(224, 221, 211)`, which are SketchUp's own values.
+
+Two routes were tested and one of them works.
+
+**The scene world does not work.** A world with a constant-interpolation colour
+ramp is the obvious way to get a hard, world-locked horizon scoped to the tab
+rather than the global theme. In Solid shading Blender draws the world's flat
+viewport colour and never evaluates the node tree. Proved by giving the world a
+magenta fallback and watching the viewport turn entirely magenta. Do not spend
+an afternoon rediscovering this.
+
+**A GPU draw handler does work.** `SpaceView3D.draw_handler_add(..., 'POST_VIEW')`
+drawing a quad at Z=0 with the `UNIFORM_COLOR` builtin renders an opaque ground
+in Solid shading, depth-tested against real geometry. A prototype is in the
+session scratchpad as `horizon.py`. This is the same technique the polyline
+decorator already uses, so it is not new machinery for this codebase, and it
+puts nothing into the user's `.blend` -- which is what ruled out a ground-plane
+object.
+
+That is also how the comparable tools do it. Openshrimp draws its own ground
+quad in WebGL; SketchUp draws its own. Neither is using a "background" feature
+of a host application, which is why they are not bound by the limits above.
+
+What the prototype still needs:
+
+- **Size it to the horizon.** `view_distance * 200` puts the quad's edge beyond
+  the far clip and the horizon off-screen. It wants sizing against the region's
+  clip range, not a guessed multiplier.
+- **Fix the depth artifact.** The cube's lower half came back hatched, so the
+  quad is fighting geometry it should sit behind. Check what `depth_mask_set`
+  leaves behind and whether POST_VIEW is early enough.
+- **Scope it to the Sketch tab.** Draw handlers are per space *type*, so the
+  callback fires in every 3D viewport in Blender. It has to return early unless
+  the workspace is ours -- otherwise this leaks into Bonsai's BIM tab.
+
+The prize is worth the work: with the ground drawn and the sky as the viewport's
+own flat background colour, the canvas stops needing the global theme change
+altogether. Sky and ground become per-workspace, and section 4's warning about
+restyling every workspace applies only to the grid, wire and axis colours that
+genuinely have nowhere else to live.
+
+## 6. Agreed: DXF import
 
 No import code exists anywhere in the add-on today. DXF is the one of the three
 formats worth doing:
@@ -153,11 +205,11 @@ The parsing is the easy half. A DXF import yields dumb geometry, not IFC
 entities, so the real question is what happens to it afterwards: does an
 imported polyline become sketch geometry carrying our marker, or does it get
 classified into IFC through Bonsai? That is the same unanswered question as
-Groups and Components in section 7, and answering it once should cover both.
+Groups and Components in section 8, and answering it once should cover both.
 Simplest honest first version: import as sketch geometry, marked as ours, and
 let the existing tools work on it.
 
-## 6. Agreed: wire the IFC+SG requirements to something
+## 7. Agreed: wire the IFC+SG requirements to something
 
 [`requirements.py`](bonsai_sketch_mode/requirements.py) is complete and tested —
 21 elements, 853 parameters, ordered stages, class mapping with base-class
@@ -181,7 +233,7 @@ on the README roadmap. It is the panel a SketchUp user checks reflexively, and
 it is where the property sets #1 attaches become visible. Worth pulling forward
 ahead of the gap-list items below.
 
-## 7. The SketchUp gap list
+## 8. The SketchUp gap list
 
 Eleven of SketchUp's roughly thirty tools exist. The gaps are filed as issues,
 each naming the Bonsai operator or module that backs it where one exists.
@@ -212,7 +264,7 @@ Ordered by value per unit of work, not by size:
 5. **[#5](https://github.com/integrations-space/BonsaiSketch/issues/5) Groups and Components.** Conceptually the largest absence — SketchUp
    modelling *is* grouping and instancing. Decide early whether a group is a
    Blender collection, an `IfcGroup`, or an `IfcElementAssembly`; that answer
-   shapes every tool built afterwards, and section 5's import question with it.
+   shapes every tool built afterwards, and section 6's import question with it.
 6. **[#8](https://github.com/integrations-space/BonsaiSketch/issues/8) Follow Me**, **[#9](https://github.com/integrations-space/BonsaiSketch/issues/9) camera tools**, **[#10](https://github.com/integrations-space/BonsaiSketch/issues/10) Paint Bucket.** Follow Me is a
    genuinely large build. The camera tools are individually small but
    collectively most of how a SketchUp user moves around a model. Paint Bucket
@@ -223,9 +275,9 @@ Ordered by value per unit of work, not by size:
 Still on the README roadmap and not filed as issues, because they are this
 project's own ideas rather than SketchUp parity: live rectangle preview while
 dragging, Push/Pull driving Bonsai's parametric depth on typed IFC elements, the
-condensed Entity Info panel (see section 6), and the Instructor panel.
+condensed Entity Info panel (see section 7), and the Instructor panel.
 
-## 8. Development environment note
+## 9. Development environment note
 
 The installed extension in Blender's user repository goes stale silently, and it
 has now caused trouble twice. A stale copy made `tools/smoke_test.py` test old

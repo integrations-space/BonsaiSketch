@@ -475,6 +475,21 @@ check("restore is still byte-exact after all of that",
       theme.restore(original)[0] and theme.snapshot() == original)
 check("the canvas reads as off again", theme.looks_applied() is False)
 
+# The floor grid is an overlay, not a theme value, so it is per-viewport and
+# scoped to the Sketch tab. Nothing to snapshot; it just has to reach the
+# viewports and report how many it touched.
+addon.workspace.append(activate=False)
+hidden = theme.set_floor_grid(addon.workspace.WORKSPACE_NAME, False)
+check("hiding the floor grid reaches a viewport", hidden >= 1, f"changed {hidden}")
+check("the grid is actually off",
+      all(not s.overlay.show_floor
+          for s in theme.viewports(addon.workspace.WORKSPACE_NAME)))
+theme.set_floor_grid(addon.workspace.WORKSPACE_NAME, True)
+check("the grid comes back",
+      all(s.overlay.show_floor
+          for s in theme.viewports(addon.workspace.WORKSPACE_NAME)))
+check("an unknown workspace changes nothing", theme.set_floor_grid("Nope", False) == 0)
+
 
 # --- Unregister --------------------------------------------------------------
 

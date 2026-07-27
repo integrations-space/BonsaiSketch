@@ -39,8 +39,17 @@ and in Solid shading the world option draws its flat viewport colour and ignores
 the node tree entirely, so a hard horizon cannot be built there either. The
 gradient is also screen-space: it fades top to bottom of the viewport rather
 than meeting the ground plane at the horizon, and it does not move as you orbit.
-Real horizon geometry is the only way past that, and it would mean putting an
-object into the user's IFC file.
+
+What does work, and is the way SketchUp and Openshrimp both do it, is drawing
+the ground rather than asking the host for a background: a `POST_VIEW` GPU draw
+handler painting a quad at Z=0 renders an opaque, depth-tested ground in Solid
+shading, puts nothing into the user's file, and reuses the same machinery as the
+polyline decorator. That is section 5 of NEXT.md, not built yet.
+
+The floor grid is different again. It is a viewport *overlay*, not a theme
+value, so `set_floor_grid` is genuinely per-workspace and leaves the rest of
+Blender alone -- which is why it is a plain toggle with none of the warnings
+above attached.
 
 Only 3D-viewport colours are touched. Menus, buttons, the outliner and the rest
 of Blender's interface are left alone -- restyling the whole application would
@@ -279,19 +288,42 @@ def use_flat_background(workspace_name: str) -> int:
     return _set_background(workspace_name, "VIEWPORT")
 
 
-def _set_background(workspace_name: str, kind: str) -> int:
+def viewports(workspace_name: str):
+    """Every 3D viewport in one workspace, across all of its screens."""
     workspace = bpy.data.workspaces.get(workspace_name)
     if workspace is None:
-        return 0
-    changed = 0
+        return
     for screen in workspace.screens:
         for area in screen.areas:
             if area.type != "VIEW_3D":
                 continue
             for space in area.spaces:
                 if space.type == "VIEW_3D":
-                    space.shading.background_type = kind
-                    changed += 1
+                    yield space
+
+
+def _set_background(workspace_name: str, kind: str) -> int:
+    changed = 0
+    for space in viewports(workspace_name):
+        space.shading.background_type = kind
+        changed += 1
+    return changed
+
+
+def set_floor_grid(workspace_name: str, show: bool) -> int:
+    """Show or hide the ground-plane grid. Returns how many viewports changed.
+
+    This is a viewport *overlay*, not a theme value, so unlike the colours it is
+    per-viewport and stays inside the Sketch tab -- turning it off here leaves
+    every other workspace alone.
+
+    Visibility only. Blender's grid snapping is a scene tool setting and is not
+    affected either way, so hiding the grid does not cost you snapping.
+    """
+    changed = 0
+    for space in viewports(workspace_name):
+        space.overlay.show_floor = show
+        changed += 1
     return changed
 
 

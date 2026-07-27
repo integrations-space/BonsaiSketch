@@ -136,6 +136,7 @@ def _load_post(_dummy) -> None:
     if not ok:
         print(f"[bonsai_sketch_mode] workspace: {message}")
     theme.ensure_applied(WORKSPACE_NAME)
+    theme.set_floor_grid(WORKSPACE_NAME, prefs.show_floor_grid)
     subscribe()
 
 
@@ -148,6 +149,7 @@ def _append_once() -> None:
     if not ok:
         print(f"[bonsai_sketch_mode] workspace: {message}")
     theme.ensure_applied(WORKSPACE_NAME)
+    theme.set_floor_grid(WORKSPACE_NAME, prefs.show_floor_grid)
     subscribe()
 
 
