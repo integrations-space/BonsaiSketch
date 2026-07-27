@@ -47,12 +47,19 @@ PICK_PIXELS = 10.0
 def erased(source: bmesh.types.BMesh, edge_indices: Iterable[int]) -> bmesh.types.BMesh:
     """A copy of ``source`` with the given edges gone.
 
-    Faces bounded by a deleted edge are deleted with it, and vertices left
-    with no edges at all are swept up too. The caller owns the returned bmesh.
+    Faces bounded by a deleted edge are deleted with it, and endpoints the
+    deletion left with no edges are swept up too. The caller owns the returned
+    bmesh.
     """
     bm = source.copy()
     bm.edges.ensure_lookup_table()
     doomed = [bm.edges[i] for i in edge_indices]
+    # The endpoints are noted before the edges go, because afterwards there is
+    # no way back to them -- and only these are candidates for sweeping up. A
+    # loose vertex that was already sitting in the mesh is somebody else's,
+    # possibly a snap target the user placed, and erasing an unrelated edge is
+    # not the moment to decide it is litter.
+    endpoints = {v for edge in doomed for v in edge.verts}
     # Removed one by one rather than through bmesh.ops.delete: its "EDGES"
     # context handles face-bearing edges but leaves *wire* edges standing,
     # and bare strokes are most of what a sketch is. BMEdgeSeq.remove is
@@ -60,7 +67,7 @@ def erased(source: bmesh.types.BMesh, edge_indices: Iterable[int]) -> bmesh.type
     # -- exactly the eraser's contract -- wire or not.
     for edge in doomed:
         bm.edges.remove(edge)
-    stranded = [v for v in bm.verts if not v.link_edges]
+    stranded = [v for v in endpoints if v.is_valid and not v.link_edges]
     if stranded:
         bmesh.ops.delete(bm, geom=stranded, context="VERTS")
     return bm
@@ -109,6 +116,16 @@ class BONSAIBIM_SKETCH_OT_eraser(bpy.types.Operator):
         self.count = 0
 
         self.erase(hit.edge_index)
+
+        # A sweep is only meaningful while a button is held, and the only thing
+        # that establishes that is having been invoked by its press. Launched
+        # any other way -- a keybinding straight onto the operator, the search
+        # menu, a script -- there is no release coming to end the modal, and a
+        # modal that erases on plain MOUSEMOVE would then eat every stroke the
+        # cursor passed. So that case erases the one edge aimed at and stops.
+        if not (event.type == "LEFTMOUSE" and event.value == "PRESS"):
+            return self.confirm(context)
+
         context.workspace.status_text_set(
             text="Drag over edges to erase    Release: done    Esc: undo the sweep"
         )

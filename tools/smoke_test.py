@@ -387,7 +387,34 @@ untouched = offset.offsetted(base, 0, 0.0)
 check("zero offset changes nothing",
       len(untouched.verts) == 4 and len(untouched.faces) == 1)
 
-for mesh in (inward, outward, untouched, base):
+# A corner sharper than the mitre floor cannot be offset to the asked distance
+# without its point shooting off toward infinity, so the reach is capped and
+# that corner lands short. The cap is fine; being quiet about it is not, since
+# the whole promise of the tool is the distance typed into the box.
+clamp_reports = []
+wide = bmesh.new()
+for co in ((0, 0, 0), (4, 0, 0), (4, 3, 0), (0, 3, 0)):
+    wide.verts.new(co)
+wide.faces.new(wide.verts)
+wide.faces.ensure_lookup_table()
+wide.normal_update()
+wide_out = offset.offsetted(wide, 0, -0.5, on_clamp=clamp_reports.append)
+check("an ordinary corner reports no clamping", clamp_reports == [], f"got {clamp_reports}")
+
+import math
+
+spike = bmesh.new()
+half = math.radians(4) / 2
+for co in ((0, 0, 0), (10, -10 * math.tan(half), 0), (10, 10 * math.tan(half), 0)):
+    spike.verts.new(co)
+spike.faces.new(spike.verts)
+spike.faces.ensure_lookup_table()
+spike.normal_update()
+spike_out = offset.offsetted(spike, 0, -0.5, on_clamp=clamp_reports.append)
+check("a corner too sharp to honour is reported, not hidden",
+      clamp_reports == [1], f"got {clamp_reports}")
+
+for mesh in (inward, outward, untouched, base, wide, wide_out, spike, spike_out):
     mesh.free()
 
 
@@ -433,12 +460,24 @@ strokes = bmesh.new()
 sv = [strokes.verts.new(co) for co in ((0, 0, 5), (1, 0, 5), (2, 0, 5))]
 strokes.edges.new((sv[0], sv[1]))
 strokes.edges.new((sv[1], sv[2]))
-half = eraser.erased(strokes, [0])
+half_chain = eraser.erased(strokes, [0])
 check("erasing one stroke of a polyline leaves the other",
-      len(half.edges) == 1 and len(half.verts) == 2,
-      f"got {len(half.verts)} verts, {len(half.edges)} edges")
+      len(half_chain.edges) == 1 and len(half_chain.verts) == 2,
+      f"got {len(half_chain.verts)} verts, {len(half_chain.edges)} edges")
 
-for mesh in (full, one_gone, two_gone, all_gone, strokes, half):
+# Sweeping up endpoints the erase stranded is the contract; sweeping up a loose
+# vertex that was already there is not. It may be a snap target the user placed,
+# and erasing an unrelated edge is the wrong moment to rule it litter.
+littered = bmesh.new()
+lv = [littered.verts.new(co) for co in ((0, 0, 7), (1, 0, 7))]
+littered.edges.new((lv[0], lv[1]))
+littered.verts.new((5, 5, 7))  # nothing to do with the edge about to go
+littered.edges.ensure_lookup_table()
+swept = eraser.erased(littered, [0])
+check("an unrelated loose vertex is left alone",
+      len(swept.verts) == 1, f"got {len(swept.verts)} verts, expected the 1 bystander")
+
+for mesh in (full, one_gone, two_gone, all_gone, strokes, half_chain, littered, swept):
     mesh.free()
 
 
@@ -637,6 +676,67 @@ check("unfilled parameters survive serialisation",
       reread_pset is not None and reread_pset.get("Is External", "sentinel") is None)
 check("filled parameters survive serialisation",
       reread_pset is not None and reread_pset.get("Load Bearing") == "TRUE")
+
+# An occurrence must get its own copy of the set even when its type already
+# carries every name. Reading through type inheritance would see nothing
+# missing, so the occurrence would stay permanently short and no later sweep
+# would notice -- the "Apply to Existing Elements" button would report the file
+# complete while the element itself held none of the answers.
+import ifcopenshell.api.type
+
+typed = ifcopenshell.api.project.create_file(version="IFC4")
+ifcopenshell.api.root.create_entity(typed, ifc_class="IfcProject", name="Typed")
+door_type = ifcopenshell.api.root.create_entity(typed, ifc_class="IfcDoorType", name="DT")
+type_pset = ifcopenshell.api.pset.add_pset(typed, product=door_type, name=psets.PSET_NAME)
+ifcopenshell.api.pset.edit_pset(
+    typed, pset=type_pset,
+    properties={n: None for n in requirements.parameter_names("IfcDoor", "detailed")},
+    should_purge=False)
+ifcopenshell.api.pset.edit_pset(
+    typed, pset=type_pset, properties={"Fire Rating": "2h"}, should_purge=False)
+
+occurrence = ifcopenshell.api.root.create_entity(typed, ifc_class="IfcDoor", name="D1")
+ifcopenshell.api.type.assign_type(typed, related_objects=[occurrence], relating_type=door_type)
+psets.forget()
+psets.sweep(typed, psets.AttachSettings(stage="detailed"))
+own = ifcopenshell.util.element.get_pset(occurrence, psets.PSET_NAME, should_inherit=False) or {}
+wanted = requirements.parameter_names("IfcDoor", "detailed")
+check("a typed occurrence gets its own copy, not the type's",
+      all(name in own for name in wanted),
+      f"absent from the occurrence: {[n for n in wanted if n not in own]}")
+# Which is only safe because a placeholder cannot hide a real answer: the type
+# still wins when the occurrence's own value is null. If that ever stops being
+# true, the line above turns from thorough into destructive.
+check("the occurrence's null does not shadow the type's filled value",
+      ifcopenshell.util.element.get_pset(occurrence, psets.PSET_NAME, "Fire Rating") == "2h",
+      f"got {ifcopenshell.util.element.get_pset(occurrence, psets.PSET_NAME, 'Fire Rating')!r}")
+
+# The listener remembers what it has examined, so a creation does not rescan
+# every instance of its class. What it must never do is skip an element that
+# still needs something.
+counted = ifcopenshell.api.project.create_file(version="IFC4")
+ifcopenshell.api.root.create_entity(counted, ifc_class="IfcProject", name="Counted")
+psets.forget()
+settings_now = psets.AttachSettings(stage="detailed")
+for i in range(3):
+    ifcopenshell.api.root.create_entity(counted, ifc_class="IfcWall", name=f"CW{i}")
+walls = counted.by_type("IfcWall")
+check("every wall still got its parameters with the record on",
+      all(ifcopenshell.util.element.get_pset(w, psets.PSET_NAME) for w in walls),
+      f"{sum(1 for w in walls if not ifcopenshell.util.element.get_pset(w, psets.PSET_NAME))} bare")
+check("a remembering sweep skips what it has already examined",
+      psets.sweep(counted, settings_now, remember=True) == (0, 0))
+# The by-hand sweep is the escape hatch, so it must not trust the record. Strip
+# a property behind the module's back and it has to be put back.
+victim = counted.by_type("IfcWall")[0]
+victim_pset = ifcopenshell.util.element.get_pset(victim, psets.PSET_NAME, should_inherit=False)
+ifcopenshell.api.pset.remove_pset(counted, product=victim, pset=counted.by_id(victim_pset["id"]))
+check("a remembering sweep does not notice work undone behind it",
+      psets.sweep(counted, settings_now, remember=True) == (0, 0))
+psets.forget()
+check("forgetting makes it look again",
+      psets.sweep(counted, settings_now)[0] == 1,
+      f"got {psets.sweep(counted, settings_now)}")
 
 
 # --- Theme -------------------------------------------------------------------

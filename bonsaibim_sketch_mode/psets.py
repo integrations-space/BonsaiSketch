@@ -109,6 +109,22 @@ _settings_provider: Optional[Callable[[], Optional[AttachSettings]]] = None
 _installed = False
 _attaching = False
 
+#: Which elements have already been examined, per AttachSettings, for the file
+#: in :data:`_checked_file`. The listener cannot see the entity a creation made
+#: -- ifcopenshell hands a post listener the call's settings, not its result --
+#: so it re-examines the created class, and without this that is a full scan of
+#: every instance of the class on every single creation. Measured on a plain
+#: IfcWall loop: 11 ms for the first hundred walls, 81 ms each by the fourth
+#: hundred, still climbing. Remembering what has been examined makes the
+#: listener's cost flat instead.
+#:
+#: Recording only ever *skips work already done*, so it cannot change an
+#: outcome: ensure() is idempotent and adds solely missing names. Keying on the
+#: settings means a stage change, a typology being chosen, or optional
+#: parameters being switched on all start their own tally and sweep afresh.
+_checked_file: Any = None
+_checked: dict[AttachSettings, set[int]] = {}
+
 
 def is_available() -> bool:
     """True if parameters can be attached at all."""
@@ -143,12 +159,27 @@ def _required_names(element: Any, settings: AttachSettings) -> dict[str, list[st
 
 
 def missing_names(element: Any, settings: AttachSettings) -> dict[str, list[str]]:
-    """pset name -> required names the element does not yet carry."""
+    """pset name -> required names the element does not yet carry itself.
+
+    Deliberately blind to what the element's *type* carries, matching where
+    :func:`ensure` writes. Counting an inherited name as present would leave an
+    occurrence permanently short of its own copy: a door typed to a library
+    type that already holds the whole set gets nothing at creation, and no
+    later sweep tops it up, because every name looks accounted for. The
+    standard asks its questions of the element.
+
+    Writing a null beside a type's real answer is safe, which is what makes
+    this the right way round: ifcopenshell's inherited view still returns the
+    type's filled value, so the occurrence's placeholder cannot hide it. The
+    check suite pins that down rather than trusting it.
+    """
     missing = {}
     for pset_name, required in _required_names(element, settings).items():
         if not required:
             continue
-        existing = ifcopenshell.util.element.get_pset(element, pset_name) or {}
+        existing = (
+            ifcopenshell.util.element.get_pset(element, pset_name, should_inherit=False) or {}
+        )
         names = [name for name in required if name not in existing]
         if names:
             missing[pset_name] = names
@@ -187,8 +218,32 @@ def ensure(ifc_file: Any, element: Any, settings: AttachSettings) -> int:
     return added
 
 
+def forget() -> None:
+    """Drop the record of what has been examined.
+
+    Called when a file is swept by hand, and when attachment is installed or
+    removed. Forgetting only ever costs time, never correctness.
+    """
+    global _checked_file, _checked
+    _checked_file = None
+    _checked = {}
+
+
+def _examined(ifc_file: Any, settings: AttachSettings) -> set[int]:
+    """The set of element ids already examined under these settings."""
+    global _checked_file, _checked
+    if ifc_file is not _checked_file:
+        # A different file: nothing carries over, and ids certainly do not.
+        _checked_file = ifc_file
+        _checked = {}
+    return _checked.setdefault(settings, set())
+
+
 def sweep(
-    ifc_file: Any, settings: AttachSettings, only_class: Optional[str] = None
+    ifc_file: Any,
+    settings: AttachSettings,
+    only_class: Optional[str] = None,
+    remember: bool = False,
 ) -> tuple[int, int]:
     """Attach missing parameters across a file. Returns (elements, parameters).
 
@@ -197,6 +252,13 @@ def sweep(
     every class either dataset maps is visited: that is the "apply to
     existing elements" path, for elements that predate the add-on, a stage
     change, or the typology being set.
+
+    ``remember`` skips elements already examined under the same settings, and
+    records the ones it examines. That is for the listener, which is called
+    once per creation and would otherwise rescan the whole class each time.
+    The by-hand sweep leaves it False and looks at everything: it is the
+    escape hatch a user reaches for precisely when something has been changed
+    behind this module's back, so it must never trust a previous verdict.
     """
     if only_class:
         classes = [only_class]
@@ -205,6 +267,7 @@ def sweep(
         if settings.typology:
             classes |= set(requirements.delivery_mapped_classes(settings.typology))
         classes = sorted(classes)
+    examined = _examined(ifc_file, settings) if remember else None
     touched = added = 0
     for ifc_class in classes:
         try:
@@ -212,6 +275,10 @@ def sweep(
         except Exception:
             continue  # not a class in this file's schema
         for entity in entities:
+            if examined is not None:
+                if entity.id() in examined:
+                    continue
+                examined.add(entity.id())
             count = ensure(ifc_file, entity, settings)
             if count:
                 touched += 1
@@ -231,7 +298,8 @@ def _on_entity_created(usecase_path: str, ifc_file: Any, call_settings: dict) ->
     # dataset covers is the overwhelmingly common case -- types, contexts, the
     # project itself -- so that exits before touching the file. A caller
     # passing ifc_class positionally leaves it unknown here; the sweep then
-    # covers every mapped class, which idempotence makes merely slower.
+    # covers every mapped class, which idempotence makes merely slower -- and
+    # only once, since what it examines is remembered.
     ifc_class = call_settings.get("ifc_class")
     if ifc_class is not None:
         covered = requirements.element_for_class(ifc_class) is not None or (
@@ -242,7 +310,7 @@ def _on_entity_created(usecase_path: str, ifc_file: Any, call_settings: dict) ->
             return
     _attaching = True
     try:
-        sweep(ifc_file, settings, only_class=ifc_class)
+        sweep(ifc_file, settings, only_class=ifc_class, remember=True)
     except Exception as exc:
         # A failure here must never break the creation it rode in on.
         print(f"[bonsaibim_sketch_mode] MCR parameter attachment failed: {exc}")
@@ -265,6 +333,7 @@ def install(settings_provider: Callable[[], Optional[AttachSettings]]) -> tuple[
     if error:
         return False, error
     _settings_provider = settings_provider
+    forget()  # a fresh install knows nothing about any file
     if not _installed:
         ifcopenshell.api.add_post_listener("root.create_entity", LISTENER, _on_entity_created)
         _installed = True
@@ -288,3 +357,4 @@ def remove() -> None:
             pass
         _installed = False
     _settings_provider = None
+    forget()

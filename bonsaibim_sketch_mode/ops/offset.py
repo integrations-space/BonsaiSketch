@@ -31,7 +31,7 @@ declined rather than tessellated.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Callable, Optional
 
 import bmesh
 import bpy
@@ -45,10 +45,19 @@ from .. import bridge, viewport
 from .pushpull import NEGLIGIBLE, NUMBER_CHARS
 
 
+#: Below this, a corner's mitre is too shallow to reach the asked distance
+#: without shooting off toward infinity, so the reach is capped and the corner
+#: lands short. The value is a sine of half the interior angle, so 0.05 is a
+#: corner of about 5.7 degrees -- sharper than anything a wall or reveal makes,
+#: and the cap is still 20x the asked distance at that point.
+MITRE_FLOOR = 0.05
+
+
 def offsetted(
     source: bmesh.types.BMesh,
     face_index: int,
     distance: float,
+    on_clamp: Optional[Callable[[int], None]] = None,
 ) -> bmesh.types.BMesh:
     """A copy of ``source`` with one face's boundary offset by ``distance``.
 
@@ -56,6 +65,11 @@ def offsetted(
     by new border faces. Negative offsets outward, growing the ring beyond the
     original boundary. ``distance`` is in the mesh's local units; the caller
     resolves object scale, and owns the returned bmesh.
+
+    ``on_clamp`` is called with the number of corners too sharp to offset
+    exactly, when there are any. Those corners land short of ``distance``, and
+    a tool whose whole promise is an exact distance should say so rather than
+    quietly miss.
     """
     bm = source.copy()
     if abs(distance) <= NEGLIGIBLE:
@@ -72,13 +86,17 @@ def offsetted(
             use_even_offset=True,
         )
     else:
-        _outset_ring(bm, face, -distance)
+        clamped = _outset_ring(bm, face, -distance)
+        if clamped and on_clamp is not None:
+            on_clamp(clamped)
     bm.normal_update()
     return bm
 
 
-def _outset_ring(bm: bmesh.types.BMesh, face: bmesh.types.BMFace, distance: float) -> None:
+def _outset_ring(bm: bmesh.types.BMesh, face: bmesh.types.BMFace, distance: float) -> int:
     """Grow a ring of faces outside ``face``'s boundary, ``distance`` wide.
+
+    Returns how many corners were too sharp to honour exactly.
 
     Built by hand because inset_region's own ``use_outset`` works by insetting
     the faces *around* the target -- and a lone sheet face, the very thing
@@ -93,6 +111,7 @@ def _outset_ring(bm: bmesh.types.BMesh, face: bmesh.types.BMFace, distance: floa
     count = len(old)
 
     grown = []
+    clamped = 0
     for i in range(count):
         before = old[i - 1].co
         here = old[i].co
@@ -108,7 +127,12 @@ def _outset_ring(bm: bmesh.types.BMesh, face: bmesh.types.BMFace, distance: floa
             mitre = out_arriving.copy()  # a hairpin corner; no bisector to bisect
         mitre.normalize()
         # The clamp stops a near-hairpin corner shooting its mitre to infinity.
-        reach = distance / max(mitre.dot(out_leaving), 0.05)
+        # It is counted, not hidden: past MITRE_FLOOR the new edges land short
+        # of the asked distance, and the caller is told so.
+        spread = mitre.dot(out_leaving)
+        if spread < MITRE_FLOOR:
+            clamped += 1
+        reach = distance / max(spread, MITRE_FLOOR)
         grown.append(bm.verts.new(here + mitre * reach))
 
     for i in range(count):
@@ -120,6 +144,8 @@ def _outset_ring(bm: bmesh.types.BMesh, face: bmesh.types.BMFace, distance: floa
         ring.normal_update()
         if ring.normal.dot(normal) < 0:
             ring.normal_flip()
+
+    return clamped
 
 
 class BONSAIBIM_SKETCH_OT_offset(bpy.types.Operator):
@@ -143,6 +169,8 @@ class BONSAIBIM_SKETCH_OT_offset(bpy.types.Operator):
         self.normal = Vector((0.0, 0.0, 1.0))
         self.distance = 0.0
         self.typed = ""
+        #: Corners the last apply() could not offset exactly.
+        self.clamped = 0
         self.area: Optional[bpy.types.Area] = None
         # Same two-part confirmation as Push/Pull: the click that starts the
         # tool releases inside the modal, so a bare release only confirms once
@@ -213,12 +241,18 @@ class BONSAIBIM_SKETCH_OT_offset(bpy.types.Operator):
         # Sketch objects carry an identity transform; median_scale keeps a
         # uniformly scaled one honest, which is as far as a scalar can go.
         scale = self.obj.matrix_world.median_scale or 1.0
-        bm = offsetted(self.source, self.face_index, distance / scale)
+        self.clamped = 0
+        bm = offsetted(
+            self.source, self.face_index, distance / scale, on_clamp=self._note_clamped
+        )
         try:
             bm.to_mesh(self.obj.data)
         finally:
             bm.free()
         self.obj.data.update()
+
+    def _note_clamped(self, corners: int) -> None:
+        self.clamped = corners
 
     def distance_from_mouse(
         self, context: bpy.types.Context, event: bpy.types.Event
@@ -317,6 +351,7 @@ class BONSAIBIM_SKETCH_OT_offset(bpy.types.Operator):
         assert self.obj is not None
         distance = self.distance
         name = self.obj.name
+        clamped = self.clamped
         self.clear_state(context)
         bridge.update_viewport()
         if abs(distance) <= NEGLIGIBLE:
@@ -326,6 +361,16 @@ class BONSAIBIM_SKETCH_OT_offset(bpy.types.Operator):
         self.report(
             {"INFO"}, f"Offset {name} {side} by {bridge.format_length(abs(distance))}"
         )
+        if clamped:
+            # Said out loud rather than left to be discovered by measuring: the
+            # tool's promise is an exact distance, and at these corners it is
+            # not one.
+            plural = "corner is" if clamped == 1 else "corners are"
+            self.report(
+                {"WARNING"},
+                f"{clamped} {plural} too sharp to offset exactly, and fell short of "
+                f"{bridge.format_length(abs(distance))}",
+            )
         return {"FINISHED"}
 
     def cancel_modal(self, context: bpy.types.Context) -> set[str]:

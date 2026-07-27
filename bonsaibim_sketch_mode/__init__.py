@@ -88,6 +88,10 @@ class BONSAIBIM_SKETCH_OT_apply_ifc_sg(bpy.types.Operator):
             ),
             include_optional=context.scene.bonsaibim_sketch_optional_params,
         )
+        # Forget first. This button exists for the cases where something has
+        # changed behind the listener's back, so it has to look at every
+        # element again rather than trust what it examined earlier.
+        psets.forget()
         touched, added = psets.sweep(bridge.ifc_file(), settings)
         for warning in requirements.delivery_warnings(settings.typology or ""):
             self.report({"WARNING"}, warning)
