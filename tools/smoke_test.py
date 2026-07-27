@@ -121,7 +121,7 @@ check("formats a length", isinstance(bridge.format_length(2.5), str))
 
 section("Registration")
 check("Sketch keyconfig present", "Sketch" in bpy.context.window_manager.keyconfigs)
-for op_name in ("line", "rectangle", "push_pull"):
+for op_name in ("line", "rectangle", "push_pull", "offset", "eraser"):
     check(f"operator bonsaibim_sketch_mode.{op_name}", hasattr(bpy.ops.bonsaibim_sketch_mode, op_name))
 
 # Mirrors how bpy.utils.register_tool finds the list it appends to.
@@ -157,12 +157,14 @@ expected = {
     "L": tools.LINE_TOOL,
     "R": tools.RECTANGLE_TOOL,
     "P": tools.PUSH_PULL_TOOL,
+    "F": tools.OFFSET_TOOL,
+    "E": tools.ERASER_TOOL,
     "T": tools.TAPE_TOOL,
 }
 for key, idname in expected.items():
     check(f"{key} -> {idname}", bound.get(key) == idname, f"got {bound.get(key)!r}")
 
-for key in ("F", "B", "E"):
+for key in ("B",):
     check(f"{key} left unbound (tool not built)", key not in bound, f"got {bound.get(key)!r}")
 
 
@@ -343,6 +345,97 @@ heights = sorted({round(v.co.z, 6) for v in scaled.verts})
 check("world distance survives object scale", heights == [0.0, 1.0], f"local heights {heights}")
 
 for mesh in (flat, box, taller, wider, shorter, unchanged, scaled):
+    mesh.free()
+
+
+# --- Offset ------------------------------------------------------------------
+#
+# Same reasoning as Push/Pull: the modal needs a mouse, the geometry does not,
+# and the geometry is where a subtle mistake would ship a wrong mesh.
+
+section("Offset")
+offset = sys.modules[ADDON + ".ops.offset"]
+
+context.view_layer.objects.active = None
+sheet = [Vector((0, 0, 0)), Vector((4, 0, 0)), Vector((4, 3, 0)), Vector((0, 3, 0))]
+sheet_obj, _ = sketchmesh.commit(context, sheet, close=True)
+base = bmesh.new()
+base.from_mesh(sheet_obj.data)
+base.faces.ensure_lookup_table()
+
+inward = offset.offsetted(base, 0, 0.5)
+areas = sorted(f.calc_area() for f in inward.faces)
+check("inward offset splits into ring + inner face", len(inward.faces) == 5,
+      f"got {len(inward.faces)}")
+check("inward offset keeps 8 vertices", len(inward.verts) == 8, f"got {len(inward.verts)}")
+check("inner face is 3x2", abs(areas[-1] - 6.0) < 1e-6, f"largest face {areas[-1]}")
+check("nothing gained or lost inward", abs(sum(areas) - 12.0) < 1e-6, f"total {sum(areas)}")
+check("outer boundary stays open, inner loop is shared",
+      sorted(len(e.link_faces) for e in inward.edges) == [1] * 4 + [2] * 8,
+      f"got {sorted(len(e.link_faces) for e in inward.edges)}")
+
+outward = offset.offsetted(base, 0, -0.5)
+out_areas = sorted(f.calc_area() for f in outward.faces)
+check("outward offset also makes ring + face", len(outward.faces) == 5,
+      f"got {len(outward.faces)}")
+check("outward offset grows the boundary to 5x4",
+      abs(sum(out_areas) - 20.0) < 1e-6, f"total {sum(out_areas)}")
+check("the original face is untouched outward", abs(out_areas[-1] - 12.0) < 1e-6,
+      f"largest face {out_areas[-1]}")
+
+untouched = offset.offsetted(base, 0, 0.0)
+check("zero offset changes nothing",
+      len(untouched.verts) == 4 and len(untouched.faces) == 1)
+
+for mesh in (inward, outward, untouched, base):
+    mesh.free()
+
+
+# --- Eraser ------------------------------------------------------------------
+
+section("Eraser")
+eraser = sys.modules[ADDON + ".ops.eraser"]
+vp = sys.modules[ADDON + ".viewport"]
+
+# The screen-space pick underneath the tool is pure 2D math.
+check("distance to a segment's middle",
+      abs(vp.point_segment_distance_2d(Vector((5, 5)), Vector((0, 0)), Vector((10, 0))) - 5.0) < 1e-9)
+check("distance clamps at the endpoints",
+      abs(vp.point_segment_distance_2d(Vector((15, 0)), Vector((0, 0)), Vector((10, 0))) - 5.0) < 1e-9)
+check("degenerate segment is a point",
+      abs(vp.point_segment_distance_2d(Vector((3, 4)), Vector((0, 0)), Vector((0, 0))) - 5.0) < 1e-9)
+
+context.view_layer.objects.active = None
+square = [Vector((0, 0, 0)), Vector((2, 0, 0)), Vector((2, 2, 0)), Vector((0, 2, 0))]
+square_obj, _ = sketchmesh.commit(context, square, close=True)
+full = bmesh.new()
+full.from_mesh(square_obj.data)
+
+one_gone = eraser.erased(full, [0])
+check("erasing an edge takes its face with it", len(one_gone.faces) == 0)
+check("the other three edges survive", len(one_gone.edges) == 3, f"got {len(one_gone.edges)}")
+check("shared endpoints stay", len(one_gone.verts) == 4, f"got {len(one_gone.verts)}")
+
+two_gone = eraser.erased(full, [0, 1])
+check("a vertex left with no edges is swept up", len(two_gone.verts) == 3,
+      f"got {len(two_gone.verts)}")
+check("two edges remain of the square", len(two_gone.edges) == 2)
+
+all_gone = eraser.erased(full, [0, 1, 2, 3])
+check("erasing every edge empties the mesh", len(all_gone.verts) == 0)
+
+# An open polyline: erasing one stroke must not strand its far endpoint.
+context.view_layer.objects.active = None
+path = [Vector((0, 0, 5)), Vector((1, 0, 5)), Vector((2, 0, 5))]
+path_obj, _ = sketchmesh.commit(context, path, close=False)
+strokes = bmesh.new()
+strokes.from_mesh(path_obj.data)
+half = eraser.erased(strokes, [0])
+check("erasing one stroke of a polyline leaves the other",
+      len(half.edges) == 1 and len(half.verts) == 2,
+      f"got {len(half.verts)} verts, {len(half.edges)} edges")
+
+for mesh in (full, one_gone, two_gone, all_gone, strokes, half):
     mesh.free()
 
 

@@ -17,6 +17,8 @@ the IFC layer underneath.
 | `L` | Line | Connected edges; closed coplanar loops become faces |
 | `R` | Rectangle | Two opposite corners |
 | `P` | Push/Pull | Extrudes the face under the cursor along its normal |
+| `F` | Offset | Copies a face's boundary parallel to itself, in or out |
+| `E` | Eraser | Erases edges; faces they bounded go too |
 | `T` | Tape Measure | Bonsai's measure tool |
 | `M` `Q` `S` | Move / Rotate / Scale | Blender's transforms |
 | `O` `H` `Z` | Orbit / Pan / Zoom | `Shift+Z` for zoom extents |
@@ -27,10 +29,14 @@ without already knowing the shortcuts.
 Line, Rectangle and Tape all run on Bonsai's polyline engine, so they share its
 inference snapping, axis locks (`X`/`Y`/`Z`), plane locks (`Shift`+`X`/`Y`/`Z`)
 and measurement box — including imperial input and `=`-prefixed expressions.
-Push/Pull has its own measurement box using the same parser.
+Push/Pull and Offset have their own measurement box using the same parser. The
+Eraser finds edges in screen space rather than by raycast, because a sketch is
+mostly bare strokes and a ray only ever reports faces; it locks onto the object
+the sweep started on, restores everything on `Esc`, and removes a sketch object
+erased down to nothing.
 
-`F`, `B` and `E` are deliberately unbound. Their tools do not exist yet, and an
-unbound key is honest where a wrong one teaches the wrong muscle memory.
+`B` is deliberately unbound. Paint does not exist yet, and an unbound key is
+honest where a wrong one teaches the wrong muscle memory.
 
 ## Sketch geometry is not IFC
 
@@ -133,7 +139,8 @@ Working:
 - Add-on registration, Bonsai detection and version guard
 - The `Sketch` workspace tab: a single tuned viewport
 - A complete `Sketch` keyconfig
-- Line, Rectangle, Push/Pull and Tape Measure, in the toolbar and on keys
+- Line, Rectangle, Push/Pull, Offset, Eraser and Tape Measure, in the toolbar
+  and on keys
 - IFC+SG required parameters attached automatically as elements are created,
   per project stage
 - Project Delivery parameters per building typology, optional marks included
@@ -201,6 +208,8 @@ ops/              the modal tools
   line.py         Line
   rectangle.py    Rectangle
   pushpull.py     Push/Pull
+  offset.py       Offset
+  eraser.py       Eraser
 data/             shipped requirements: IFC+SG, per-typology delivery, mappings
 ```
 
@@ -232,9 +241,11 @@ Bonsai already provides the machinery this add-on builds on:
 - [x] Stripped-down workspace layout: a single viewport
 - [x] IFC+SG required parameters, attached on element creation per stage
 - [x] Project Delivery requirements per building typology, with optional marks
+- [x] Offset for sketch faces, inward and outward
+- [x] Eraser, with screen-space edge picking
 - [ ] Live rectangle preview while dragging the second corner
 - [ ] Push/Pull for typed IFC elements, driving Bonsai's parametric depth
-- [ ] Offset, Follow Me, Eraser, Paint
+- [ ] Follow Me, Paint
 - [ ] Theme, condensed Entity Info panel
 - [ ] Instructor panel
 
