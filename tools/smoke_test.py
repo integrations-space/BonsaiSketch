@@ -424,12 +424,15 @@ check("two edges remain of the square", len(two_gone.edges) == 2)
 all_gone = eraser.erased(full, [0, 1, 2, 3])
 check("erasing every edge empties the mesh", len(all_gone.verts) == 0)
 
-# An open polyline: erasing one stroke must not strand its far endpoint.
-context.view_layer.objects.active = None
-path = [Vector((0, 0, 5)), Vector((1, 0, 5)), Vector((2, 0, 5))]
-path_obj, _ = sketchmesh.commit(context, path, close=False)
+# An open wire polyline: erasing one stroke must not strand its far endpoint.
+# Built directly rather than through sketchmesh.commit: commit runs
+# contextual_create over every stroke, which added closing geometry to this
+# open chain and made the fixture something other than two bare strokes --
+# this check is about the eraser, so it gets exactly two bare strokes.
 strokes = bmesh.new()
-strokes.from_mesh(path_obj.data)
+sv = [strokes.verts.new(co) for co in ((0, 0, 5), (1, 0, 5), (2, 0, 5))]
+strokes.edges.new((sv[0], sv[1]))
+strokes.edges.new((sv[1], sv[2]))
 half = eraser.erased(strokes, [0])
 check("erasing one stroke of a polyline leaves the other",
       len(half.edges) == 1 and len(half.verts) == 2,
