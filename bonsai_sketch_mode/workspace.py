@@ -85,10 +85,10 @@ def _on_workspace_change() -> None:
     if keyconfig.KEYCONFIG_NAME not in kcs:
         return
 
-    in_sketchup = win.workspace.name == WORKSPACE_NAME
+    in_sketch = win.workspace.name == WORKSPACE_NAME
     active_name = kcs.active.name if kcs.active else None
 
-    if in_sketchup:
+    if in_sketch:
         if active_name != keyconfig.KEYCONFIG_NAME:
             _previous_keyconfig = active_name
             kcs.active = kcs[keyconfig.KEYCONFIG_NAME]

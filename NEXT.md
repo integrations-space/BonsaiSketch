@@ -281,6 +281,17 @@ workspace is appended by the operator rather than created on enable. On 5.2 the
 tab therefore has to be added once from Preferences > Add-ons > Bonsai Sketch
 Mode. 5.0 already carries it in its saved startup file.
 
-`bl_ext.user_default.bonsai_sketchup`, from further back than this add-on, is
-still listed as enabled on 5.0 and still logs a "not loaded" line. Left alone
-deliberately — it is not ours to clear.
+The same trap had already fired once, years-old-looking but self-inflicted.
+`bl_ext.user_default.bonsai_sketchup` sat enabled on 5.0, logging a dead-module
+line on every launch. It looked like some unrelated add-on, but it came from
+this project: the initial scaffold's README (`c8d1cc4`) gave a `mklink` and an
+`addon_enable` against `bonsai_sketchup`, a name left over from before the
+repository existed. The next commit corrected the docs — by which point Blender
+had the enable saved, where no later doc fix could reach it. Cleared on
+2026-07-28.
+
+Both Blenders now start with no "not loaded" lines and list exactly
+`bl_ext.blender_org.bonsai` and `bl_ext.user_default.bonsai_sketch_mode`. The
+lesson generalises past this add-on: a wrong module path in an instruction
+someone follows once outlives every correction made afterwards, because it lands
+in their preferences rather than in the repository.
