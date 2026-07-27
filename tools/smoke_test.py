@@ -346,6 +346,27 @@ for mesh in (flat, box, taller, wider, shorter, unchanged, scaled):
     mesh.free()
 
 
+# --- Theme -------------------------------------------------------------------
+#
+# The one thing this add-on changes outside its own tab, so the promise that it
+# can be undone has to hold exactly -- not approximately, and not back to
+# Blender's defaults, but back to whatever the user had.
+
+section("Theme")
+theme = addon.theme
+original = theme.snapshot()
+check("canvas is not applied to begin with", theme.looks_applied() is False)
+applied_ok, applied_message = theme.apply()
+check("canvas applies", applied_ok, applied_message)
+check("canvas reads as applied", theme.looks_applied() is True)
+restored_ok, restored_message = theme.restore(original)
+check("previous colours restore", restored_ok, restored_message)
+check("canvas reads as removed", theme.looks_applied() is False)
+check("restore is byte-exact, not approximate", theme.snapshot() == original)
+check("restoring nothing is refused", theme.restore("")[0] is False)
+check("unreadable saved values are refused", theme.restore("{not json")[0] is False)
+
+
 # --- Unregister --------------------------------------------------------------
 
 section("Unregister")

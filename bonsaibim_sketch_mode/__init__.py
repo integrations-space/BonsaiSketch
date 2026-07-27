@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import bpy
 
-from . import bridge, keyconfig, ops, tools, workspace
+from . import bridge, keyconfig, ops, theme, tools, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
@@ -71,8 +71,61 @@ class BONSAIBIM_SKETCH_OT_open_workspace(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class BONSAIBIM_SKETCH_OT_apply_theme(bpy.types.Operator):
+    bl_idname = "bonsaibim_sketch_mode.apply_theme"
+    bl_label = "Use the Sketch Canvas"
+    bl_description = (
+        "Sky-and-ground gradient behind the model, with a pale measuring grid.\n\n"
+        "Blender keeps viewport colours in one global theme, so this changes the "
+        "3D viewport everywhere, not only on the Sketch tab. Your current colours "
+        "are recorded first and restored if you turn it off"
+    )
+
+    def execute(self, context: bpy.types.Context):
+        prefs = workspace.get_prefs()
+        if prefs is None:
+            self.report({"ERROR"}, "Add-on preferences unavailable")
+            return {"CANCELLED"}
+
+        # Record before changing, so "off" restores what was actually there.
+        prefs.saved_theme = theme.snapshot()
+        ok, message = theme.apply()
+        if not ok:
+            self.report({"ERROR"}, message)
+            return {"CANCELLED"}
+
+        switched = theme.use_theme_background(workspace.WORKSPACE_NAME)
+        prefs.theme_applied = True
+        self.report({"INFO"}, f"{message} ({switched} viewport(s) switched)")
+        return {"FINISHED"}
+
+
+class BONSAIBIM_SKETCH_OT_restore_theme(bpy.types.Operator):
+    bl_idname = "bonsaibim_sketch_mode.restore_theme"
+    bl_label = "Restore Previous Colours"
+    bl_description = "Put the viewport colours back the way they were before the Sketch canvas"
+
+    def execute(self, context: bpy.types.Context):
+        prefs = workspace.get_prefs()
+        if prefs is None:
+            self.report({"ERROR"}, "Add-on preferences unavailable")
+            return {"CANCELLED"}
+
+        ok, message = theme.restore(prefs.saved_theme)
+        theme.use_flat_background(workspace.WORKSPACE_NAME)
+        prefs.theme_applied = False
+        prefs.saved_theme = ""
+        self.report({"INFO"} if ok else {"WARNING"}, message)
+        return {"FINISHED"}
+
+
 class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
     bl_idname = __package__
+
+    #: The theme values as they were before we touched them, as JSON. Kept in
+    #: preferences rather than memory so a restore still works next session.
+    saved_theme: bpy.props.StringProperty(default="")
+    theme_applied: bpy.props.BoolProperty(default=False)
 
     setup_workspace: bpy.props.BoolProperty(
         name="Add Sketch workspace tab",
@@ -135,6 +188,25 @@ class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
             if not (active and active.name == keyconfig.KEYCONFIG_NAME):
                 box.operator(BONSAIBIM_SKETCH_OT_activate_keyconfig.bl_idname, icon="PLAY")
 
+        box = layout.box()
+        box.label(text="Viewport", icon="SHADING_RENDERED")
+        applied = theme.looks_applied()
+        if self.theme_applied and applied:
+            box.label(text="Sketch canvas is on.", icon="CHECKMARK")
+            box.operator(BONSAIBIM_SKETCH_OT_restore_theme.bl_idname, icon="LOOP_BACK")
+        else:
+            if self.theme_applied and applied is False:
+                box.label(text="Something else has changed the theme since.", icon="INFO")
+            col = box.column(align=True)
+            col.label(text="Sky and ground behind the model, with a pale grid.")
+            col.label(
+                text="Blender keeps viewport colours in one global theme,",
+                icon="ERROR",
+            )
+            col.label(text="so this restyles the 3D viewport in every workspace.")
+            col.label(text="Your current colours are recorded and can be restored.")
+            box.operator(BONSAIBIM_SKETCH_OT_apply_theme.bl_idname, icon="COLOR")
+
         ok, message = _tools_status
         box = layout.box()
         box.label(text="Tools", icon="TOOL_SETTINGS")
@@ -151,6 +223,8 @@ class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
 classes = (
     BONSAIBIM_SKETCH_OT_activate_keyconfig,
     BONSAIBIM_SKETCH_OT_open_workspace,
+    BONSAIBIM_SKETCH_OT_apply_theme,
+    BONSAIBIM_SKETCH_OT_restore_theme,
     BONSAIBIM_SKETCH_Preferences,
 )
 

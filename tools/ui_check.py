@@ -119,6 +119,15 @@ def run():
         check("properties sidebar hidden", space is not None and not space.show_region_ui)
         check("perspective view", space is not None and space.region_3d.view_perspective == "PERSP")
         check("solid shading", space is not None and space.shading.type == "SOLID")
+        # A light canvas, without needing the global theme change.
+        check("flat light canvas, not the dark default",
+              space is not None and space.shading.background_type == "VIEWPORT")
+        check("canvas is light",
+              space is not None and min(space.shading.background_color) > 0.7,
+              f"colour {list(space.shading.background_color) if space else '?'}")
+        check("grid reaches past the model",
+              space is not None and space.overlay.grid_lines >= 64,
+              f"grid_lines {space.overlay.grid_lines if space else '?'}")
         # Without this, Object Mode draws no mesh edges at all and Push/Pull
         # has nothing to aim at: a box is an untextured blob with no visible
         # face boundaries.

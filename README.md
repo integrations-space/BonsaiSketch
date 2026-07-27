@@ -57,7 +57,7 @@ tab appears in the bar across the top of the window.
 
 ### Step 3 — Install BonsaiSketch
 
-Download **`bonsaibim_sketch_mode-0.2.4.zip`** from
+Download **`bonsaibim_sketch_mode-0.3.0.zip`** from
 [the latest release](https://github.com/integrations-space/BonsaiSketch/releases/latest).
 Do not unzip it. Then, in Blender:
 

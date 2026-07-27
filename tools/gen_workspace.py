@@ -57,6 +57,11 @@ EDGE_TOLERANCE = 6
 VIEW_DIRECTION = Vector((1.0, -1.0, 0.8))
 VIEW_DISTANCE = 18.0
 
+#: The flat canvas colour. Kept in step with theme.GROUND, so turning the
+#: optional sky/ground gradient on and off does not jump between two unrelated
+#: shades -- the flat colour is the gradient's lower end.
+GROUND_COLOUR = (0.878, 0.867, 0.827)
+
 log = []
 state = {"step": 0}
 
@@ -158,10 +163,26 @@ def tune(workspace):
                 space.overlay.wireframe_threshold = 1.0  # every edge, not just creases
                 space.overlay.wireframe_opacity = 1.0
 
+                # A light canvas, the single biggest thing that stops this
+                # looking like Blender. A flat colour rather than the theme
+                # gradient, because the gradient is a global preference and
+                # the workspace should not need one to be usable -- turning it
+                # on is the user's call, in the add-on preferences.
+                space.shading.background_type = "VIEWPORT"
+                space.shading.background_color = GROUND_COLOUR
+
                 # Ground plane and the red/green axes.
                 space.overlay.show_floor = True
                 space.overlay.show_axis_x = True
                 space.overlay.show_axis_y = True
+                # One metre squares grouped in tens, which is how a drawing
+                # grid is read: fine lines for the unit, heavier ones for the
+                # decade. Blender's default subdivision of 10 is right; the
+                # extent is not, and a grid that stops short reads as an edge
+                # of the world.
+                space.overlay.grid_scale = 1.0
+                space.overlay.grid_subdivisions = 10
+                space.overlay.grid_lines = 64
                 # The corner readout is Blender explaining itself; our tools
                 # use the status bar.
                 space.overlay.show_text = False
