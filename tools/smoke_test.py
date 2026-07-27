@@ -376,6 +376,40 @@ check("an unmapped class yields nothing",
 check("unmapped classes ask for no parameters",
       requirements.parameters_for_class("IfcNotAThing", "detailed") == [])
 
+# One class, two elements, told apart by PredefinedType: the roof plane is an
+# IfcSlab like any floor, and getting this wrong would hang roof requirements
+# on every landing.
+check("a plain slab is a Floor", requirements.element_for_class("IfcSlab") == "Floor")
+check("a ROOF slab is a Roof", requirements.element_for_class("IfcSlab", "ROOF") == "Roof")
+check("floor and roof slabs are asked different questions",
+      requirements.parameter_names("IfcSlab", "detailed", "FLOOR")
+      != requirements.parameter_names("IfcSlab", "detailed", "ROOF"))
+check("sweep classes carry no qualifiers",
+      all("/" not in c for c in requirements.mapped_classes()))
+
+# The Project Delivery dataset: per building typology, with optional marks.
+check("8 delivery typologies ship", len(requirements.typologies()) == 8,
+      str(requirements.typologies()))
+check("a known typology loads cleanly",
+      requirements.delivery_load_error("public_residential") is None,
+      requirements.delivery_load_error("public_residential") or "")
+check("an unknown typology fails loudly",
+      requirements.delivery_load_error("atlantis") is not None)
+check("no typology has mapping collisions",
+      all(not requirements.delivery_warnings(k) for k, _ in requirements.typologies()))
+check("delivery requirements differ per typology",
+      requirements.delivery_parameter_names("IfcColumn", "schematic", "public_residential")
+      != requirements.delivery_parameter_names("IfcColumn", "schematic", "commercial"))
+check("delivery-only elements resolve under their typology",
+      requirements.delivery_element_for_class("IfcFurniture", "industrial") == "Furniture"
+      and requirements.delivery_element_for_class("IfcFurniture", "commercial") is None)
+opt_off = requirements.delivery_parameter_names("IfcDoor", "tender", "commercial")
+opt_on = requirements.delivery_parameter_names("IfcDoor", "tender", "commercial", True)
+check("optional parameters appear only when asked for", set(opt_off) < set(opt_on),
+      f"mandatory {len(opt_off)}, with optional {len(opt_on)}")
+check("infrastructure typologies map nothing on IFC4",
+      requirements.delivery_mapped_classes("infra_road") == [])
+
 # Deliberately unmapped elements must say why, so an empty result is never
 # mistaken for "this element has no requirements".
 check("External Works is unmapped with a stated reason",
@@ -402,6 +436,9 @@ check("apply operator registered", hasattr(bpy.ops.bonsaibim_sketch_mode, "apply
 check("sidebar panel registered", hasattr(bpy.types, "BONSAIBIM_SKETCH_PT_ifc_sg"))
 check("stage is a scene property", hasattr(context.scene, "bonsaibim_sketch_stage"))
 check("attachment defaults to on", context.scene.bonsaibim_sketch_auto_params is True)
+check("typology defaults to unset", context.scene.bonsaibim_sketch_typology == "none")
+check("optional parameters default to off",
+      context.scene.bonsaibim_sketch_optional_params is False)
 
 import ifcopenshell
 import ifcopenshell.api.project
@@ -447,10 +484,11 @@ check("a door gets its own, smaller schematic set",
 # Advancing the stage: the sweep behind Apply to Existing Elements tops up
 # what earlier stages did not ask for, then has nothing more to say.
 context.scene.bonsaibim_sketch_stage = "detailed"
-touched, added = psets.sweep(ifc, "detailed")
+touched, added = psets.sweep(ifc, psets.AttachSettings(stage="detailed"))
 check("a sweep tops up elements from an earlier stage",
       ifcopenshell.util.element.get_pset(early_wall, psets.PSET_NAME) is not None)
-check("the sweep is idempotent", psets.sweep(ifc, "detailed") == (0, 0))
+check("the sweep is idempotent",
+      psets.sweep(ifc, psets.AttachSettings(stage="detailed")) == (0, 0))
 
 # The scene switch turns attachment off entirely.
 context.scene.bonsaibim_sketch_auto_params = False
@@ -458,6 +496,41 @@ off_wall = ifcopenshell.api.root.create_entity(ifc, ifc_class="IfcWall", name="W
 check("turning it off attaches nothing",
       ifcopenshell.util.element.get_pset(off_wall, psets.PSET_NAME) is None)
 context.scene.bonsaibim_sketch_auto_params = True
+
+# A roof slab and a floor slab are the same class; PredefinedType decides
+# which questions each is asked.
+floor_slab = ifcopenshell.api.root.create_entity(
+    ifc, ifc_class="IfcSlab", name="S1", predefined_type="FLOOR")
+roof_slab = ifcopenshell.api.root.create_entity(
+    ifc, ifc_class="IfcSlab", name="S2", predefined_type="ROOF")
+floor_pset = ifcopenshell.util.element.get_pset(floor_slab, psets.PSET_NAME) or {}
+roof_pset = ifcopenshell.util.element.get_pset(roof_slab, psets.PSET_NAME) or {}
+check("a floor slab gets the Floor set",
+      set(floor_pset) - {"id"} == set(requirements.parameter_names("IfcSlab", "detailed", "FLOOR")))
+check("a roof slab gets the Roof set",
+      set(roof_pset) - {"id"} == set(requirements.parameter_names("IfcSlab", "detailed", "ROOF")))
+
+# Choosing a typology brings the Project Delivery dataset in, as its own
+# property set: a second submission's questions, kept out of the first's.
+context.scene.bonsaibim_sketch_typology = "public_residential"
+column = ifcopenshell.api.root.create_entity(ifc, ifc_class="IfcColumn", name="C1")
+col_sg = ifcopenshell.util.element.get_pset(column, psets.PSET_NAME)
+col_dl = ifcopenshell.util.element.get_pset(column, psets.DELIVERY_PSET_NAME)
+check("a column gets both property sets", col_sg is not None and col_dl is not None)
+check("delivery parameters attach unfilled",
+      col_dl is not None and col_dl.get("b", "sentinel") is None)
+
+context.scene.bonsaibim_sketch_typology = "industrial"
+chair = ifcopenshell.api.root.create_entity(ifc, ifc_class="IfcFurniture", name="Chair")
+check("a delivery-only class attaches under its typology",
+      ifcopenshell.util.element.get_pset(chair, psets.DELIVERY_PSET_NAME) is not None)
+check("it gets no IFC+SG set, which does not cover it",
+      ifcopenshell.util.element.get_pset(chair, psets.PSET_NAME) is None)
+
+context.scene.bonsaibim_sketch_typology = "none"
+chair2 = ifcopenshell.api.root.create_entity(ifc, ifc_class="IfcFurniture", name="Chair2")
+check("no typology means no delivery parameters",
+      ifcopenshell.util.element.get_pset(chair2, psets.DELIVERY_PSET_NAME) is None)
 
 # The nulls are not a Blender-session artefact: they survive the file itself
 # being written out and read back.

@@ -42,18 +42,23 @@ _tools_status: tuple[bool, str] = (False, "Not yet loaded")
 _params_status: tuple[bool, str] = (False, "Not yet loaded")
 
 
-def _current_stage() -> Optional[str]:
-    """What the creation listener attaches at: the scene's stage, or None for off.
+def _attach_settings() -> Optional[psets.AttachSettings]:
+    """What the creation listener attaches, read from the scene. None for off.
 
-    Stage and the on/off switch are scene properties rather than preferences,
-    so they save with the file -- a project's stage is the project's state,
-    not the installation's.
+    Stage, typology and the switches are scene properties rather than
+    preferences, so they save with the file -- what a project is and where it
+    stands are the project's state, not the installation's.
     """
     try:
         scene = bpy.context.scene
         if scene is None or not scene.bonsaibim_sketch_auto_params:
             return None
-        return scene.bonsaibim_sketch_stage
+        typology = scene.bonsaibim_sketch_typology
+        return psets.AttachSettings(
+            stage=scene.bonsaibim_sketch_stage,
+            typology=None if typology == "none" else typology,
+            include_optional=scene.bonsaibim_sketch_optional_params,
+        )
     except Exception:
         return None
 
@@ -62,10 +67,11 @@ class BONSAIBIM_SKETCH_OT_apply_ifc_sg(bpy.types.Operator):
     bl_idname = "bonsaibim_sketch_mode.apply_ifc_sg"
     bl_label = "Apply to Existing Elements"
     bl_description = (
-        "Attach the IFC+SG parameters required at the current stage to every "
-        "element already in the project -- ones made before this add-on was "
-        "on, or before the stage advanced. Only missing parameters are added; "
-        "values already filled in are not touched"
+        "Attach the parameters required at the current stage -- IFC+SG, and "
+        "Project Delivery if a typology is chosen -- to every element already "
+        "in the project: ones made before this add-on was on, before the "
+        "stage advanced, or before the typology was set. Only missing "
+        "parameters are added; values already filled in are not touched"
     )
 
     @classmethod
@@ -73,7 +79,18 @@ class BONSAIBIM_SKETCH_OT_apply_ifc_sg(bpy.types.Operator):
         return psets.is_available() and bridge.has_project()
 
     def execute(self, context: bpy.types.Context):
-        touched, added = psets.sweep(bridge.ifc_file(), context.scene.bonsaibim_sketch_stage)
+        settings = _attach_settings() or psets.AttachSettings(
+            stage=context.scene.bonsaibim_sketch_stage,
+            typology=(
+                None
+                if context.scene.bonsaibim_sketch_typology == "none"
+                else context.scene.bonsaibim_sketch_typology
+            ),
+            include_optional=context.scene.bonsaibim_sketch_optional_params,
+        )
+        touched, added = psets.sweep(bridge.ifc_file(), settings)
+        for warning in requirements.delivery_warnings(settings.typology or ""):
+            self.report({"WARNING"}, warning)
         if added:
             self.report({"INFO"}, f"Added {added} parameters across {touched} elements")
         else:
@@ -85,7 +102,7 @@ class BONSAIBIM_SKETCH_PT_ifc_sg(bpy.types.Panel):
     """Stage selection and the manual sweep, in the 3D View sidebar (N)."""
 
     bl_idname = "BONSAIBIM_SKETCH_PT_ifc_sg"
-    bl_label = "IFC+SG"
+    bl_label = "Model Content Requirements"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Sketch"
@@ -100,8 +117,19 @@ class BONSAIBIM_SKETCH_PT_ifc_sg(bpy.types.Panel):
             col.label(text=reason)
             return
 
-        layout.prop(context.scene, "bonsaibim_sketch_stage")
-        layout.prop(context.scene, "bonsaibim_sketch_auto_params")
+        scene = context.scene
+        layout.prop(scene, "bonsaibim_sketch_stage")
+        layout.prop(scene, "bonsaibim_sketch_typology")
+        col = layout.column(align=True)
+        col.prop(scene, "bonsaibim_sketch_auto_params")
+        sub = col.row()
+        sub.enabled = scene.bonsaibim_sketch_typology != "none"
+        sub.prop(scene, "bonsaibim_sketch_optional_params")
+        if scene.bonsaibim_sketch_typology != "none":
+            for warning in requirements.delivery_warnings(scene.bonsaibim_sketch_typology):
+                row = layout.row()
+                row.alert = True
+                row.label(text=warning, icon="ERROR")
         if bridge.has_project():
             layout.operator(BONSAIBIM_SKETCH_OT_apply_ifc_sg.bl_idname, icon="FILE_REFRESH")
         else:
@@ -291,11 +319,14 @@ class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
 
         ok, message = _params_status
         box = layout.box()
-        box.label(text="IFC+SG Parameters", icon="LINENUMBERS_ON")
+        box.label(text="Model Content Requirements", icon="LINENUMBERS_ON")
         box.label(text=message, icon="CHECKMARK" if ok else "ERROR")
         if ok:
             box.label(text=requirements.source(), icon="INFO")
-            box.label(text="Stage and on/off save with each file: 3D View sidebar (N) > Sketch.")
+            box.label(
+                text="Stage, typology and on/off save with each file: "
+                "3D View sidebar (N) > Sketch."
+            )
 
 
 classes = (
@@ -324,19 +355,47 @@ def _register_scene_properties() -> None:
         items=[(key, label, "") for key, label in stages],
         default="schematic",
     )
+    bpy.types.Scene.bonsaibim_sketch_typology = bpy.props.EnumProperty(
+        name="Typology",
+        description=(
+            "What kind of project this is. The Project Delivery requirements "
+            "differ per building typology; choosing one attaches that "
+            f"typology's parameters as a {psets.DELIVERY_PSET_NAME!r} "
+            "property set alongside the IFC+SG set. Left unset, only the "
+            "IFC+SG parameters attach -- a typology is never guessed"
+        ),
+        items=[("none", "None (IFC+SG only)", "Attach only the IFC+SG regulatory parameters")]
+        + [(key, label, "") for key, label in requirements.typologies()],
+        default="none",
+    )
     bpy.types.Scene.bonsaibim_sketch_auto_params = bpy.props.BoolProperty(
         name="Attach on Creation",
         description=(
-            "Give every newly created element the parameters the IFC+SG "
-            f"standard requires of it, as a {psets.PSET_NAME!r} property set "
-            "with the values left for you to fill in"
+            "Give every newly created element the parameters the Model "
+            "Content Requirements ask of it, as property sets with the "
+            "values left for you to fill in"
         ),
         default=True,
+    )
+    bpy.types.Scene.bonsaibim_sketch_optional_params = bpy.props.BoolProperty(
+        name="Include Optional Parameters",
+        description=(
+            "Also attach the Project Delivery parameters the workbook marks "
+            "'O' (optional -- input if available). The IFC+SG set has no "
+            "optional parameters, so this only matters once a typology is "
+            "chosen"
+        ),
+        default=False,
     )
 
 
 def _unregister_scene_properties() -> None:
-    for name in ("bonsaibim_sketch_stage", "bonsaibim_sketch_auto_params"):
+    for name in (
+        "bonsaibim_sketch_stage",
+        "bonsaibim_sketch_typology",
+        "bonsaibim_sketch_auto_params",
+        "bonsaibim_sketch_optional_params",
+    ):
         try:
             delattr(bpy.types.Scene, name)
         except AttributeError:
@@ -360,7 +419,7 @@ def register() -> None:
     # register_tool validates that the keymap targets exist.
     ops.register()
 
-    _params_status = psets.install(_current_stage)
+    _params_status = psets.install(_attach_settings)
     if not _params_status[0]:
         print(f"[bonsaibim_sketch_mode] IFC+SG: {_params_status[1]}")
 

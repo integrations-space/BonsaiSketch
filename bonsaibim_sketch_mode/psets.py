@@ -16,13 +16,21 @@
 
 """Writing the standard's requirements onto elements as they are created.
 
-``requirements.py`` answers what the IFC+SG standard asks of an element; this
-module puts the questions onto the elements themselves. Each covered element
-gets a property set named :data:`PSET_NAME` holding one property per required
-parameter, added with a null value. The standard prescribes the questions, not
-the answers -- and a null property is a visible unanswered question, in
-Bonsai's property panels and in the exported IFC, where an absent one is
-invisible.
+``requirements.py`` answers what the Model Content Requirements ask of an
+element; this module puts the questions onto the elements themselves. Each
+covered element gets up to two property sets, one per dataset: the IFC+SG
+regulatory requirements in :data:`PSET_NAME`, and -- when the user has said
+which building typology the project is -- the typology's Project Delivery
+requirements in :data:`DELIVERY_PSET_NAME`. Each holds one property per
+required parameter, added with a null value. The standard prescribes the
+questions, not the answers -- and a null property is a visible unanswered
+question, in Bonsai's property panels and in the exported IFC, where an
+absent one is invisible.
+
+The two sets stay separate because the submissions are separate: IFC+SG is
+what CORENET-X checks, Project Delivery is what a DBC handover asks, and a
+reviewer of either should not have to know the other's vocabulary to read a
+property panel.
 
 Two invariants make this safe to run at any moment:
 
@@ -42,9 +50,10 @@ rather than merely convenient. Running synchronously inside the listener also
 keeps the attachment inside the same undo transaction as the creation it
 belongs to.
 
-Which stage to attach at -- and whether to attach at all -- is the caller's
-state, not this module's: :func:`install` takes a provider callable and asks
-it at each creation.
+Which stage to attach at, which typology the project is, whether optional
+delivery parameters count, and whether to attach at all -- all of that is the
+caller's state, not this module's: :func:`install` takes a provider callable
+returning :class:`AttachSettings` and asks it at each creation.
 
 ifcopenshell is imported here directly rather than through ``bridge.py``.
 bridge.py exists to quarantine the coupling to Bonsai's unstable internals;
@@ -54,15 +63,33 @@ contract, and nothing in this module touches Bonsai at all.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import Any, Callable, NamedTuple, Optional
 
 from . import requirements
 
-#: The property set the parameters are written into. The standard names the
-#: parameters but no set to put them in -- its workbook is organised by
-#: element, not by pset -- so they are gathered under one clearly-owned name
-#: rather than scattered across guesses at Pset_* conventions.
+#: The property set the IFC+SG parameters are written into. The standard
+#: names the parameters but no set to put them in -- its workbook is
+#: organised by element, not by pset -- so they are gathered under one
+#: clearly-owned name rather than scattered across guesses at Pset_*
+#: conventions.
 PSET_NAME = "IFCSG_Parameters"
+
+#: The property set the per-typology Project Delivery parameters go into.
+DELIVERY_PSET_NAME = "MCR_ProjectDelivery"
+
+
+class AttachSettings(NamedTuple):
+    """What to attach, as answered by the caller's provider at each creation.
+
+    ``typology`` None means the user has not said what the project is, so no
+    delivery parameters attach -- guessing a typology would attach a wrong
+    set somewhere. ``include_optional`` covers the delivery dataset's "O"
+    marks; the IFC+SG dataset has no optional parameters.
+    """
+
+    stage: str
+    typology: Optional[str] = None
+    include_optional: bool = False
 
 #: Listener registration name, namespaced so nothing else removes it.
 LISTENER = "bonsaibim_sketch_mode.psets"
@@ -78,7 +105,7 @@ except Exception as exc:  # pragma: no cover - depends on host install
     ifcopenshell = None
     _import_error = f"ifcopenshell could not be imported: {exc}"
 
-_stage_provider: Optional[Callable[[], Optional[str]]] = None
+_settings_provider: Optional[Callable[[], Optional[AttachSettings]]] = None
 _installed = False
 _attaching = False
 
@@ -92,55 +119,92 @@ def unavailable_reason() -> Optional[str]:
     return _import_error or requirements.load_error()
 
 
-def missing_names(element: Any, stage: str) -> list[str]:
-    """Required parameter names the element does not yet carry at this stage."""
-    required = requirements.parameter_names(element.is_a(), stage)
-    if not required:
-        return []
-    existing = ifcopenshell.util.element.get_pset(element, PSET_NAME) or {}
-    return [name for name in required if name not in existing]
+def _required_names(element: Any, settings: AttachSettings) -> dict[str, list[str]]:
+    """pset name -> required parameter names, for each dataset that applies."""
+    ifc_class = element.is_a()
+    try:
+        # Distinguishes a roof slab from a floor slab, a finish from a
+        # ceiling: qualified class mappings key off this.
+        predefined = ifcopenshell.util.element.get_predefined_type(element)
+    except Exception:
+        predefined = None
+    required = {
+        PSET_NAME: requirements.parameter_names(ifc_class, settings.stage, predefined)
+    }
+    if settings.typology:
+        required[DELIVERY_PSET_NAME] = requirements.delivery_parameter_names(
+            ifc_class,
+            settings.stage,
+            settings.typology,
+            settings.include_optional,
+            predefined,
+        )
+    return required
 
 
-def _own_pset(ifc_file: Any, element: Any) -> Optional[Any]:
-    """The element's own PSET_NAME set, ignoring anything inherited from its type.
+def missing_names(element: Any, settings: AttachSettings) -> dict[str, list[str]]:
+    """pset name -> required names the element does not yet carry."""
+    missing = {}
+    for pset_name, required in _required_names(element, settings).items():
+        if not required:
+            continue
+        existing = ifcopenshell.util.element.get_pset(element, pset_name) or {}
+        names = [name for name in required if name not in existing]
+        if names:
+            missing[pset_name] = names
+    return missing
+
+
+def _own_pset(ifc_file: Any, element: Any, pset_name: str) -> Optional[Any]:
+    """The element's own set of that name, ignoring anything inherited from
+    its type.
 
     The distinction matters: get_pset follows type inheritance by default,
     and editing an inherited set from an occurrence would write onto the type
     -- and through it, onto every other occurrence.
     """
-    info = ifcopenshell.util.element.get_pset(element, PSET_NAME, should_inherit=False)
+    info = ifcopenshell.util.element.get_pset(element, pset_name, should_inherit=False)
     return ifc_file.by_id(info["id"]) if info else None
 
 
-def ensure(ifc_file: Any, element: Any, stage: str) -> int:
+def ensure(ifc_file: Any, element: Any, settings: AttachSettings) -> int:
     """Attach whatever parameters the element is missing. Returns how many.
 
     Never overwrites: a name already present keeps its value, filled or not.
     """
-    missing = missing_names(element, stage)
-    if not missing:
-        return 0
-    pset = _own_pset(ifc_file, element) or ifcopenshell.api.pset.add_pset(
-        ifc_file, product=element, name=PSET_NAME
-    )
-    # should_purge=False is what keeps a null-valued property: edit_pset's
-    # default treats None as "delete this", and these Nones mean "required,
-    # not yet answered".
-    ifcopenshell.api.pset.edit_pset(
-        ifc_file, pset=pset, properties={name: None for name in missing}, should_purge=False
-    )
-    return len(missing)
+    added = 0
+    for pset_name, names in missing_names(element, settings).items():
+        pset = _own_pset(ifc_file, element, pset_name) or ifcopenshell.api.pset.add_pset(
+            ifc_file, product=element, name=pset_name
+        )
+        # should_purge=False is what keeps a null-valued property: edit_pset's
+        # default treats None as "delete this", and these Nones mean
+        # "required, not yet answered".
+        ifcopenshell.api.pset.edit_pset(
+            ifc_file, pset=pset, properties={name: None for name in names}, should_purge=False
+        )
+        added += len(names)
+    return added
 
 
-def sweep(ifc_file: Any, stage: str, only_class: Optional[str] = None) -> tuple[int, int]:
+def sweep(
+    ifc_file: Any, settings: AttachSettings, only_class: Optional[str] = None
+) -> tuple[int, int]:
     """Attach missing parameters across a file. Returns (elements, parameters).
 
     With ``only_class``, only elements of that class are visited -- what the
     creation listener does, since it knows what was just created. Without it,
-    every mapped class is visited: that is the "apply to existing elements"
-    path, for elements that predate the add-on or a stage change.
+    every class either dataset maps is visited: that is the "apply to
+    existing elements" path, for elements that predate the add-on, a stage
+    change, or the typology being set.
     """
-    classes = [only_class] if only_class else requirements.mapped_classes()
+    if only_class:
+        classes = [only_class]
+    else:
+        classes = set(requirements.mapped_classes())
+        if settings.typology:
+            classes |= set(requirements.delivery_mapped_classes(settings.typology))
+        classes = sorted(classes)
     touched = added = 0
     for ifc_class in classes:
         try:
@@ -148,67 +212,73 @@ def sweep(ifc_file: Any, stage: str, only_class: Optional[str] = None) -> tuple[
         except Exception:
             continue  # not a class in this file's schema
         for entity in entities:
-            count = ensure(ifc_file, entity, stage)
+            count = ensure(ifc_file, entity, settings)
             if count:
                 touched += 1
                 added += count
     return touched, added
 
 
-def _on_entity_created(usecase_path: str, ifc_file: Any, settings: dict) -> None:
+def _on_entity_created(usecase_path: str, ifc_file: Any, call_settings: dict) -> None:
     """Post listener on root.create_entity: give the new element its parameters."""
     global _attaching
     if _attaching or ifc_file is None:
         return
-    # Settings are the creation call's keyword arguments. A class the standard
-    # says nothing about is the overwhelmingly common case -- types, contexts,
-    # the project itself -- so that exits before touching the file. A caller
+    settings = _settings_provider() if _settings_provider else None
+    if settings is None:
+        return  # attachment is turned off, or there is nowhere to read from
+    # call_settings are the creation call's keyword arguments. A class neither
+    # dataset covers is the overwhelmingly common case -- types, contexts, the
+    # project itself -- so that exits before touching the file. A caller
     # passing ifc_class positionally leaves it unknown here; the sweep then
     # covers every mapped class, which idempotence makes merely slower.
-    ifc_class = settings.get("ifc_class")
-    if ifc_class is not None and requirements.element_for_class(ifc_class) is None:
-        return
-    stage = _stage_provider() if _stage_provider else None
-    if not stage:
-        return  # attachment is turned off, or there is nowhere to read the stage
+    ifc_class = call_settings.get("ifc_class")
+    if ifc_class is not None:
+        covered = requirements.element_for_class(ifc_class) is not None or (
+            settings.typology is not None
+            and requirements.delivery_element_for_class(ifc_class, settings.typology) is not None
+        )
+        if not covered:
+            return
     _attaching = True
     try:
-        sweep(ifc_file, stage, only_class=ifc_class)
+        sweep(ifc_file, settings, only_class=ifc_class)
     except Exception as exc:
         # A failure here must never break the creation it rode in on.
-        print(f"[bonsaibim_sketch_mode] IFC+SG parameter attachment failed: {exc}")
+        print(f"[bonsaibim_sketch_mode] MCR parameter attachment failed: {exc}")
     finally:
         _attaching = False
 
 
-def install(stage_provider: Callable[[], Optional[str]]) -> tuple[bool, str]:
+def install(settings_provider: Callable[[], Optional[AttachSettings]]) -> tuple[bool, str]:
     """Attach parameters to every element created from now on. (ok, message).
 
-    ``stage_provider`` is called at each creation and returns the stage to
-    attach at, or None to attach nothing. Both "is this turned on" and "which
-    stage is the project at" live with the caller, because both are the
-    user's state.
+    ``settings_provider`` is called at each creation and returns what to
+    attach -- stage, typology, whether optional parameters count -- or None
+    to attach nothing. All of that lives with the caller, because all of it
+    is the user's state, not this module's.
     """
-    global _stage_provider, _installed
+    global _settings_provider, _installed
     if ifcopenshell is None:
         return False, _import_error or "ifcopenshell is unavailable"
     error = requirements.load_error()
     if error:
         return False, error
-    _stage_provider = stage_provider
+    _settings_provider = settings_provider
     if not _installed:
         ifcopenshell.api.add_post_listener("root.create_entity", LISTENER, _on_entity_created)
         _installed = True
     counts = requirements.summary()
     return True, (
-        f"Attaching on creation: up to {counts['parameters']} parameters "
-        f"across {counts['mapped']} mapped elements"
+        f"Attaching on creation: up to {counts['parameters']} IFC+SG parameters "
+        f"across {counts['mapped']} mapped elements, plus Project Delivery "
+        f"parameters once a typology is chosen"
     )
 
 
 def remove() -> None:
     """Stop attaching. Safe to call however far install() got."""
-    global _stage_provider, _installed
+    global _settings_provider, _installed
     if _installed and ifcopenshell is not None:
         try:
             ifcopenshell.api.remove_post_listener(
@@ -217,4 +287,4 @@ def remove() -> None:
         except Exception:
             pass
         _installed = False
-    _stage_provider = None
+    _settings_provider = None

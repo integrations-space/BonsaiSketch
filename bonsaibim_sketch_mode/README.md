@@ -51,30 +51,46 @@ material layers or a profile, and overwriting that with a tessellated mesh
 would silently discard the parametric definition. Depth belongs to Bonsai's own
 controls until this tool can drive them directly.
 
-## IFC+SG parameters attach on creation
+## Model Content Requirements attach on creation
 
 When an element does come into being — Assign IFC Class on a sketch, or any of
-Bonsai's own tools — it is given the parameters the IFC+SG Model Content
-Requirements ask of its class, as an `IFCSG_Parameters` property set with null
-values. The standard prescribes the questions, not the answers, and a null
-property is a visible unanswered question — in Bonsai's property panels and in
-the exported IFC — where an absent one is invisible.
+Bonsai's own tools — it is given the parameters the Model Content Requirements
+ask of its class, as property sets with null values. The standard prescribes
+the questions, not the answers, and a null property is a visible unanswered
+question — in Bonsai's property panels and in the exported IFC — where an
+absent one is invisible.
+
+The published workbook carries two datasets, and each gets its own set,
+because the submissions are separate:
+
+- **IFC+SG** (CORENET-X regulatory submission) → `IFCSG_Parameters`. One set
+  for every project. Verified complete against the workbook's own
+  presentation sheet.
+- **Project Delivery** (the workbook's filter says "for DBC Submission") →
+  `MCR_ProjectDelivery`. Genuinely per building typology — eight are shipped
+  — with the workbook's "O" (optional) marks preserved and excluded unless
+  asked for. No typology is ever guessed: until the user picks one in the
+  panel, only IFC+SG attaches.
 
 The hook is one ifcopenshell post listener on `root.create_entity`, which
 every creation path passes through. The listener only ever *adds missing
 names*: filled values are never overwritten, which makes attachment idempotent
 and a whole-file sweep always safe. That sweep is exposed as **Apply to
 Existing Elements** in the 3D View sidebar (`N` > `Sketch`), next to the
-project stage selector — requirements grow as a project advances, and the
-stage is the user's to set, never guessed. Stage and the on/off switch are
-scene properties, so they save with the file.
+project stage and typology selectors — requirements grow as a project
+advances, and both stage and typology are the user's to set, never guessed.
+All of it lives in scene properties, so it saves with the file.
 
-`requirements.py` answers what the standard asks (from
-`data/ifc_sg.json`, extracted out of the published workbook by
-`tools/extract_ifc_sg.py`, and the hand-maintained class mapping in
-`data/ifc_sg_classes.json`); `psets.py` writes it onto elements. Elements
-whose class mapping is uncertain are deliberately unmapped and get nothing —
-attaching the wrong parameter set silently would be worse than attaching none.
+`requirements.py` answers what the standard asks; `psets.py` writes it onto
+elements. The data behind it: `data/ifc_sg.json` and `data/delivery/*.json`,
+extracted out of the published workbook by `tools/extract_ifc_sg.py`, plus the
+hand-maintained class mappings `data/ifc_sg_classes.json` and
+`data/delivery_classes.json`. Element names whose mapping is uncertain are
+deliberately unmapped and get nothing — attaching the wrong parameter set
+silently would be worse than attaching none. Where one class serves two
+element names — a roof plane is an `IfcSlab` like any floor — a qualified
+`IfcSlab/ROOF` entry splits them by PredefinedType, and a class contested
+within a typology is refused outright rather than resolved by luck.
 
 ## The Sketch workspace
 
@@ -120,6 +136,7 @@ Working:
 - Line, Rectangle, Push/Pull and Tape Measure, in the toolbar and on keys
 - IFC+SG required parameters attached automatically as elements are created,
   per project stage
+- Project Delivery parameters per building typology, optional marks included
 
 ### Why a keyconfig and not an addon keymap
 
@@ -177,14 +194,14 @@ tools.py          toolbar entries
 sketchmesh.py     the meshes the drawing tools write into
 viewport.py       cursor-to-geometry queries (pure Blender)
 theme.py          the Sketch canvas colours, snapshot and restore
-requirements.py   what the IFC+SG standard asks of an element (queries data/)
+requirements.py   what the standard asks of an element (queries data/)
 psets.py          writes those requirements onto elements as they are created
 ops/              the modal tools
   base.py         shared modal skeleton for the polyline tools
   line.py         Line
   rectangle.py    Rectangle
   pushpull.py     Push/Pull
-data/             shipped IFC+SG requirements and class mapping
+data/             shipped requirements: IFC+SG, per-typology delivery, mappings
 ```
 
 All coupling to Bonsai is confined to `bridge.py`. Bonsai is a rolling release
@@ -214,6 +231,7 @@ Bonsai already provides the machinery this add-on builds on:
 - [x] Tape Measure
 - [x] Stripped-down workspace layout: a single viewport
 - [x] IFC+SG required parameters, attached on element creation per stage
+- [x] Project Delivery requirements per building typology, with optional marks
 - [ ] Live rectangle preview while dragging the second corner
 - [ ] Push/Pull for typed IFC elements, driving Bonsai's parametric depth
 - [ ] Offset, Follow Me, Eraser, Paint

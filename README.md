@@ -116,17 +116,30 @@ a plain mesh would silently throw the parametric definition away. Use Bonsai's
 own depth controls for those.
 
 The moment a shape becomes an element — through Assign IFC Class, or any of
-Bonsai's own creation tools — it is given the parameters the **IFC+SG Model
-Content Requirements** ask of that kind of element, as an `IFCSG_Parameters`
-property set with every value left empty. The standard prescribes the
-questions, not the answers; an empty property is a visible unanswered question
-where an absent one is invisible. Values you fill in are never overwritten.
+Bonsai's own creation tools — it is given the parameters the **Model Content
+Requirements** ask of that kind of element, with every value left empty. The
+standard prescribes the questions, not the answers; an empty property is a
+visible unanswered question where an absent one is invisible. Values you fill
+in are never overwritten.
+
+The workbook carries two datasets, and both are covered:
+
+- **IFC+SG** (the CORENET-X regulatory submission) — one set for every
+  project, attached as an `IFCSG_Parameters` property set.
+- **Project Delivery** (the DBC handover) — different per building typology:
+  Commercial, Healthcare, Industrial, Public/Private Residential, Retail, and
+  road/rail infrastructure. Choose the **typology** in the panel and these
+  attach as a separate `MCR_ProjectDelivery` set; leave it unset and only
+  IFC+SG attaches — what kind of project this is, is never guessed. The
+  delivery sheets also mark some parameters *optional*; those attach only if
+  you switch them on.
 
 Requirements grow as a project advances — a door is asked more at detailed
 design than at schematic — so set the **project stage** in the 3D View sidebar
 (press `N`) under `Sketch`, where the attachment can also be switched off.
 **Apply to Existing Elements** in the same panel tops up elements created
-before a stage change or before the add-on was installed.
+before a stage change, before the typology was set, or before the add-on was
+installed.
 
 ### If something does not work
 
@@ -172,6 +185,8 @@ Early, but usable for sketching. Working:
 - Line, Rectangle, Push/Pull and Tape Measure
 - IFC+SG required parameters attached automatically as elements are created,
   per project stage
+- Project Delivery parameters per building typology, including the
+  workbook's optional marks
 
 Not yet built: Offset, Follow Me, Eraser, Paint, and Push/Pull on parametric
 IFC elements. `F`, `B` and `E` are left unbound rather than pointed at an
