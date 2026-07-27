@@ -21,11 +21,26 @@ it cannot be: a viewport's background gradient and its grid colour are Blender
 *theme* values, and a theme is one global object shared by every workspace and
 every file. There is no per-workspace override.
 
-So this is opt-in and reversible rather than applied on install. Turning it on
-changes how the 3D viewport looks everywhere in Blender, and someone who came
-for a drawing tool did not ask to have their Layout tab restyled. The exact
-previous values are recorded first, so turning it off puts back what was there
-rather than what we guessed the defaults were.
+The canvas therefore goes up with the Sketch tab and comes down on request. A
+flat tab that has to be switched on reads as broken to anyone expecting
+SketchUp, so the default is on -- but it does restyle the 3D viewport in every
+workspace, including Bonsai's own BIM tab, and `canvas_on_setup` turns that off
+for anyone who would rather it did not. The exact previous values are recorded
+first, so turning it off puts back what was there rather than what we guessed
+the defaults were.
+
+Note that Blender auto-saves preferences by default, and the theme is a
+preference, so the canvas persists across sessions and across every file until
+it is explicitly restored.
+
+What this cannot do is SketchUp's *opaque* ground. Blender offers exactly three
+viewport backdrops -- a flat colour, this theme gradient, or the scene world --
+and in Solid shading the world option draws its flat viewport colour and ignores
+the node tree entirely, so a hard horizon cannot be built there either. The
+gradient is also screen-space: it fades top to bottom of the viewport rather
+than meeting the ground plane at the horizon, and it does not move as you orbit.
+Real horizon geometry is the only way past that, and it would mean putting an
+object into the user's IFC file.
 
 Only 3D-viewport colours are touched. Menus, buttons, the outliner and the rest
 of Blender's interface are left alone -- restyling the whole application would
@@ -217,6 +232,35 @@ def restore(saved: str) -> tuple[bool, str]:
     if missing:
         return True, f"Restored, but {len(missing)} value(s) were not recorded"
     return True, "Previous viewport colours restored"
+
+
+def ensure_applied(workspace_name: str) -> tuple[bool, str]:
+    """Raise the canvas for a freshly added Sketch workspace.
+
+    Called after the workspace is appended, so the sky and ground are up before
+    anyone looks at the tab rather than after they go hunting in preferences.
+
+    The snapshot is taken only the first time. Appending again -- opening a
+    second file, say -- must not re-record, or the "previous colours" kept for
+    restore would be *our* canvas and turning it off would put back the very
+    thing it was meant to remove. Re-pointing the new workspace's viewports at
+    the theme still has to happen every time, because those viewports are new.
+    """
+    prefs = _prefs()
+    if prefs is None:
+        return False, "Preferences unavailable"
+    if not prefs.canvas_on_setup:
+        return False, "Canvas on setup is switched off"
+
+    if not prefs.theme_applied:
+        prefs.saved_theme = snapshot()
+        ok, message = apply()
+        if not ok:
+            return False, message
+        prefs.theme_applied = True
+
+    use_theme_background(workspace_name)
+    return True, "Sketch canvas applied"
 
 
 def use_theme_background(workspace_name: str) -> int:

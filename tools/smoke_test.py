@@ -395,6 +395,19 @@ check("the source revision is recorded", "IFC+SG" in requirements.source())
 
 section("Theme")
 theme = addon.theme
+
+# Establish a known starting point rather than assuming a clean machine.
+# Blender auto-saves preferences by default, and the canvas is a preference, so
+# any earlier run that raised it -- including the add-on doing so by itself when
+# the workspace is added -- leaves it up in userpref.blend for every session
+# afterwards. Asserting "not applied to begin with" against whatever the last
+# run happened to leave behind makes this section report on the machine rather
+# than on the code.
+gradients = bpy.context.preferences.themes[0].view_3d.space.gradients
+gradients.background_type = "SINGLE_COLOR"
+gradients.high_gradient = (0.05, 0.06, 0.07)
+gradients.gradient = (0.05, 0.06, 0.07)
+
 original = theme.snapshot()
 check("canvas is not applied to begin with", theme.looks_applied() is False)
 applied_ok, applied_message = theme.apply()

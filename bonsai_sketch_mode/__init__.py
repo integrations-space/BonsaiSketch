@@ -66,6 +66,7 @@ class BONSAI_SKETCH_MODE_OT_open_workspace(bpy.types.Operator):
         if not ok:
             self.report({"ERROR"}, message)
             return {"CANCELLED"}
+        theme.ensure_applied(workspace.WORKSPACE_NAME)
         workspace.subscribe()
         self.report({"INFO"}, message)
         return {"FINISHED"}
@@ -174,6 +175,18 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
     saved_theme: bpy.props.StringProperty(default="")
     theme_applied: bpy.props.BoolProperty(default=False)
 
+    canvas_on_setup: bpy.props.BoolProperty(
+        name="Sketch canvas on by default",
+        description=(
+            "Raise the sky-and-ground canvas as soon as the Sketch tab is added, "
+            "rather than waiting to be switched on.\n\n"
+            "Blender keeps viewport colours in one global theme, so this restyles "
+            "the 3D viewport in every workspace, not only the Sketch tab. Your "
+            "colours are recorded first and Restore Previous Colours puts them back"
+        ),
+        default=True,
+    )
+
     use_sky_ground: bpy.props.BoolProperty(
         name="Sky and ground",
         description=(
@@ -275,6 +288,8 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
             col.label(text="so this restyles the 3D viewport in every workspace.")
             col.label(text="Your current colours are recorded and can be restored.")
             box.operator(BONSAI_SKETCH_MODE_OT_apply_theme.bl_idname, icon="COLOR")
+
+        box.prop(self, "canvas_on_setup")
 
         # Editable whether or not the canvas is on, so colours can be chosen
         # first and switched on once. Grouped the way SketchUp groups them.

@@ -119,12 +119,18 @@ def run():
         check("properties sidebar hidden", space is not None and not space.show_region_ui)
         check("perspective view", space is not None and space.region_3d.view_perspective == "PERSP")
         check("solid shading", space is not None and space.shading.type == "SOLID")
-        # A light canvas, without needing the global theme change.
-        check("flat light canvas, not the dark default",
-              space is not None and space.shading.background_type == "VIEWPORT")
-        check("canvas is light",
-              space is not None and min(space.shading.background_color) > 0.7,
-              f"colour {list(space.shading.background_color) if space else '?'}")
+        # The canvas is raised when the workspace is added, so the Sketch tab
+        # shows sky over ground rather than the flat colour it ships with.
+        check("viewport reads the theme canvas, not a flat colour",
+              space is not None and space.shading.background_type == "THEME",
+              f"background_type {space.shading.background_type if space else '?'}")
+        gradients = bpy.context.preferences.themes[0].view_3d.space.gradients
+        check("canvas is a two-tone gradient",
+              gradients.background_type == "LINEAR", gradients.background_type)
+        check("sky sits above ground, and both are light",
+              min(gradients.high_gradient) > 0.5 and min(gradients.gradient) > 0.5
+              and gradients.high_gradient[2] > gradients.high_gradient[0],
+              f"sky {list(gradients.high_gradient)} ground {list(gradients.gradient)}")
         check("grid reaches past the model",
               space is not None and space.overlay.grid_lines >= 64,
               f"grid_lines {space.overlay.grid_lines if space else '?'}")

@@ -33,7 +33,7 @@ import os
 
 import bpy
 
-from . import keyconfig
+from . import keyconfig, theme
 
 WORKSPACE_NAME = "Sketch"
 _BLEND = os.path.join(os.path.dirname(__file__), "data", "workspace.blend")
@@ -135,6 +135,7 @@ def _load_post(_dummy) -> None:
     ok, message = append(activate=prefs.activate_workspace)
     if not ok:
         print(f"[bonsai_sketch_mode] workspace: {message}")
+    theme.ensure_applied(WORKSPACE_NAME)
     subscribe()
 
 
@@ -146,6 +147,7 @@ def _append_once() -> None:
     ok, message = append(activate=prefs.activate_workspace)
     if not ok:
         print(f"[bonsai_sketch_mode] workspace: {message}")
+    theme.ensure_applied(WORKSPACE_NAME)
     subscribe()
 
 
