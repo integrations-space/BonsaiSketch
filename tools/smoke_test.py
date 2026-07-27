@@ -58,6 +58,7 @@ if addon is None:
 bridge = addon.bridge
 sketchmesh = addon.sketchmesh
 tools = addon.tools
+keyconfig = addon.keyconfig
 rectangle = sys.modules[ADDON + ".ops.rectangle"]
 
 
@@ -162,8 +163,33 @@ expected = {
 for key, idname in expected.items():
     check(f"{key} -> {idname}", bound.get(key) == idname, f"got {bound.get(key)!r}")
 
-for key in ("F", "B", "E"):
-    check(f"{key} left unbound (tool not built)", key not in bound, f"got {bound.get(key)!r}")
+# A claimed-but-unbuilt key must answer with nothing at all -- not merely with
+# no *tool*. Checking `bound` alone would pass a key that still runs Blender's
+# own unrelated operator, which is how A (Select All), C and G (Grab) stayed
+# live inside the Sketch keymap while meaning Arc, Circle and Make Component to
+# whoever pressed them.
+for key in sorted(keyconfig.UNBUILT_KEYS):
+    culprits = []
+    if kc is not None:
+        for km_name in keyconfig.SCOPED_KEYMAPS:
+            scoped_km = kc.keymaps.get(km_name)
+            if scoped_km is None:
+                continue
+            for kmi in scoped_km.keymap_items:
+                if kmi.type != key or kmi.value != "PRESS":
+                    continue
+                if kmi.ctrl or kmi.alt or kmi.shift or kmi.oskey or kmi.any:
+                    continue
+                culprits.append(f"{km_name}:{kmi.idname}")
+    check(f"{key} answers with nothing (tool not built)", not culprits,
+          f"still runs {culprits}")
+
+check("every key bound to a tool is also claimed",
+      set(expected) <= keyconfig.CLAIMED_KEYS,
+      f"unclaimed: {sorted(set(expected) - keyconfig.CLAIMED_KEYS)}")
+check("no key is both bound and declared unbuilt",
+      not (set(bound) & keyconfig.UNBUILT_KEYS),
+      f"both: {sorted(set(bound) & keyconfig.UNBUILT_KEYS)}")
 
 
 # --- Sketch geometry ---------------------------------------------------------

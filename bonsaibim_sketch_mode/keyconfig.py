@@ -52,7 +52,25 @@ SCOPED_KEYMAPS = {
 
 # Keys the SketchUp set claims. Any unmodified PRESS binding on these, inside
 # SCOPED_KEYMAPS, is removed before ours are injected.
-CLAIMED_KEYS = {"L", "R", "P", "M", "Q", "S", "T", "E", "F", "B", "O", "H", "Z", "SPACE"}
+#
+# A key is claimed because SketchUp gives it a meaning, not because we have
+# built that meaning yet. Claiming without binding is the point: it is what
+# leaves the key silent instead of doing Blender's unrelated thing. A, C and G
+# were missing from this set, so inside the Sketch keymap they still ran
+# Blender's Select All, nothing, and Grab -- while SketchUp users pressing them
+# meant Arc, Circle and Make Component. Silence teaches nothing; a wrong
+# response teaches the wrong thing.
+CLAIMED_KEYS = {
+    # Bound below.
+    "SPACE", "L", "R", "P", "F", "E", "T", "M", "Q", "S", "O", "H", "Z",
+    # Claimed and deliberately silent until the tool exists: Arc, Circle,
+    # Make Component, Paint Bucket.
+    "A", "C", "G", "B",
+}
+
+#: Keys claimed above that no binding targets yet. Kept as data so the check
+#: suite can assert they really are silent rather than quietly re-bound.
+UNBUILT_KEYS = {"A", "C", "G", "B"}
 
 
 def _tool_key(key: str, tool_idname: str, **modifiers) -> tuple:
@@ -65,9 +83,17 @@ def _su_bindings() -> list:
     """SketchUp bindings, in Blender keyconfig item format.
 
     Only bindings with a verified target are included. Tools that still need
-    building (Offset, Follow Me, Eraser, Paint) are deliberately left unbound
-    rather than pointed at an approximation -- an unbound key is honest, a wrong
-    one teaches the wrong muscle memory.
+    building -- Arc (A), Circle (C), Make Component (G), Paint Bucket (B),
+    Offset, Follow Me -- are deliberately left unbound rather than pointed at
+    an approximation. Their keys are still claimed in :data:`CLAIMED_KEYS`, so
+    they answer with silence rather than with Blender's unrelated meaning: an
+    unbound key is honest, a wrong one teaches the wrong muscle memory.
+
+    Stripping A also takes Blender's Select All shortcut with it. That is left
+    for the tool it belongs to rather than patched over here -- SketchUp puts
+    Select All on Ctrl+A, which Blender's defaults give to the Apply menu, so
+    rebinding it is a decision about Blender's keymap and not about an unbuilt
+    Arc tool. Select All remains on the 3D View's Select menu meanwhile.
     """
     items = [
         # Select is Space in SketchUp.
