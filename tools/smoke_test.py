@@ -387,6 +387,89 @@ check("broad mappings carry a review note",
 check("the source revision is recorded", "IFC+SG" in requirements.source())
 
 
+# --- IFC+SG parameter attachment ---------------------------------------------
+#
+# Elements get the standard's parameters the moment they are created. The
+# listener the add-on installs is global to ifcopenshell's API, so this is
+# testable on a plain in-memory file: production differs only in where the
+# file came from. The scene properties are the real ones -- this is the
+# production path end to end, not a harness around it.
+
+section("IFC+SG parameter attachment")
+psets = addon.psets
+check("attachment layer available", psets.is_available(), psets.unavailable_reason() or "")
+check("apply operator registered", hasattr(bpy.ops.bonsaibim_sketch_mode, "apply_ifc_sg"))
+check("sidebar panel registered", hasattr(bpy.types, "BONSAIBIM_SKETCH_PT_ifc_sg"))
+check("stage is a scene property", hasattr(context.scene, "bonsaibim_sketch_stage"))
+check("attachment defaults to on", context.scene.bonsaibim_sketch_auto_params is True)
+
+import ifcopenshell
+import ifcopenshell.api.project
+import ifcopenshell.api.pset
+import ifcopenshell.api.root
+import ifcopenshell.util.element
+
+context.scene.bonsaibim_sketch_stage = "detailed"
+ifc = ifcopenshell.api.project.create_file(version="IFC4")
+ifcopenshell.api.root.create_entity(ifc, ifc_class="IfcProject", name="Smoke")
+
+wall = ifcopenshell.api.root.create_entity(ifc, ifc_class="IfcWall", name="W")
+pset = ifcopenshell.util.element.get_pset(wall, psets.PSET_NAME)
+needed = requirements.parameter_names("IfcWall", "detailed")
+check("a created wall carries the pset", pset is not None)
+check("every required parameter is on it",
+      pset is not None and all(name in pset for name in needed),
+      f"missing {[n for n in needed if n not in (pset or {})]}")
+check("parameters attach unfilled",
+      pset is not None and pset.get("Load Bearing", "sentinel") is None)
+check("the project itself gets nothing",
+      ifcopenshell.util.element.get_pset(ifc.by_type("IfcProject")[0], psets.PSET_NAME) is None)
+
+# A value the user has filled in must survive every later sweep -- the next
+# creation of the same class re-visits this wall.
+ifcopenshell.api.pset.edit_pset(ifc, pset=ifc.by_id(pset["id"]),
+                                properties={"Load Bearing": "TRUE"})
+ifcopenshell.api.root.create_entity(ifc, ifc_class="IfcWall", name="W2")
+check("a filled value survives the next creation",
+      ifcopenshell.util.element.get_pset(wall, psets.PSET_NAME).get("Load Bearing") == "TRUE")
+
+# Stages gate what attaches. A wall has nothing to declare at schematic, so it
+# must not even get an empty container; a door does have schematic asks.
+context.scene.bonsaibim_sketch_stage = "schematic"
+early_wall = ifcopenshell.api.root.create_entity(ifc, ifc_class="IfcWall", name="W3")
+check("no requirements at this stage means no pset",
+      ifcopenshell.util.element.get_pset(early_wall, psets.PSET_NAME) is None)
+door = ifcopenshell.api.root.create_entity(ifc, ifc_class="IfcDoor", name="D")
+door_pset = ifcopenshell.util.element.get_pset(door, psets.PSET_NAME)
+check("a door gets its own, smaller schematic set",
+      door_pset is not None and "Fire Rating" in door_pset)
+
+# Advancing the stage: the sweep behind Apply to Existing Elements tops up
+# what earlier stages did not ask for, then has nothing more to say.
+context.scene.bonsaibim_sketch_stage = "detailed"
+touched, added = psets.sweep(ifc, "detailed")
+check("a sweep tops up elements from an earlier stage",
+      ifcopenshell.util.element.get_pset(early_wall, psets.PSET_NAME) is not None)
+check("the sweep is idempotent", psets.sweep(ifc, "detailed") == (0, 0))
+
+# The scene switch turns attachment off entirely.
+context.scene.bonsaibim_sketch_auto_params = False
+off_wall = ifcopenshell.api.root.create_entity(ifc, ifc_class="IfcWall", name="W4")
+check("turning it off attaches nothing",
+      ifcopenshell.util.element.get_pset(off_wall, psets.PSET_NAME) is None)
+context.scene.bonsaibim_sketch_auto_params = True
+
+# The nulls are not a Blender-session artefact: they survive the file itself
+# being written out and read back.
+reread = ifcopenshell.file.from_string(ifc.to_string())
+reread_wall = [e for e in reread.by_type("IfcWall") if e.Name == "W"][0]
+reread_pset = ifcopenshell.util.element.get_pset(reread_wall, psets.PSET_NAME)
+check("unfilled parameters survive serialisation",
+      reread_pset is not None and reread_pset.get("Is External", "sentinel") is None)
+check("filled parameters survive serialisation",
+      reread_pset is not None and reread_pset.get("Load Bearing") == "TRUE")
+
+
 # --- Theme -------------------------------------------------------------------
 #
 # The one thing this add-on changes outside its own tab, so the promise that it

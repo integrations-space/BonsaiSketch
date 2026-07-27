@@ -115,6 +115,19 @@ shape is generated from material layers or a profile, and overwriting that with
 a plain mesh would silently throw the parametric definition away. Use Bonsai's
 own depth controls for those.
 
+The moment a shape becomes an element — through Assign IFC Class, or any of
+Bonsai's own creation tools — it is given the parameters the **IFC+SG Model
+Content Requirements** ask of that kind of element, as an `IFCSG_Parameters`
+property set with every value left empty. The standard prescribes the
+questions, not the answers; an empty property is a visible unanswered question
+where an absent one is invisible. Values you fill in are never overwritten.
+
+Requirements grow as a project advances — a door is asked more at detailed
+design than at schematic — so set the **project stage** in the 3D View sidebar
+(press `N`) under `Sketch`, where the attachment can also be switched off.
+**Apply to Existing Elements** in the same panel tops up elements created
+before a stage change or before the add-on was installed.
+
 ### If something does not work
 
 | Symptom | Cause |
@@ -157,6 +170,8 @@ Early, but usable for sketching. Working:
 - The `Sketch` workspace tab, added automatically on file load
 - A complete `Sketch` keyconfig
 - Line, Rectangle, Push/Pull and Tape Measure
+- IFC+SG required parameters attached automatically as elements are created,
+  per project stage
 
 Not yet built: Offset, Follow Me, Eraser, Paint, and Push/Pull on parametric
 IFC elements. `F`, `B` and `E` are left unbound rather than pointed at an

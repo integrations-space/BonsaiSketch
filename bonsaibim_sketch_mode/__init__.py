@@ -30,13 +30,83 @@ GPL-3.0-or-later, matching Bonsai.
 
 from __future__ import annotations
 
+from typing import Optional
+
 import bpy
 
-from . import bridge, keyconfig, ops, requirements, theme, tools, workspace
+from . import bridge, keyconfig, ops, psets, requirements, theme, tools, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
 _tools_status: tuple[bool, str] = (False, "Not yet loaded")
+_params_status: tuple[bool, str] = (False, "Not yet loaded")
+
+
+def _current_stage() -> Optional[str]:
+    """What the creation listener attaches at: the scene's stage, or None for off.
+
+    Stage and the on/off switch are scene properties rather than preferences,
+    so they save with the file -- a project's stage is the project's state,
+    not the installation's.
+    """
+    try:
+        scene = bpy.context.scene
+        if scene is None or not scene.bonsaibim_sketch_auto_params:
+            return None
+        return scene.bonsaibim_sketch_stage
+    except Exception:
+        return None
+
+
+class BONSAIBIM_SKETCH_OT_apply_ifc_sg(bpy.types.Operator):
+    bl_idname = "bonsaibim_sketch_mode.apply_ifc_sg"
+    bl_label = "Apply to Existing Elements"
+    bl_description = (
+        "Attach the IFC+SG parameters required at the current stage to every "
+        "element already in the project -- ones made before this add-on was "
+        "on, or before the stage advanced. Only missing parameters are added; "
+        "values already filled in are not touched"
+    )
+
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        return psets.is_available() and bridge.has_project()
+
+    def execute(self, context: bpy.types.Context):
+        touched, added = psets.sweep(bridge.ifc_file(), context.scene.bonsaibim_sketch_stage)
+        if added:
+            self.report({"INFO"}, f"Added {added} parameters across {touched} elements")
+        else:
+            self.report({"INFO"}, "Every element already carries its required parameters")
+        return {"FINISHED"}
+
+
+class BONSAIBIM_SKETCH_PT_ifc_sg(bpy.types.Panel):
+    """Stage selection and the manual sweep, in the 3D View sidebar (N)."""
+
+    bl_idname = "BONSAIBIM_SKETCH_PT_ifc_sg"
+    bl_label = "IFC+SG"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Sketch"
+
+    def draw(self, context: bpy.types.Context) -> None:
+        layout = self.layout
+        reason = psets.unavailable_reason()
+        if reason:
+            col = layout.column(align=True)
+            col.alert = True
+            col.label(text="IFC+SG requirements unavailable", icon="ERROR")
+            col.label(text=reason)
+            return
+
+        layout.prop(context.scene, "bonsaibim_sketch_stage")
+        layout.prop(context.scene, "bonsaibim_sketch_auto_params")
+        if bridge.has_project():
+            layout.operator(BONSAIBIM_SKETCH_OT_apply_ifc_sg.bl_idname, icon="FILE_REFRESH")
+        else:
+            layout.label(text="No IFC project open", icon="INFO")
+        layout.label(text=requirements.source())
 
 
 class BONSAIBIM_SKETCH_OT_activate_keyconfig(bpy.types.Operator):
@@ -219,21 +289,66 @@ class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
                 icon="ERROR",
             )
 
+        ok, message = _params_status
+        box = layout.box()
+        box.label(text="IFC+SG Parameters", icon="LINENUMBERS_ON")
+        box.label(text=message, icon="CHECKMARK" if ok else "ERROR")
+        if ok:
+            box.label(text=requirements.source(), icon="INFO")
+            box.label(text="Stage and on/off save with each file: 3D View sidebar (N) > Sketch.")
+
 
 classes = (
     BONSAIBIM_SKETCH_OT_activate_keyconfig,
     BONSAIBIM_SKETCH_OT_open_workspace,
     BONSAIBIM_SKETCH_OT_apply_theme,
     BONSAIBIM_SKETCH_OT_restore_theme,
+    BONSAIBIM_SKETCH_OT_apply_ifc_sg,
+    BONSAIBIM_SKETCH_PT_ifc_sg,
     BONSAIBIM_SKETCH_Preferences,
 )
 
 
+def _register_scene_properties() -> None:
+    # Items are built once here rather than through an items= callback:
+    # the stage list comes from shipped data and cannot change mid-session,
+    # and dynamic enum callbacks come with a string-lifetime trap.
+    stages = requirements.stages() or [("schematic", "Schematic / Preliminary Design")]
+    bpy.types.Scene.bonsaibim_sketch_stage = bpy.props.EnumProperty(
+        name="Project Stage",
+        description=(
+            "Which stage the project is at. The IFC+SG standard asks for more "
+            "parameters as a project advances, and new elements get the set "
+            "for this stage. Nothing guesses this; advancing it is yours to do"
+        ),
+        items=[(key, label, "") for key, label in stages],
+        default="schematic",
+    )
+    bpy.types.Scene.bonsaibim_sketch_auto_params = bpy.props.BoolProperty(
+        name="Attach on Creation",
+        description=(
+            "Give every newly created element the parameters the IFC+SG "
+            f"standard requires of it, as a {psets.PSET_NAME!r} property set "
+            "with the values left for you to fill in"
+        ),
+        default=True,
+    )
+
+
+def _unregister_scene_properties() -> None:
+    for name in ("bonsaibim_sketch_stage", "bonsaibim_sketch_auto_params"):
+        try:
+            delattr(bpy.types.Scene, name)
+        except AttributeError:
+            pass
+
+
 def register() -> None:
-    global _keyconfig_status, _tools_status
+    global _keyconfig_status, _tools_status, _params_status
 
     for cls in classes:
         bpy.utils.register_class(cls)
+    _register_scene_properties()
 
     if not bridge.is_available():
         # Register preferences anyway so the user gets a readable explanation
@@ -244,6 +359,10 @@ def register() -> None:
     # Operators first: the toolbar entries reference them by idname, and
     # register_tool validates that the keymap targets exist.
     ops.register()
+
+    _params_status = psets.install(_current_stage)
+    if not _params_status[0]:
+        print(f"[bonsaibim_sketch_mode] IFC+SG: {_params_status[1]}")
 
     _tools_status = tools.register()
     if not _tools_status[0]:
@@ -264,7 +383,9 @@ def unregister() -> None:
     workspace.unregister_handlers()
     keyconfig.unload()
     tools.unregister()
+    psets.remove()
     ops.unregister()
+    _unregister_scene_properties()
 
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

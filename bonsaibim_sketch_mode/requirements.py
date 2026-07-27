@@ -120,6 +120,14 @@ def element_for_class(ifc_class: str) -> Optional[str]:
     return None
 
 
+def mapped_classes() -> list[str]:
+    """Every IFC class any element name maps onto, for whole-file sweeps."""
+    if not _load():
+        return []
+    assert _by_class is not None
+    return sorted(_by_class)
+
+
 def unmapped_reason(element: str) -> Optional[str]:
     """Why an element has no IFC classes, if that is deliberate."""
     if not _load():

@@ -51,6 +51,31 @@ material layers or a profile, and overwriting that with a tessellated mesh
 would silently discard the parametric definition. Depth belongs to Bonsai's own
 controls until this tool can drive them directly.
 
+## IFC+SG parameters attach on creation
+
+When an element does come into being — Assign IFC Class on a sketch, or any of
+Bonsai's own tools — it is given the parameters the IFC+SG Model Content
+Requirements ask of its class, as an `IFCSG_Parameters` property set with null
+values. The standard prescribes the questions, not the answers, and a null
+property is a visible unanswered question — in Bonsai's property panels and in
+the exported IFC — where an absent one is invisible.
+
+The hook is one ifcopenshell post listener on `root.create_entity`, which
+every creation path passes through. The listener only ever *adds missing
+names*: filled values are never overwritten, which makes attachment idempotent
+and a whole-file sweep always safe. That sweep is exposed as **Apply to
+Existing Elements** in the 3D View sidebar (`N` > `Sketch`), next to the
+project stage selector — requirements grow as a project advances, and the
+stage is the user's to set, never guessed. Stage and the on/off switch are
+scene properties, so they save with the file.
+
+`requirements.py` answers what the standard asks (from
+`data/ifc_sg.json`, extracted out of the published workbook by
+`tools/extract_ifc_sg.py`, and the hand-maintained class mapping in
+`data/ifc_sg_classes.json`); `psets.py` writes it onto elements. Elements
+whose class mapping is uncertain are deliberately unmapped and get nothing —
+attaching the wrong parameter set silently would be worse than attaching none.
+
 ## The Sketch workspace
 
 The `Sketch` tab is a single 3D viewport — no outliner, no properties editor,
@@ -93,6 +118,8 @@ Working:
 - The `Sketch` workspace tab: a single tuned viewport
 - A complete `Sketch` keyconfig
 - Line, Rectangle, Push/Pull and Tape Measure, in the toolbar and on keys
+- IFC+SG required parameters attached automatically as elements are created,
+  per project stage
 
 ### Why a keyconfig and not an addon keymap
 
@@ -142,18 +169,22 @@ blender --python tools/ui_check.py -- report.txt
 ## Architecture
 
 ```
-__init__.py     registration, preferences
-bridge.py       every reference to Bonsai
-keyconfig.py    the Sketch keyconfig
-workspace.py    the Sketch workspace tab, and the keymap that follows it
-tools.py        toolbar entries
-sketchmesh.py   the meshes the drawing tools write into
-viewport.py     cursor-to-geometry queries (pure Blender)
-ops/            the modal tools
-  base.py       shared modal skeleton for the polyline tools
-  line.py       Line
-  rectangle.py  Rectangle
-  pushpull.py   Push/Pull
+__init__.py       registration, preferences, the IFC+SG panel and operator
+bridge.py         every reference to Bonsai
+keyconfig.py      the Sketch keyconfig
+workspace.py      the Sketch workspace tab, and the keymap that follows it
+tools.py          toolbar entries
+sketchmesh.py     the meshes the drawing tools write into
+viewport.py       cursor-to-geometry queries (pure Blender)
+theme.py          the Sketch canvas colours, snapshot and restore
+requirements.py   what the IFC+SG standard asks of an element (queries data/)
+psets.py          writes those requirements onto elements as they are created
+ops/              the modal tools
+  base.py         shared modal skeleton for the polyline tools
+  line.py         Line
+  rectangle.py    Rectangle
+  pushpull.py     Push/Pull
+data/             shipped IFC+SG requirements and class mapping
 ```
 
 All coupling to Bonsai is confined to `bridge.py`. Bonsai is a rolling release
@@ -182,6 +213,7 @@ Bonsai already provides the machinery this add-on builds on:
 - [x] Push/Pull for sketch meshes
 - [x] Tape Measure
 - [x] Stripped-down workspace layout: a single viewport
+- [x] IFC+SG required parameters, attached on element creation per stage
 - [ ] Live rectangle preview while dragging the second corner
 - [ ] Push/Pull for typed IFC elements, driving Bonsai's parametric depth
 - [ ] Offset, Follow Me, Eraser, Paint
