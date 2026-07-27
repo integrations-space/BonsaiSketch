@@ -235,9 +235,9 @@ Current state, after the rename:
   checks and 27 viewport checks pass.
 - **Blender 5.2 LTS** — uninstalled and reinstalled on 2026-07-28 from
   `blender-5.2.0-windows-x64.msi` (build 2026-07-14), replacing the stale zip
-  install with a junction. 111 headless checks pass. Bonsai survived the
-  reinstall, because extensions live in the user config directory rather than
-  under Program Files, so the 0.8.5 pairing is intact.
+  install with a junction. 111 headless checks and 27 viewport checks pass.
+  Bonsai survived the reinstall, because extensions live in the user config
+  directory rather than under Program Files, so the 0.8.5 pairing is intact.
 - **Blender 4.2** — installed but below `blender_version_min = "5.0.0"`, so it
   is not a target.
 
@@ -266,7 +266,21 @@ path it imported. On `main` today that is 111 headless checks plus 27 viewport
 checks. The figure of 181 quoted in the previous version of this note was written
 against #1's branch and does not describe `main`.
 
-Blender's preferences also still list two add-ons that no longer exist,
-`bl_ext.user_default.bonsaibim_sketch_mode` from the rename and
-`bl_ext.user_default.bonsai_sketchup` from further back. Both log a "not loaded"
-line on every launch. Harmless noise, but worth clearing.
+One trap the junction does not cover: enabling an add-on is a *saved preference*,
+keyed by module path. The rename changed that path, so both Blenders went on
+listing `bl_ext.user_default.bonsaibim_sketch_mode` as enabled — a module that no
+longer exists — while the renamed add-on sat discoverable but switched off. The
+suites hid it completely, because both enable the add-on themselves at runtime.
+Opening the GUI would have shown no Sketch tab and a "not loaded" line in the
+console. Fixed on 5.0 and 5.2 on 2026-07-28: dead entry dropped, real one
+enabled, `wm.save_userpref()`. Worth remembering the next time an id changes —
+a green suite says nothing about what the GUI will do.
+
+A fresh Blender also has no Sketch workspace in its startup file, since the
+workspace is appended by the operator rather than created on enable. On 5.2 the
+tab therefore has to be added once from Preferences > Add-ons > Bonsai Sketch
+Mode. 5.0 already carries it in its saved startup file.
+
+`bl_ext.user_default.bonsai_sketchup`, from further back than this add-on, is
+still listed as enabled on 5.0 and still logs a "not loaded" line. Left alone
+deliberately — it is not ours to clear.
