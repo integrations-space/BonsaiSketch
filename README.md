@@ -57,7 +57,7 @@ tab appears in the bar across the top of the window.
 
 ### Step 3 — Install BonsaiSketch
 
-Download **`bonsai_sketch_mode-0.3.0.zip`** from
+Download the add-on zip — **`bonsai_sketch_mode-<version>.zip`** — from
 [the latest release](https://github.com/integrations-space/BonsaiSketch/releases/latest).
 Do not unzip it. Then, in Blender:
 
@@ -66,6 +66,19 @@ Do not unzip it. Then, in Blender:
 
 A **`Sketch`** tab appears in the top bar next to `BIM`, immediately — no
 restart, no reopening a file.
+
+> **Upgrading from 0.3.0 or earlier?** Remove the old add-on first. This was
+> called *BonsaiBIM Sketch Mode* up to and including 0.3.0, after the upstream
+> project it sits on, which renamed itself to Bonsai. The extension id changed
+> with the name, and Blender keys extensions by id — so the new one installs
+> *beside* the old one rather than replacing it, leaving two copies competing
+> for the same single-key shortcuts. Releases up to 0.3.0 are named
+> `bonsaibim_sketch_mode-<version>.zip`; anything later uses the new name.
+>
+> Being enabled is a saved preference keyed by the same id, so the old entry
+> stays switched on pointing at nothing, and the new one arrives switched off.
+> If the `Sketch` tab does not appear, that is why: find **Bonsai Sketch Mode**
+> in `Add-ons` and tick it.
 
 If Bonsai is missing or broken, the add-on's own preferences panel says so, in
 words, instead of failing quietly.

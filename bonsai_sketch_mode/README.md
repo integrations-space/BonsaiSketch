@@ -117,13 +117,33 @@ never offers to install this into a release nobody has run it on.
 ## Development install
 
 Junction this directory into Blender's user extension repository so edits are
-picked up in place:
+picked up in place. One per Blender you test against — 5.0 and 5.2 here:
 
 ```text
 mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsai_sketch_mode" "C:\2026_bonsai\bonsai_sketch_mode"
+mklink /J "%APPDATA%\Blender Foundation\Blender\5.2\extensions\user_default\bonsai_sketch_mode" "C:\2026_bonsai\bonsai_sketch_mode"
 ```
 
+A junction cannot go stale the way an installed zip can, which is worth the
+setup: a stale install makes the suites test old code and fail somewhere
+unrelated, and it reads as a broken suite rather than a stale install.
+
 Then enable **Bonsai Sketch Mode** in Preferences > Add-ons.
+
+That enable is a *saved preference keyed by module path*, which matters whenever
+the id changes. Blender goes on listing the old path as enabled — a module that
+no longer exists — while the renamed add-on sits discoverable but switched off.
+Neither suite catches it, because both enable the add-on themselves before
+testing anything, so a fully green run tells you nothing about what the GUI will
+do. Check it directly after any id change:
+
+```text
+blender -b --python-expr "import bpy; print([a.module for a in bpy.context.preferences.addons if 'bonsai' in a.module])"
+```
+
+A fresh Blender also has no `Sketch` workspace in its startup file, since the
+workspace is appended by an operator rather than created on enable. Add it once
+from the add-on's preferences.
 
 Two check suites. Headless, for registration and geometry:
 

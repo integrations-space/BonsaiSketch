@@ -63,12 +63,17 @@ as unbuilt; #1 builds them. Resolving #2 after #1 lands:
   ``` `B`, `A`, `C` and `G` ``` instead of ``` `F`, `B`, `E`, `A`, `C` and `G` ```,
   since `F` and `E` are bound once #1 is in.
 
-One loose end the rename created: README Step 3 now tells people to download
-`bonsai_sketch_mode-0.3.0.zip`, but the published v0.3.0 asset is still
-`bonsaibim_sketch_mode-0.3.0.zip`. Because the extension id changed, an existing
-install is not upgraded in place — it sits alongside the new one until removed.
-That wants a version bump and a fresh release rather than a re-uploaded asset,
-with the id change called out in the release notes.
+One loose end the rename created, now half closed. README Step 3 named
+`bonsai_sketch_mode-0.3.0.zip`, a file no release carries — the published v0.3.0
+asset is still `bonsaibim_sketch_mode-0.3.0.zip`. Step 3 no longer hardcodes a
+version, and both READMEs now explain what the id change does to an existing
+install: it arrives *beside* the old one rather than replacing it, with the old
+entry still switched on pointing at nothing and the new one switched off.
+
+What is left is the release itself. A version bump and a fresh build, not a
+re-uploaded asset, with the id change and the remove-the-old-one step called out
+in the notes. Until that ships, the install instructions describe a file nobody
+can download.
 
 ## 2. Rebind Select All, deliberately
 
