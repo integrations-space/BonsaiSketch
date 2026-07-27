@@ -80,7 +80,7 @@ def corners(start: Vector, end: Vector, plane: str) -> Optional[list[Vector]]:
     ]
 
 
-class BONSAI_SKETCH_OT_rectangle(bpy.types.Operator, PolylineToolBase):
+class BONSAI_SKETCH_MODE_OT_rectangle(bpy.types.Operator, PolylineToolBase):
     bl_idname = "bonsai_sketch_mode.rectangle"
     bl_label = "Rectangle"
     bl_description = "Draw a rectangle from two opposite corners"

@@ -34,7 +34,7 @@ from .. import bridge, sketchmesh
 from .base import PolylineToolBase
 
 
-class BONSAI_SKETCH_OT_line(bpy.types.Operator, PolylineToolBase):
+class BONSAI_SKETCH_MODE_OT_line(bpy.types.Operator, PolylineToolBase):
     bl_idname = "bonsai_sketch_mode.line"
     bl_label = "Line"
     bl_description = "Draw connected edges. Type a distance for an exact length"

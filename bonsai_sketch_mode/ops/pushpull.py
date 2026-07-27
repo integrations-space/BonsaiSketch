@@ -153,7 +153,7 @@ def _shell_faces(face: bmesh.types.BMFace) -> list:
     return list(seen)
 
 
-class BONSAI_SKETCH_OT_push_pull(bpy.types.Operator):
+class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
     bl_idname = "bonsai_sketch_mode.push_pull"
     bl_label = "Push/Pull"
     bl_description = "Extrude the face under the cursor along its normal"

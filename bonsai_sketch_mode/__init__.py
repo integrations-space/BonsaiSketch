@@ -39,7 +39,7 @@ _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
 _tools_status: tuple[bool, str] = (False, "Not yet loaded")
 
 
-class BONSAI_SKETCH_OT_activate_keyconfig(bpy.types.Operator):
+class BONSAI_SKETCH_MODE_OT_activate_keyconfig(bpy.types.Operator):
     bl_idname = "bonsai_sketch_mode.activate_keyconfig"
     bl_label = "Activate Sketch Keymap"
     bl_description = "Switch Blender's active keymap to the Sketch Mode preset"
@@ -54,7 +54,7 @@ class BONSAI_SKETCH_OT_activate_keyconfig(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class BONSAI_SKETCH_OT_open_workspace(bpy.types.Operator):
+class BONSAI_SKETCH_MODE_OT_open_workspace(bpy.types.Operator):
     bl_idname = "bonsai_sketch_mode.open_workspace"
     bl_label = "Open Sketch Workspace"
     bl_description = "Add the Sketch tab to the top bar and switch to it"
@@ -71,7 +71,7 @@ class BONSAI_SKETCH_OT_open_workspace(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class BONSAI_SKETCH_OT_apply_theme(bpy.types.Operator):
+class BONSAI_SKETCH_MODE_OT_apply_theme(bpy.types.Operator):
     bl_idname = "bonsai_sketch_mode.apply_theme"
     bl_label = "Use the Sketch Canvas"
     bl_description = (
@@ -100,7 +100,7 @@ class BONSAI_SKETCH_OT_apply_theme(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class BONSAI_SKETCH_OT_restore_theme(bpy.types.Operator):
+class BONSAI_SKETCH_MODE_OT_restore_theme(bpy.types.Operator):
     bl_idname = "bonsai_sketch_mode.restore_theme"
     bl_label = "Restore Previous Colours"
     bl_description = "Put the viewport colours back the way they were before the Sketch canvas"
@@ -144,7 +144,7 @@ def _colour_prop(name: str, default, description: str, size: int = 3):
     )
 
 
-class BONSAI_SKETCH_OT_reset_colours(bpy.types.Operator):
+class BONSAI_SKETCH_MODE_OT_reset_colours(bpy.types.Operator):
     bl_idname = "bonsai_sketch_mode.reset_colours"
     bl_label = "Reset All"
     bl_description = "Put every canvas colour back to the shipped SketchUp-style default"
@@ -166,7 +166,7 @@ class BONSAI_SKETCH_OT_reset_colours(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class BONSAI_SKETCH_Preferences(bpy.types.AddonPreferences):
+class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     #: The theme values as they were before we touched them, as JSON. Kept in
@@ -242,7 +242,7 @@ class BONSAI_SKETCH_Preferences(bpy.types.AddonPreferences):
         if workspace.exists():
             box.label(text="Sketch tab is in the top bar.", icon="CHECKMARK")
         else:
-            box.operator(BONSAI_SKETCH_OT_open_workspace.bl_idname, icon="ADD")
+            box.operator(BONSAI_SKETCH_MODE_OT_open_workspace.bl_idname, icon="ADD")
 
         ok, message = _keyconfig_status
         box = layout.box()
@@ -255,14 +255,14 @@ class BONSAI_SKETCH_Preferences(bpy.types.AddonPreferences):
             )
             active = context.window_manager.keyconfigs.active
             if not (active and active.name == keyconfig.KEYCONFIG_NAME):
-                box.operator(BONSAI_SKETCH_OT_activate_keyconfig.bl_idname, icon="PLAY")
+                box.operator(BONSAI_SKETCH_MODE_OT_activate_keyconfig.bl_idname, icon="PLAY")
 
         box = layout.box()
         box.label(text="Viewport", icon="SHADING_RENDERED")
         applied = theme.looks_applied()
         if self.theme_applied and applied:
             box.label(text="Sketch canvas is on.", icon="CHECKMARK")
-            box.operator(BONSAI_SKETCH_OT_restore_theme.bl_idname, icon="LOOP_BACK")
+            box.operator(BONSAI_SKETCH_MODE_OT_restore_theme.bl_idname, icon="LOOP_BACK")
         else:
             if self.theme_applied and applied is False:
                 box.label(text="Something else has changed the theme since.", icon="INFO")
@@ -274,7 +274,7 @@ class BONSAI_SKETCH_Preferences(bpy.types.AddonPreferences):
             )
             col.label(text="so this restyles the 3D viewport in every workspace.")
             col.label(text="Your current colours are recorded and can be restored.")
-            box.operator(BONSAI_SKETCH_OT_apply_theme.bl_idname, icon="COLOR")
+            box.operator(BONSAI_SKETCH_MODE_OT_apply_theme.bl_idname, icon="COLOR")
 
         # Editable whether or not the canvas is on, so colours can be chosen
         # first and switched on once. Grouped the way SketchUp groups them.
@@ -293,7 +293,7 @@ class BONSAI_SKETCH_Preferences(bpy.types.AddonPreferences):
         col.prop(self, "axis_x_colour")
         col.prop(self, "axis_y_colour")
         col.prop(self, "axis_z_colour")
-        box.operator(BONSAI_SKETCH_OT_reset_colours.bl_idname, icon="LOOP_BACK")
+        box.operator(BONSAI_SKETCH_MODE_OT_reset_colours.bl_idname, icon="LOOP_BACK")
 
         ok, message = _tools_status
         box = layout.box()
@@ -309,12 +309,12 @@ class BONSAI_SKETCH_Preferences(bpy.types.AddonPreferences):
 
 
 classes = (
-    BONSAI_SKETCH_OT_activate_keyconfig,
-    BONSAI_SKETCH_OT_open_workspace,
-    BONSAI_SKETCH_OT_apply_theme,
-    BONSAI_SKETCH_OT_restore_theme,
-    BONSAI_SKETCH_OT_reset_colours,
-    BONSAI_SKETCH_Preferences,
+    BONSAI_SKETCH_MODE_OT_activate_keyconfig,
+    BONSAI_SKETCH_MODE_OT_open_workspace,
+    BONSAI_SKETCH_MODE_OT_apply_theme,
+    BONSAI_SKETCH_MODE_OT_restore_theme,
+    BONSAI_SKETCH_MODE_OT_reset_colours,
+    BONSAI_SKETCH_MODE_Preferences,
 )
 
 
