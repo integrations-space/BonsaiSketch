@@ -2,8 +2,16 @@
 
 State as of 2026-07-28. The add-on has been renamed from BonsaiBIM to Bonsai,
 which changed every file path and every identifier — that reshapes the merge
-order below, so read section 1 before touching the open PRs. Two feature PRs are
-open and green; eight issues carry the SketchUp gap list.
+order below, so **read section 1 before touching the open PRs**. Two feature PRs
+are open and green; eight issues carry the SketchUp gap list.
+
+Eleven commits landed today, all on `next-steps`: the rename, the merge-order
+inversion, the Blender preference fix, configurable canvas colours, the class
+names, one project name, the floor-grid toggle, and an unfinished ground plane.
+Suites are green — 128 headless on both 5.0 and 5.2, 28 in the viewport.
+
+**Start at section 5.** It is the nearest to done, the most visible, and the
+only thing committed in a knowingly unfinished state.
 
 ## 1. Merge order, now that the rename has landed
 
@@ -137,56 +145,55 @@ colours. There is no inference indicator to colour yet -- that is issue
 [#7](https://github.com/integrations-space/BonsaiSketch/issues/7) below -- so
 they were deliberately left out rather than shipped as dead preferences.
 
-## 5. Agreed: a real horizon, drawn rather than themed
+## 5. In progress: a real horizon, drawn rather than themed
 
-The canvas is currently Blender's theme gradient, and it is not what SketchUp
-looks like. Two differences, both structural rather than a matter of colour:
+`ground.py` exists, is wired to a `show_ground` preference, and **defaults to
+off because it does not work yet**. Start here tomorrow: it is the closest thing
+to finished and the most visible.
 
-- The fade is **screen-space**. It runs top to bottom of the viewport and does
-  not move as you orbit. SketchUp's sky and ground meet at the true horizon.
-- There is **no opaque ground**, so no horizon line at all.
+Why it exists at all. The theme gradient is not what SketchUp looks like, and
+the difference is structural rather than a matter of colour -- the fade is
+screen-space, so it does not move as you orbit, and there is no opaque ground
+and therefore no horizon. Our colours are already SketchUp's own: sky
+`(163, 190, 218)`, ground `(224, 221, 211)`.
 
-The colours are already right and are not the problem. Ours are sky
-`(163, 190, 218)` and ground `(224, 221, 211)`, which are SketchUp's own values.
+Three routes were tried. Do not re-litigate the first two.
 
-Two routes were tested and one of them works.
+**The scene world does not work.** A world with a constant-interpolation ramp is
+the obvious way to a hard, world-locked horizon scoped to the tab. In Solid
+shading Blender draws the world's flat viewport colour and never evaluates the
+node tree. Proved by giving the world a magenta fallback and watching the
+viewport turn entirely magenta.
 
-**The scene world does not work.** A world with a constant-interpolation colour
-ramp is the obvious way to get a hard, world-locked horizon scoped to the tab
-rather than the global theme. In Solid shading Blender draws the world's flat
-viewport colour and never evaluates the node tree. Proved by giving the world a
-magenta fallback and watching the viewport turn entirely magenta. Do not spend
-an afternoon rediscovering this.
+**A ground-plane object works but is wrong.** It would be geometry in an IFC
+project -- selectable, movable, exportable.
 
-**A GPU draw handler does work.** `SpaceView3D.draw_handler_add(..., 'POST_VIEW')`
-drawing a quad at Z=0 with the `UNIFORM_COLOR` builtin renders an opaque ground
-in Solid shading, depth-tested against real geometry. A prototype is in the
-session scratchpad as `horizon.py`. This is the same technique the polyline
-decorator already uses, so it is not new machinery for this codebase, and it
-puts nothing into the user's `.blend` -- which is what ruled out a ground-plane
-object.
+**A GPU draw handler is the right shape, and half works.** The quad draws. That
+much is settled, and it is why `ground.py` is committed rather than a note
+saying it cannot be done. What it does not do is compose with the rest of the
+viewport:
 
-That is also how the comparable tools do it. Openshrimp draws its own ground
-quad in WebGL; SketchUp draws its own. Neither is using a "background" feature
-of a host application, which is why they are not bound by the limits above.
+- In `POST_VIEW` the quad paints opaquely but does not respect the depth
+  buffer. It covers the floor grid, and geometry that should be in front of it
+  gets painted over. `depth_mask_set(False)` changes nothing, so the mask is
+  not the problem.
+- In `PRE_VIEW` the quad is drawn and then erased -- Blender clears the
+  background after the handler runs, so nothing survives to the frame.
 
-What the prototype still needs:
+Next thing to try: `POST_VIEW` is probably the right pass and the depth state
+needs setting differently, or this belongs in an overlay pass rather than
+either. Worth reading how Bonsai's own viewport decorators bind depth, since
+they solve the same problem in the same Blender.
 
-- **Size it to the horizon.** `view_distance * 200` puts the quad's edge beyond
-  the far clip and the horizon off-screen. It wants sizing against the region's
-  clip range, not a guessed multiplier.
-- **Fix the depth artifact.** The cube's lower half came back hatched, so the
-  quad is fighting geometry it should sit behind. Check what `depth_mask_set`
-  leaves behind and whether POST_VIEW is early enough.
-- **Scope it to the Sketch tab.** Draw handlers are per space *type*, so the
-  callback fires in every 3D viewport in Blender. It has to return early unless
-  the workspace is ours -- otherwise this leaks into Bonsai's BIM tab.
+Screenshots are the only honest way to check this, and getting one of the
+*Sketch* tab is fiddly: workspace assignment is deferred, and Bonsai's own
+load handler can take the window back. `scratchpad/shot2.py` forces the switch
+and retries until `window.workspace.name` sticks before it captures.
 
-The prize is worth the work: with the ground drawn and the sky as the viewport's
-own flat background colour, the canvas stops needing the global theme change
-altogether. Sky and ground become per-workspace, and section 4's warning about
-restyling every workspace applies only to the grid, wire and axis colours that
-genuinely have nowhere else to live.
+The prize is worth it. With the ground drawn and the sky as the viewport's own
+flat background colour, sky and ground become per-workspace and the canvas stops
+needing the global theme change at all -- section 4's warning would shrink to
+just the grid, wire and axis colours that genuinely have nowhere else to live.
 
 ## 6. Agreed: DXF import
 

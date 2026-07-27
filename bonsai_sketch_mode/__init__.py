@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import bpy
 
-from . import bridge, keyconfig, ops, requirements, theme, tools, workspace
+from . import bridge, ground, keyconfig, ops, requirements, theme, tools, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
@@ -67,7 +67,9 @@ class BONSAI_SKETCH_MODE_OT_open_workspace(bpy.types.Operator):
             self.report({"ERROR"}, message)
             return {"CANCELLED"}
         theme.ensure_applied(workspace.WORKSPACE_NAME)
-        theme.set_floor_grid(workspace.WORKSPACE_NAME, prefs.show_floor_grid)
+        prefs = workspace.get_prefs()
+        if prefs is not None:
+            theme.set_floor_grid(workspace.WORKSPACE_NAME, prefs.show_floor_grid)
         workspace.subscribe()
         self.report({"INFO"}, message)
         return {"FINISHED"}
@@ -175,6 +177,20 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
     #: preferences rather than memory so a restore still works next session.
     saved_theme: bpy.props.StringProperty(default="")
     theme_applied: bpy.props.BoolProperty(default=False)
+
+    show_ground: bpy.props.BoolProperty(
+        name="Solid ground",
+        description=(
+            "Draw an opaque ground plane at Z=0, so the sky meets it at a real "
+            "horizon that moves as you orbit.\n\n"
+            "Drawn into the Sketch viewport rather than added to your file, so "
+            "there is no object to select, move or export.\n\n"
+            "UNFINISHED: the ground currently hides the floor grid and paints "
+            "over geometry that should be in front of it"
+        ),
+        default=False,
+        update=lambda self, context: ground.redraw(workspace.WORKSPACE_NAME),
+    )
 
     show_floor_grid: bpy.props.BoolProperty(
         name="Floor grid",
@@ -305,6 +321,7 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
             box.operator(BONSAI_SKETCH_MODE_OT_apply_theme.bl_idname, icon="COLOR")
 
         box.prop(self, "canvas_on_setup")
+        box.prop(self, "show_ground")
         box.prop(self, "show_floor_grid")
 
         # Editable whether or not the canvas is on, so colours can be chosen
@@ -379,8 +396,14 @@ def register() -> None:
     workspace.register_handlers()
     workspace.subscribe()
 
+    # The ground is drawn, not themed, so it needs a live draw handler rather
+    # than a value set once. The callback returns immediately off the Sketch
+    # tab, so installing it globally costs nothing elsewhere.
+    ground.install()
+
 
 def unregister() -> None:
+    ground.uninstall()
     workspace.unregister_handlers()
     keyconfig.unload()
     tools.unregister()
