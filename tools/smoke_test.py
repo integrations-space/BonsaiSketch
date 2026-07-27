@@ -346,6 +346,47 @@ for mesh in (flat, box, taller, wider, shorter, unchanged, scaled):
     mesh.free()
 
 
+# --- IFC+SG requirements -----------------------------------------------------
+
+section("IFC+SG requirements")
+requirements = addon.requirements
+check("requirements data loads", requirements.load_error() is None, requirements.load_error() or "")
+counts = requirements.summary()
+check("all 21 elements present", counts["elements"] == 21, f"got {counts['elements']}")
+check("853 parameters extracted", counts["parameters"] == 853, f"got {counts['parameters']}")
+check("stages are ordered and named", [k for k, _ in requirements.stages()][:3]
+      == ["conceptual", "schematic", "detailed"], f"got {requirements.stages()[:3]}")
+
+# Requirements grow as a project advances. A tool that showed As-Built
+# parameters during concept design would be worse than showing none.
+early = requirements.parameter_names("IfcDoor", "schematic")
+late = requirements.parameter_names("IfcDoor", "detailed")
+check("a door needs fewer parameters early than late", len(early) < len(late),
+      f"schematic {len(early)}, detailed {len(late)}")
+check("early requirements survive into later stages", set(early) <= set(late),
+      f"dropped {sorted(set(early) - set(late))}")
+check("door parameters are real names", "Fire Rating" in late, f"got {late[:6]}")
+check("names are de-duplicated across sub-elements", len(late) == len(set(late)))
+
+check("IfcWall maps to Wall", requirements.element_for_class("IfcWall") == "Wall")
+check("IfcWallStandardCase falls back to its base class",
+      requirements.element_for_class("IfcWallStandardCase") == "Wall")
+check("an unmapped class yields nothing",
+      requirements.element_for_class("IfcNotAThing") is None)
+check("unmapped classes ask for no parameters",
+      requirements.parameters_for_class("IfcNotAThing", "detailed") == [])
+
+# Deliberately unmapped elements must say why, so an empty result is never
+# mistaken for "this element has no requirements".
+check("External Works is unmapped with a stated reason",
+      bool(requirements.unmapped_reason("External Works")))
+check("Wall is mapped, so has no unmapped reason",
+      requirements.unmapped_reason("Wall") is None)
+check("broad mappings carry a review note",
+      bool(requirements.needs_review("Terminal")))
+check("the source revision is recorded", "IFC+SG" in requirements.source())
+
+
 # --- Theme -------------------------------------------------------------------
 #
 # The one thing this add-on changes outside its own tab, so the promise that it

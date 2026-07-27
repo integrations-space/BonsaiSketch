@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import bpy
 
-from . import bridge, keyconfig, ops, theme, tools, workspace
+from . import bridge, keyconfig, ops, requirements, theme, tools, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")

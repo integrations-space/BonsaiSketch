@@ -11,3 +11,8 @@ __pycache__/
 
 # Blender
 *.blend1
+
+# The IFC+SG source workbook. A published standard whose redistribution terms
+# are not ours to assume, and 10 MB to carry 943 rows. tools/extract_ifc_sg.py
+# turns it into the small JSON that is committed.
+asset/

@@ -1,0 +1,116 @@
+{
+ "_comment": [
+  "Which IFC classes each IFC+SG element name covers.",
+  "",
+  "This is NOT extracted from the standard. The standard contains no such",
+  "mapping -- its own mechanism for recording the class is a required",
+  "parameter literally named 'IfcExportAs', i.e. the modeller declares it.",
+  "So this is a judgement call, kept as data so it can be corrected without",
+  "touching code or re-running the extractor.",
+  "",
+  "Entries with an empty 'classes' list are deliberately unmapped, with the",
+  "reason given. An unmapped element attaches nothing rather than attaching",
+  "requirements that may be wrong -- silently applying the wrong parameter",
+  "set to a real model is worse than applying none.",
+  "",
+  "Class names are IFC4. Where a class only exists in IFC4.3 it is noted."
+ ],
+ "elements": {
+  "Ceiling": {
+   "classes": ["IfcCovering"],
+   "note": "IfcCovering carries a PredefinedType of CEILING; other coverings (flooring, cladding) share the class."
+  },
+  "Column": {"classes": ["IfcColumn"]},
+  "Door": {"classes": ["IfcDoor"]},
+  "Floor": {
+   "classes": ["IfcSlab"],
+   "note": "IfcSlab with PredefinedType FLOOR. Roof slabs share the class -- see Roof."
+  },
+  "Landscape": {
+   "classes": ["IfcGeographicElement"],
+   "review": "Soft landscaping has no dedicated IFC4 class; IfcGeographicElement is the usual carrier but sites vary."
+  },
+  "Railings / Balustrade": {"classes": ["IfcRailing"]},
+  "Ramp": {"classes": ["IfcRamp", "IfcRampFlight"]},
+  "Roof": {
+   "classes": ["IfcRoof", "IfcSlab"],
+   "note": "IfcRoof is the assembly; the roof plane itself is often an IfcSlab with PredefinedType ROOF."
+  },
+  "Signage": {
+   "classes": [],
+   "review": "IfcSign exists only in IFC4.3. On IFC4 projects signage is usually IfcDiscreteAccessory or IfcFurnishingElement -- needs a project decision."
+  },
+  "Spatial Allocation": {
+   "classes": ["IfcSpace", "IfcZone"],
+   "note": "Spatial, not physical: these are not produced by the drawing tools and are classified through Bonsai's spatial workflow."
+  },
+  "Staircase": {"classes": ["IfcStair", "IfcStairFlight"]},
+  "Structural Foundation": {"classes": ["IfcFooting", "IfcPile"]},
+  "Structural Framing": {
+   "classes": ["IfcBeam", "IfcMember", "IfcPlate"],
+   "review": "The standard groups all framing under one name. Beams and bracing members carry different parameters in practice."
+  },
+  "Wall": {"classes": ["IfcWall", "IfcWallStandardCase"]},
+  "Window": {"classes": ["IfcWindow"]},
+  "Accessories & Routing": {
+   "classes": [
+    "IfcCableCarrierFitting",
+    "IfcCableCarrierSegment",
+    "IfcCableFitting",
+    "IfcCableSegment",
+    "IfcDuctFitting",
+    "IfcDuctSegment",
+    "IfcJunctionBox",
+    "IfcPipeFitting",
+    "IfcPipeSegment"
+   ],
+   "review": "Broad by design in the standard. Verify against the disciplines actually modelled before relying on it."
+  },
+  "Terminal": {
+   "classes": [
+    "IfcAirTerminal",
+    "IfcAudioVisualAppliance",
+    "IfcCommunicationsAppliance",
+    "IfcElectricAppliance",
+    "IfcFireSuppressionTerminal",
+    "IfcLightFixture",
+    "IfcOutlet",
+    "IfcSanitaryTerminal",
+    "IfcWasteTerminal"
+   ],
+   "review": "Covers every MEP end device. Sub-element rows in the data narrow this considerably."
+  },
+  "Equipment": {
+   "classes": [
+    "IfcAirToAirHeatRecovery",
+    "IfcBoiler",
+    "IfcChiller",
+    "IfcCompressor",
+    "IfcCondenser",
+    "IfcCoolingTower",
+    "IfcDistributionBoard",
+    "IfcElectricGenerator",
+    "IfcFan",
+    "IfcMotorConnection",
+    "IfcPump",
+    "IfcSwitchingDevice",
+    "IfcTank",
+    "IfcTransformer",
+    "IfcUnitaryEquipment"
+   ],
+   "review": "Plant and primary equipment. Not exhaustive -- MEP scope varies by project."
+  },
+  "External Works": {
+   "classes": [],
+   "review": "161 parameters spanning drains, kerbs, road furniture, boundary structures and more. Too broad to map to one class set without a project scope; map the sub-elements you actually model."
+  },
+  "Others": {
+   "classes": [],
+   "review": "A catch-all in the standard covering 25 unrelated sub-elements. Not mappable as a group."
+  },
+  "Setting up & Project Information": {
+   "classes": [],
+   "note": "Project-level metadata (IfcProject, IfcSite), not a physical element. Handled through Bonsai's project setup, not per object."
+  }
+ }
+}
