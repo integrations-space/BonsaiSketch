@@ -80,6 +80,12 @@ SNAP_PIXELS = 10
 #: felt as a stall between pressing and the face starting to move.
 VERTEX_BUDGET = 20_000
 
+#: Faces read from one object before its planes are not gathered at all.
+#: Unlike vertices there is no bounding-box fallback worth having: a box's
+#: face planes are its extents, and the extents are already candidates
+#: through the vertex pass.
+FACE_BUDGET = 20_000
+
 
 #: Translate the face's own vertices. The walls already attached to them
 #: stretch to follow, so a box pushed down is simply a shorter box.
@@ -281,16 +287,50 @@ def axis_offsets(points, origin: Vector, normal: Vector) -> list[float]:
     and so that a height a hundred vertices happen to share does not get a
     hundred chances to outvote a nearer one.
     """
-    offsets = sorted(
+    return sorted_unique(
         offset
         for offset in ((point - origin).dot(normal) for point in points)
         if abs(offset) > NEGLIGIBLE
     )
+
+
+def sorted_unique(offsets) -> list[float]:
+    """Offsets sorted, with near-coincident ones collapsed to the first."""
     unique: list[float] = []
-    for offset in offsets:
+    for offset in sorted(offsets):
         if not unique or offset - unique[-1] > COINCIDENT:
             unique.append(offset)
     return unique
+
+
+def plane_offsets(planes, corners, normal: Vector) -> list[float]:
+    """How far the face must travel for a corner to reach each plane.
+
+    Points answer "level with the top of that wall"; planes answer "up to the
+    underside of that sloped roof". The face travels rigidly along ``normal``,
+    so it can never become coplanar with a slope -- what it can do is *touch*
+    it, and it touches corner-first: corner ``c`` reaches the plane through
+    ``q`` with unit normal ``m`` where ``(c + d*normal - q) . m == 0``, i.e.
+    ``d = (q - c) . m / (normal . m)``. Every (corner, plane) pair is a
+    distance worth stopping at -- the nearest corner grazing the near edge of
+    the slope, the farthest corner reaching under its far side.
+
+    Two families of plane are dropped rather than divided by. A plane parallel
+    to the push axis is never reached: the corners travel along it. And a
+    plane parallel to the face is already a candidate through its vertices --
+    every one of them answers the same height in the point pass -- so keeping
+    it here would only duplicate.
+    """
+    offsets: list[float] = []
+    for point, plane_normal in planes:
+        along = normal.dot(plane_normal)
+        if abs(along) <= COPLANAR or abs(along) >= 1.0 - COPLANAR:
+            continue
+        for corner in corners:
+            offset = (point - corner).dot(plane_normal) / along
+            if abs(offset) > NEGLIGIBLE:
+                offsets.append(offset)
+    return offsets
 
 
 def bracketing(offsets: list[float], distance: float) -> list[float]:
@@ -327,6 +367,52 @@ def inference_points(context: bpy.types.Context) -> list[Vector]:
             continue
         points.extend(matrix @ vertex.co for vertex in vertices)
     return points
+
+
+def inference_planes(context: bpy.types.Context) -> list[tuple[Vector, Vector]]:
+    """(point, unit normal) for each distinct face plane in view, read once.
+
+    Distinct is what keeps this cheap downstream: a triangulated roof is two
+    hundred faces and one plane, and plane_offsets multiplies whatever this
+    returns by the pushed face's corner count. Deduplication keys on the
+    quantised normal -- sign-normalised, since a plane does not care which way
+    its face was wound -- and the quantised distance of the plane from the
+    origin.
+    """
+    planes: list[tuple[Vector, Vector]] = []
+    seen: set[tuple] = set()
+    for obj in context.visible_objects:
+        if obj.type != "MESH" or obj.data is None:
+            continue
+        polygons = obj.data.polygons
+        if len(polygons) > FACE_BUDGET:
+            continue  # its extents are already in the vertex pass
+        matrix = obj.matrix_world
+        try:
+            normal_matrix = matrix.to_3x3().inverted().transposed()
+        except ValueError:
+            continue  # degenerate scale; nothing here has a well-defined plane
+        for polygon in polygons:
+            world_normal = (normal_matrix @ polygon.normal).normalized()
+            if world_normal.length <= NEGLIGIBLE:
+                continue
+            point = matrix @ polygon.center
+            # Sign-normalise on the first non-zero component, so a slab's
+            # plane read from above and a coplanar face wound the other way
+            # collapse to one key.
+            flip = next((c for c in world_normal if abs(c) > NEGLIGIBLE), 1.0) < 0
+            keyed = -world_normal if flip else world_normal
+            key = (
+                round(keyed.x, 3),
+                round(keyed.y, 3),
+                round(keyed.z, 3),
+                round(point.dot(keyed), 4),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            planes.append((point, world_normal))
+    return planes
 
 
 class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
@@ -426,7 +512,16 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         self.dragged = False
         self.press_mouse = mouse
         self.aligned = False
-        self.offsets = axis_offsets(inference_points(context), self.origin, self.normal)
+        # Points and planes feed one candidate list: both reduce to distances
+        # along the push axis, and the modal never needs to know which kind it
+        # snapped to. Corners are the pushed face's own, fixed for the whole
+        # drag -- the mesh is rewritten each frame from the pristine source,
+        # so where the corners started is where they are measured from.
+        corners = [obj.matrix_world @ vert.co for vert in face.verts]
+        self.offsets = sorted_unique(
+            axis_offsets(inference_points(context), self.origin, self.normal)
+            + plane_offsets(inference_planes(context), corners, self.normal)
+        )
 
         self.report_state(context)
         context.window_manager.modal_handler_add(self)

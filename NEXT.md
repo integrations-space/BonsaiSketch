@@ -415,8 +415,16 @@ large the model.
   live in #1. Their inference should reuse `axis_offsets` and `bracketing`
   from `ops/pushpull.py`, which are pure functions for that reason. If a third
   caller appears they should move to their own module.
-- **Nothing snaps to a face or an edge**, only to points. Pulling level with
-  the *plane* of a sloped roof is the obvious next want.
+- **Planes snap now; edges still reduce to their endpoints.** The point pass
+  gained a plane pass — `plane_offsets` and `inference_planes`, same shape as
+  the pair it joins: gathered once at push start, deduplicated so a
+  tessellated roof is one plane, reduced to scalar offsets, merged into the
+  same candidate list, chosen in pixels. The drag stops where a *corner* of
+  the moving face touches a sloped plane, near corner or far, since a rigidly
+  travelling face can never become coplanar with a slope — it can only touch
+  it, and it touches corner-first. A sloped *edge* still contributes only its
+  endpoints: between them it crosses the moving plane continuously, so there
+  is no distinguished distance to offer.
 - **The modal is still untested by machine.** Both suites cover the geometry
   and the projection under it; placing points and dragging a face needs a
   human. Worth a pass by hand before this branch merges — particularly the

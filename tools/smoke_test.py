@@ -571,6 +571,63 @@ check("the neighbour's height is offered as a candidate",
 bpy.data.objects.remove(tall_obj, do_unlink=True)
 bpy.data.meshes.remove(tall)
 
+# Planes, not just points: a wall pulled up beside a sloped roof should stop
+# where it touches the roof's plane, and it touches corner-first -- the near
+# corner grazing the near side, the far corner reaching under the far side.
+# Each (corner, plane) pair is one distance along the push axis.
+square = [Vector((0.0, 0.0, 0.0)), Vector((2.0, 0.0, 0.0)),
+          Vector((2.0, 2.0, 0.0)), Vector((0.0, 2.0, 0.0))]
+roof = [(Vector((0.0, 0.0, 3.0)), Vector((0.0, 1.0, 1.0)).normalized())]
+slopes = pushpull.sorted_unique(pushpull.plane_offsets(roof, square, up))
+# The plane rises 1:1 with y from z=3, so corners at y=0 reach it at 3 and
+# corners at y=2 at 1.
+check("a sloped plane is reached corner by corner",
+      len(slopes) == 2 and abs(slopes[0] - 1.0) < 1e-6 and abs(slopes[1] - 3.0) < 1e-6,
+      f"got {slopes}")
+
+# The two families of plane that must not divide: parallel to the push axis is
+# never reached, and parallel to the face is already offered through its
+# vertices as points.
+check("a plane parallel to the push axis is not a candidate",
+      pushpull.plane_offsets([(Vector((5.0, 0.0, 0.0)), Vector((1.0, 0.0, 0.0)))], square, up) == [])
+check("a plane parallel to the face is left to the point pass",
+      pushpull.plane_offsets([(Vector((0.0, 0.0, 4.0)), Vector((0.0, 0.0, 1.0)))], square, up) == [])
+
+# The real thing again: a two-triangle roof over the scene. One plane, however
+# many faces it is tessellated into, and its touch distances join the same
+# candidate list the points feed.
+roof_mesh = bpy.data.meshes.new("roof")
+roof_bm = bmesh.new()
+rv = [roof_bm.verts.new(co) for co in
+      ((0.0, 0.0, 3.0), (4.0, 0.0, 3.0), (4.0, 4.0, 7.0), (0.0, 4.0, 7.0))]
+roof_bm.faces.new((rv[0], rv[1], rv[2]))
+roof_bm.faces.new((rv[0], rv[2], rv[3]))
+roof_bm.normal_update()
+roof_bm.to_mesh(roof_mesh)
+roof_bm.free()
+roof_obj = bpy.data.objects.new("roof", roof_mesh)
+context.scene.collection.objects.link(roof_obj)
+
+roof_normal = Vector((0.0, -1.0, 1.0)).normalized()
+gathered_planes = pushpull.inference_planes(context)
+matching = [m for _p, m in gathered_planes if abs(abs(m.dot(roof_normal)) - 1.0) < 1e-3]
+check("a tessellated plane is gathered once", len(matching) == 1,
+      f"got {len(matching)} planes along the roof normal")
+
+merged = pushpull.sorted_unique(
+    pushpull.axis_offsets(pushpull.inference_points(context), origin, up)
+    + pushpull.plane_offsets(gathered_planes, square, up)
+)
+# The roof rises 1:1 with y from z=3, so the square's corners touch its plane
+# at 3 (y=0) and 5 (y=2). 5 is reachable through the plane alone: no vertex of
+# anything sits at that height.
+check("plane touches join the candidate list", any(abs(o - 5.0) < 1e-6 for o in merged),
+      f"got {merged}")
+check("the point candidates are still there too", any(abs(o - 3.0) < 1e-6 for o in merged))
+
+bpy.data.objects.remove(roof_obj, do_unlink=True)
+bpy.data.meshes.remove(roof_mesh)
+
 # Non-uniform object scale must not distort the requested distance.
 half = Matrix.Diagonal(Vector((2.0, 1.0, 4.0))).to_3x3()
 scaled = pushpull.extruded(flat, 0, half.inverted(), up, 4.0, pushpull.EXTRUDE)
