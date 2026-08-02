@@ -1,4 +1,4 @@
-# BonsaiBIM Sketch Mode - direct-modelling interaction for Bonsai
+# Bonsai Sketch Mode - direct-modelling interaction for Bonsai
 # Copyright (C) 2026 Innovations & Integrations
 #
 # This program is free software: you can redistribute it and/or modify
@@ -36,10 +36,10 @@ from bpy.types import WorkSpaceTool
 
 from . import bridge, ops
 
-LINE_TOOL = "bonsaibim_sketch_mode.line_tool"
-RECTANGLE_TOOL = "bonsaibim_sketch_mode.rectangle_tool"
-PUSH_PULL_TOOL = "bonsaibim_sketch_mode.push_pull_tool"
-TAPE_TOOL = "bonsaibim_sketch_mode.tape_tool"
+LINE_TOOL = "bonsai_sketch_mode.line_tool"
+RECTANGLE_TOOL = "bonsai_sketch_mode.rectangle_tool"
+PUSH_PULL_TOOL = "bonsai_sketch_mode.push_pull_tool"
+TAPE_TOOL = "bonsai_sketch_mode.tape_tool"
 
 #: Blender's stock select tool, which Sketch binds to Space.
 SELECT_TOOL = "builtin.select_box"
@@ -112,6 +112,13 @@ class SketchPushPullTool(WorkSpaceTool):
     def draw_settings(context, layout, ws_tool):
         row = layout.row(align=True)
         row.label(text="Drag a Face", icon="MOUSE_LMB")
+        row = layout.row(align=True)
+        row.label(text="", icon="EVENT_CTRL")
+        row.label(text="Stack a New Solid", icon="EVENT_LMB")
+        row = layout.row(align=True)
+        row.label(text="Double-click repeats the last distance", icon="MOUSE_LMB")
+        row = layout.row(align=True)
+        row.label(text="Snaps level with existing geometry", icon="SNAP_ON")
         row = layout.row(align=True)
         row.label(text="Type an exact distance to confirm", icon="EVENT_RETURN")
 

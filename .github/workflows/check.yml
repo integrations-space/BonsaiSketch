@@ -75,7 +75,7 @@ jobs:
           # the source tree: that way CI also proves the packaged zip is
           # installable, which is what a tester actually receives.
           "$BLENDER" --command extension build \
-            --source-dir bonsaibim_sketch_mode --output-dir dist
+            --source-dir bonsai_sketch_mode --output-dir dist
           "$BLENDER" --command extension validate dist/*.zip
           "$BLENDER" --command extension install-file \
             --repo user_default --enable dist/*.zip
@@ -89,6 +89,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bonsaibim-sketch-mode-zip
+          name: bonsai-sketch-mode-zip
           path: dist/*.zip
           if-no-files-found: warn

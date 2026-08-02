@@ -1,4 +1,4 @@
-# BonsaiBIM Sketch Mode - direct-modelling interaction for Bonsai
+# Bonsai Sketch Mode - direct-modelling interaction for Bonsai
 # Copyright (C) 2026 Innovations & Integrations
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""BonsaiBIM Sketch Mode.
+"""Bonsai Sketch Mode.
 
 An add-on layered on top of Bonsai (https://bonsaibim.org/) that presents
 Bonsai's IFC authoring capability through SketchUp's interaction model, to
@@ -32,15 +32,15 @@ from __future__ import annotations
 
 import bpy
 
-from . import bridge, keyconfig, ops, requirements, theme, tools, workspace
+from . import bridge, ground, keyconfig, marks, ops, requirements, theme, tools, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
 _tools_status: tuple[bool, str] = (False, "Not yet loaded")
 
 
-class BONSAIBIM_SKETCH_OT_activate_keyconfig(bpy.types.Operator):
-    bl_idname = "bonsaibim_sketch_mode.activate_keyconfig"
+class BONSAI_SKETCH_MODE_OT_activate_keyconfig(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.activate_keyconfig"
     bl_label = "Activate Sketch Keymap"
     bl_description = "Switch Blender's active keymap to the Sketch Mode preset"
 
@@ -54,8 +54,8 @@ class BONSAIBIM_SKETCH_OT_activate_keyconfig(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class BONSAIBIM_SKETCH_OT_open_workspace(bpy.types.Operator):
-    bl_idname = "bonsaibim_sketch_mode.open_workspace"
+class BONSAI_SKETCH_MODE_OT_open_workspace(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.open_workspace"
     bl_label = "Open Sketch Workspace"
     bl_description = "Add the Sketch tab to the top bar and switch to it"
 
@@ -66,13 +66,17 @@ class BONSAIBIM_SKETCH_OT_open_workspace(bpy.types.Operator):
         if not ok:
             self.report({"ERROR"}, message)
             return {"CANCELLED"}
+        theme.ensure_applied(workspace.WORKSPACE_NAME)
+        prefs = workspace.get_prefs()
+        if prefs is not None:
+            theme.set_floor_grid(workspace.WORKSPACE_NAME, prefs.show_floor_grid)
         workspace.subscribe()
         self.report({"INFO"}, message)
         return {"FINISHED"}
 
 
-class BONSAIBIM_SKETCH_OT_apply_theme(bpy.types.Operator):
-    bl_idname = "bonsaibim_sketch_mode.apply_theme"
+class BONSAI_SKETCH_MODE_OT_apply_theme(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.apply_theme"
     bl_label = "Use the Sketch Canvas"
     bl_description = (
         "Sky-and-ground gradient behind the model, with a pale measuring grid.\n\n"
@@ -100,8 +104,8 @@ class BONSAIBIM_SKETCH_OT_apply_theme(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class BONSAIBIM_SKETCH_OT_restore_theme(bpy.types.Operator):
-    bl_idname = "bonsaibim_sketch_mode.restore_theme"
+class BONSAI_SKETCH_MODE_OT_restore_theme(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.restore_theme"
     bl_label = "Restore Previous Colours"
     bl_description = "Put the viewport colours back the way they were before the Sketch canvas"
 
@@ -119,13 +123,127 @@ class BONSAIBIM_SKETCH_OT_restore_theme(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
+def _recolour(self, context: bpy.types.Context) -> None:
+    """Repaint the moment a colour changes, but only if the canvas is on.
+
+    Picking a colour you cannot see the effect of is guesswork, and Blender's
+    colour picker updates continuously while dragging. Applying when the canvas
+    is off would switch it on behind the user's back, so this stays quiet then.
+    """
+    if self.theme_applied:
+        theme.apply()
+
+
+def _colour_prop(name: str, default, description: str, size: int = 3):
+    """A 0-1 colour swatch that repaints the canvas when changed."""
+    return bpy.props.FloatVectorProperty(
+        name=name,
+        description=description,
+        subtype="COLOR",
+        size=size,
+        min=0.0,
+        max=1.0,
+        default=default,
+        update=_recolour,
+    )
+
+
+class BONSAI_SKETCH_MODE_OT_reset_colours(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.reset_colours"
+    bl_label = "Reset All"
+    bl_description = "Put every canvas colour back to the shipped SketchUp-style default"
+
+    def execute(self, context: bpy.types.Context):
+        prefs = workspace.get_prefs()
+        if prefs is None:
+            self.report({"ERROR"}, "Add-on preferences unavailable")
+            return {"CANCELLED"}
+
+        for field in theme.COLOUR_DEFAULTS:
+            prefs.property_unset(field)
+        prefs.property_unset("use_sky_ground")
+
+        # property_unset does not fire the update callback, so repaint by hand.
+        if prefs.theme_applied:
+            theme.apply()
+        self.report({"INFO"}, "Canvas colours reset")
+        return {"FINISHED"}
+
+
+class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     #: The theme values as they were before we touched them, as JSON. Kept in
     #: preferences rather than memory so a restore still works next session.
     saved_theme: bpy.props.StringProperty(default="")
     theme_applied: bpy.props.BoolProperty(default=False)
+
+    show_ground: bpy.props.BoolProperty(
+        name="Solid ground",
+        description=(
+            "Draw an opaque ground plane at Z=0, so the sky meets it at a real "
+            "horizon that moves as you orbit.\n\n"
+            "Drawn into the Sketch viewport rather than added to your file, so "
+            "there is no object to select, move or export.\n\n"
+            "UNFINISHED: the ground currently hides the floor grid and paints "
+            "over geometry that should be in front of it"
+        ),
+        default=False,
+        update=lambda self, context: ground.redraw(workspace.WORKSPACE_NAME),
+    )
+
+    show_floor_grid: bpy.props.BoolProperty(
+        name="Floor grid",
+        description=(
+            "Show the measuring grid on the ground plane.\n\n"
+            "An overlay on the Sketch viewport, so this leaves every other "
+            "workspace alone. Visibility only -- Blender's grid snapping is a "
+            "scene setting and keeps working either way"
+        ),
+        default=True,
+        update=lambda self, context: theme.set_floor_grid(
+            workspace.WORKSPACE_NAME, self.show_floor_grid
+        ),
+    )
+
+    canvas_on_setup: bpy.props.BoolProperty(
+        name="Sketch canvas on by default",
+        description=(
+            "Raise the sky-and-ground canvas as soon as the Sketch tab is added, "
+            "rather than waiting to be switched on.\n\n"
+            "Blender keeps viewport colours in one global theme, so this restyles "
+            "the 3D viewport in every workspace, not only the Sketch tab. Your "
+            "colours are recorded first and Restore Previous Colours puts them back"
+        ),
+        default=True,
+    )
+
+    use_sky_ground: bpy.props.BoolProperty(
+        name="Sky and ground",
+        description=(
+            "Fade a sky colour down to a ground colour at the horizon. "
+            "Off gives one flat background colour instead, as SketchUp does "
+            "when its sky and ground are switched off"
+        ),
+        default=True,
+        update=_recolour,
+    )
+    sky_colour: _colour_prop("Sky", theme.SKY, "Above the horizon")
+    ground_colour: _colour_prop("Ground", theme.GROUND, "Below the horizon")
+    background_colour: _colour_prop(
+        "Background", theme.BACKGROUND, "Used when sky and ground are switched off"
+    )
+    grid_colour: _colour_prop(
+        "Grid", theme.GRID, "The measuring grid. The fourth slider is opacity", size=4
+    )
+    axis_x_colour: _colour_prop("Red Axis", theme.AXIS_X, "The X axis")
+    axis_y_colour: _colour_prop("Green Axis", theme.AXIS_Y, "The Y axis")
+    axis_z_colour: _colour_prop("Blue Axis", theme.AXIS_Z, "The Z axis")
+    inference_colour: _colour_prop(
+        "Inference",
+        theme.INFERENCE,
+        "The mark drawn where a drag has snapped level with existing geometry",
+    )
 
     setup_workspace: bpy.props.BoolProperty(
         name="Add Sketch workspace tab",
@@ -173,7 +291,7 @@ class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
         if workspace.exists():
             box.label(text="Sketch tab is in the top bar.", icon="CHECKMARK")
         else:
-            box.operator(BONSAIBIM_SKETCH_OT_open_workspace.bl_idname, icon="ADD")
+            box.operator(BONSAI_SKETCH_MODE_OT_open_workspace.bl_idname, icon="ADD")
 
         ok, message = _keyconfig_status
         box = layout.box()
@@ -186,14 +304,14 @@ class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
             )
             active = context.window_manager.keyconfigs.active
             if not (active and active.name == keyconfig.KEYCONFIG_NAME):
-                box.operator(BONSAIBIM_SKETCH_OT_activate_keyconfig.bl_idname, icon="PLAY")
+                box.operator(BONSAI_SKETCH_MODE_OT_activate_keyconfig.bl_idname, icon="PLAY")
 
         box = layout.box()
         box.label(text="Viewport", icon="SHADING_RENDERED")
         applied = theme.looks_applied()
         if self.theme_applied and applied:
             box.label(text="Sketch canvas is on.", icon="CHECKMARK")
-            box.operator(BONSAIBIM_SKETCH_OT_restore_theme.bl_idname, icon="LOOP_BACK")
+            box.operator(BONSAI_SKETCH_MODE_OT_restore_theme.bl_idname, icon="LOOP_BACK")
         else:
             if self.theme_applied and applied is False:
                 box.label(text="Something else has changed the theme since.", icon="INFO")
@@ -205,7 +323,34 @@ class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
             )
             col.label(text="so this restyles the 3D viewport in every workspace.")
             col.label(text="Your current colours are recorded and can be restored.")
-            box.operator(BONSAIBIM_SKETCH_OT_apply_theme.bl_idname, icon="COLOR")
+            box.operator(BONSAI_SKETCH_MODE_OT_apply_theme.bl_idname, icon="COLOR")
+
+        box.prop(self, "canvas_on_setup")
+        box.prop(self, "show_ground")
+        box.prop(self, "show_floor_grid")
+
+        # Editable whether or not the canvas is on, so colours can be chosen
+        # first and switched on once. Grouped the way SketchUp groups them.
+        box.separator()
+        box.prop(self, "use_sky_ground")
+        col = box.column(align=True)
+        if self.use_sky_ground:
+            col.prop(self, "sky_colour")
+            col.prop(self, "ground_colour")
+        else:
+            col.prop(self, "background_colour")
+        col.prop(self, "grid_colour")
+
+        col = box.column(align=True)
+        col.label(text="Axis and direction colours")
+        col.prop(self, "axis_x_colour")
+        col.prop(self, "axis_y_colour")
+        col.prop(self, "axis_z_colour")
+
+        col = box.column(align=True)
+        col.label(text="Modelling colours")
+        col.prop(self, "inference_colour")
+        box.operator(BONSAI_SKETCH_MODE_OT_reset_colours.bl_idname, icon="LOOP_BACK")
 
         ok, message = _tools_status
         box = layout.box()
@@ -221,11 +366,12 @@ class BONSAIBIM_SKETCH_Preferences(bpy.types.AddonPreferences):
 
 
 classes = (
-    BONSAIBIM_SKETCH_OT_activate_keyconfig,
-    BONSAIBIM_SKETCH_OT_open_workspace,
-    BONSAIBIM_SKETCH_OT_apply_theme,
-    BONSAIBIM_SKETCH_OT_restore_theme,
-    BONSAIBIM_SKETCH_Preferences,
+    BONSAI_SKETCH_MODE_OT_activate_keyconfig,
+    BONSAI_SKETCH_MODE_OT_open_workspace,
+    BONSAI_SKETCH_MODE_OT_apply_theme,
+    BONSAI_SKETCH_MODE_OT_restore_theme,
+    BONSAI_SKETCH_MODE_OT_reset_colours,
+    BONSAI_SKETCH_MODE_Preferences,
 )
 
 
@@ -238,7 +384,7 @@ def register() -> None:
     if not bridge.is_available():
         # Register preferences anyway so the user gets a readable explanation
         # instead of a silent no-op.
-        print(f"[bonsaibim_sketch_mode] {bridge.unavailable_reason()}")
+        print(f"[bonsai_sketch_mode] {bridge.unavailable_reason()}")
         return
 
     # Operators first: the toolbar entries reference them by idname, and
@@ -247,11 +393,11 @@ def register() -> None:
 
     _tools_status = tools.register()
     if not _tools_status[0]:
-        print(f"[bonsaibim_sketch_mode] tools: {_tools_status[1]}")
+        print(f"[bonsai_sketch_mode] tools: {_tools_status[1]}")
 
     _keyconfig_status = keyconfig.load()
     if not _keyconfig_status[0]:
-        print(f"[bonsaibim_sketch_mode] keymap: {_keyconfig_status[1]}")
+        print(f"[bonsai_sketch_mode] keymap: {_keyconfig_status[1]}")
 
     # The Sketch tab is added on file load (Bonsai does the same for its BIM
     # tab). Enabling the add-on mid-session does not fire load_post, so the
@@ -259,8 +405,19 @@ def register() -> None:
     workspace.register_handlers()
     workspace.subscribe()
 
+    # The ground is drawn, not themed, so it needs a live draw handler rather
+    # than a value set once. The callback returns immediately off the Sketch
+    # tab, so installing it globally costs nothing elsewhere.
+    ground.install()
+
+    # The inference mark likewise: one comparison per redraw while no tool is
+    # showing one, and no per-modal lifecycle to leak.
+    marks.install()
+
 
 def unregister() -> None:
+    marks.uninstall()
+    ground.uninstall()
     workspace.unregister_handlers()
     keyconfig.unload()
     tools.unregister()

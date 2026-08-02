@@ -1,4 +1,4 @@
-# BonsaiSketch
+# Bonsai Sketch Mode
 
 A direct-modelling interaction layer for [Bonsai](https://bonsaibim.org/), the
 open-source native IFC authoring platform for Blender.
@@ -16,7 +16,7 @@ the IFC layer underneath.
 | `Space` | Select | Blender's box select |
 | `L` | Line | Connected edges; closed coplanar loops become faces |
 | `R` | Rectangle | Two opposite corners |
-| `P` | Push/Pull | Extrudes the face under the cursor along its normal |
+| `P` | Push/Pull | Extrudes the face under the cursor along its normal; `Ctrl` stacks a new solid; double-click repeats the last distance |
 | `T` | Tape Measure | Bonsai's measure tool |
 | `M` `Q` `S` | Move / Rotate / Scale | Blender's transforms |
 | `O` `H` `Z` | Orbit / Pan / Zoom | `Shift+Z` for zoom extents |
@@ -28,6 +28,25 @@ Line, Rectangle and Tape all run on Bonsai's polyline engine, so they share its
 inference snapping, axis locks (`X`/`Y`/`Z`), plane locks (`Shift`+`X`/`Y`/`Z`)
 and measurement box — including imperial input and `=`-prefixed expressions.
 Push/Pull has its own measurement box using the same parser.
+
+Push/Pull also infers along its own axis. As a face is dragged it stops where
+existing geometry already is — the top of the wall beside this one, the
+underside of the slab above it — and the header reads `(aligned)` while it is
+held there. The candidates are the distances that bring the face level with
+something, read from every visible mesh once as the push begins; a drag lands
+on one when it comes within ten pixels of it. Typing a distance overrides
+inference, as it overrides the drag.
+
+Push/Pull supports regional extrusion: a surface divided by drawn lines can be
+pushed one region at a time. Only that region moves, walls appear along the
+lines dividing it from its neighbours, and the rest of the surface stays where
+it is — so a step or a notch is a line and a drag, on a drawn sheet or on a
+solid you have already built. Pushing a whole face of a solid still moves it
+and stretches the walls, as before.
+
+`Ctrl` while starting the push stacks a new solid on the face instead, leaving
+the original in place as the join between the two. Double-clicking a face
+repeats the last push-pull distance.
 
 `F`, `B` and `E` are deliberately unbound. Their tools do not exist yet, and an
 unbound key is honest where a wrong one teaches the wrong muscle memory.
@@ -117,13 +136,33 @@ never offers to install this into a release nobody has run it on.
 ## Development install
 
 Junction this directory into Blender's user extension repository so edits are
-picked up in place:
+picked up in place. One per Blender you test against — 5.0 and 5.2 here:
 
 ```text
-mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsaibim_sketch_mode" "C:\2026_bonsai\bonsaibim_sketch_mode"
+mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsai_sketch_mode" "C:\2026_bonsai\bonsai_sketch_mode"
+mklink /J "%APPDATA%\Blender Foundation\Blender\5.2\extensions\user_default\bonsai_sketch_mode" "C:\2026_bonsai\bonsai_sketch_mode"
 ```
 
-Then enable **BonsaiBIM Sketch Mode** in Preferences > Add-ons.
+A junction cannot go stale the way an installed zip can, which is worth the
+setup: a stale install makes the suites test old code and fail somewhere
+unrelated, and it reads as a broken suite rather than a stale install.
+
+Then enable **Bonsai Sketch Mode** in Preferences > Add-ons.
+
+That enable is a *saved preference keyed by module path*, which matters whenever
+the id changes. Blender goes on listing the old path as enabled — a module that
+no longer exists — while the renamed add-on sits discoverable but switched off.
+Neither suite catches it, because both enable the add-on themselves before
+testing anything, so a fully green run tells you nothing about what the GUI will
+do. Check it directly after any id change:
+
+```text
+blender -b --python-expr "import bpy; print([a.module for a in bpy.context.preferences.addons if 'bonsai' in a.module])"
+```
+
+A fresh Blender also has no `Sketch` workspace in its startup file, since the
+workspace is appended by an operator rather than created on enable. Add it once
+from the add-on's preferences.
 
 Two check suites. Headless, for registration and geometry:
 

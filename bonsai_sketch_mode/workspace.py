@@ -1,4 +1,4 @@
-# BonsaiBIM Sketch Mode - direct-modelling interaction for Bonsai
+# Bonsai Sketch Mode - direct-modelling interaction for Bonsai
 # Copyright (C) 2026 Innovations & Integrations
 #
 # This program is free software: you can redistribute it and/or modify
@@ -33,7 +33,7 @@ import os
 
 import bpy
 
-from . import keyconfig
+from . import keyconfig, theme
 
 WORKSPACE_NAME = "Sketch"
 _BLEND = os.path.join(os.path.dirname(__file__), "data", "workspace.blend")
@@ -85,10 +85,10 @@ def _on_workspace_change() -> None:
     if keyconfig.KEYCONFIG_NAME not in kcs:
         return
 
-    in_sketchup = win.workspace.name == WORKSPACE_NAME
+    in_sketch = win.workspace.name == WORKSPACE_NAME
     active_name = kcs.active.name if kcs.active else None
 
-    if in_sketchup:
+    if in_sketch:
         if active_name != keyconfig.KEYCONFIG_NAME:
             _previous_keyconfig = active_name
             kcs.active = kcs[keyconfig.KEYCONFIG_NAME]
@@ -134,7 +134,9 @@ def _load_post(_dummy) -> None:
         return
     ok, message = append(activate=prefs.activate_workspace)
     if not ok:
-        print(f"[bonsaibim_sketch_mode] workspace: {message}")
+        print(f"[bonsai_sketch_mode] workspace: {message}")
+    theme.ensure_applied(WORKSPACE_NAME)
+    theme.set_floor_grid(WORKSPACE_NAME, prefs.show_floor_grid)
     subscribe()
 
 
@@ -145,7 +147,9 @@ def _append_once() -> None:
         return
     ok, message = append(activate=prefs.activate_workspace)
     if not ok:
-        print(f"[bonsaibim_sketch_mode] workspace: {message}")
+        print(f"[bonsai_sketch_mode] workspace: {message}")
+    theme.ensure_applied(WORKSPACE_NAME)
+    theme.set_floor_grid(WORKSPACE_NAME, prefs.show_floor_grid)
     subscribe()
 
 
@@ -178,7 +182,7 @@ def _run_once() -> None:
     try:
         _append_once()
     except Exception as exc:  # pragma: no cover - depends on host state
-        print(f"[bonsaibim_sketch_mode] workspace: {exc}")
+        print(f"[bonsai_sketch_mode] workspace: {exc}")
     return None
 
 

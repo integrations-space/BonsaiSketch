@@ -1,4 +1,4 @@
-# BonsaiBIM Sketch Mode - direct-modelling interaction for Bonsai
+# Bonsai Sketch Mode - direct-modelling interaction for Bonsai
 # Copyright (C) 2026 Innovations & Integrations
 #
 # This program is free software: you can redistribute it and/or modify
@@ -64,6 +64,22 @@ def mouse_ray(
     origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, mouse)
     direction = view3d_utils.region_2d_to_vector_3d(region, rv3d, mouse)
     return origin, direction
+
+
+def project_point(context: bpy.types.Context, point: Vector) -> Optional[Vector]:
+    """Where a world-space point lands in the region, in pixels.
+
+    None when the point is behind the camera or there is no region to project
+    into. Callers comparing distances on screen need this rather than a
+    world-space measure: a tolerance in metres is a different size at every
+    depth, and inference that grabs harder the further away you look is worse
+    than none at all.
+    """
+    region = context.region
+    rv3d = context.region_data
+    if region is None or rv3d is None:
+        return None
+    return view3d_utils.location_3d_to_region_2d(region, rv3d, point)
 
 
 def ray_cast_face(

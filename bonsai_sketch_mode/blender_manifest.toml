@@ -1,8 +1,8 @@
 schema_version = "1.0.0"
 
-id = "bonsaibim_sketch_mode"
+id = "bonsai_sketch_mode"
 version = "0.3.0"
-name = "BonsaiBIM Sketch Mode"
+name = "Bonsai Sketch Mode"
 tagline = "Direct-modelling interaction for Bonsai IFC authoring"
 # A GitHub noreply address: this string ships inside every release zip, so it
 # is a stable identifier rather than a mailbox. Report problems on the issue

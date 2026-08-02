@@ -22,8 +22,9 @@ import sys
 import traceback
 
 import bpy
+from mathutils import Vector
 
-ADDON = "bl_ext.user_default.bonsaibim_sketch_mode"
+ADDON = "bl_ext.user_default.bonsai_sketch_mode"
 
 REPORT = sys.argv[-1] if "--" in sys.argv else "ui_check.txt"
 
@@ -73,6 +74,7 @@ def run():
     tools = addon.tools
     ops = addon.ops
     workspace = addon.workspace
+    viewport = addon.viewport
 
     # The question a new user asks first: they enabled the add-on, is the tab
     # there? Enabling does not fire load_post, so this only passes because
@@ -119,12 +121,18 @@ def run():
         check("properties sidebar hidden", space is not None and not space.show_region_ui)
         check("perspective view", space is not None and space.region_3d.view_perspective == "PERSP")
         check("solid shading", space is not None and space.shading.type == "SOLID")
-        # A light canvas, without needing the global theme change.
-        check("flat light canvas, not the dark default",
-              space is not None and space.shading.background_type == "VIEWPORT")
-        check("canvas is light",
-              space is not None and min(space.shading.background_color) > 0.7,
-              f"colour {list(space.shading.background_color) if space else '?'}")
+        # The canvas is raised when the workspace is added, so the Sketch tab
+        # shows sky over ground rather than the flat colour it ships with.
+        check("viewport reads the theme canvas, not a flat colour",
+              space is not None and space.shading.background_type == "THEME",
+              f"background_type {space.shading.background_type if space else '?'}")
+        gradients = bpy.context.preferences.themes[0].view_3d.space.gradients
+        check("canvas is a two-tone gradient",
+              gradients.background_type == "LINEAR", gradients.background_type)
+        check("sky sits above ground, and both are light",
+              min(gradients.high_gradient) > 0.5 and min(gradients.gradient) > 0.5
+              and gradients.high_gradient[2] > gradients.high_gradient[0],
+              f"sky {list(gradients.high_gradient)} ground {list(gradients.gradient)}")
         check("grid reaches past the model",
               space is not None and space.overlay.grid_lines >= 64,
               f"grid_lines {space.overlay.grid_lines if space else '?'}")
@@ -169,6 +177,37 @@ def run():
                 ok = False
                 detail = str(exc)
             check(f"{tool_cls.bl_label} activates", ok, detail)
+
+        # Push/Pull's inference decides between candidates in pixels, which
+        # needs a region to project into. Headlessly there is none, so
+        # smoke_test can only check which candidates exist -- whether they can
+        # be compared at all is answerable only here.
+        centre = Vector((0.0, 0.0, 0.0))
+        projected = viewport.project_point(context, centre)
+        check("a world point projects into the region", projected is not None)
+        if projected is not None:
+            check(
+                "the projection lands inside the region",
+                0 <= projected.x <= region.width and 0 <= projected.y <= region.height,
+                f"{tuple(round(v, 1) for v in projected)} in {region.width}x{region.height}",
+            )
+            # Two points a metre apart along the view's vertical must land in
+            # different places, or every candidate would measure zero pixels
+            # away and inference would snap to whichever it saw first.
+            above = viewport.project_point(context, Vector((0.0, 0.0, 1.0)))
+            check(
+                "points a metre apart project apart",
+                above is not None and (above - projected).length > 1.0,
+                f"{(above - projected).length if above else '?'} px",
+            )
+
+        # A point behind the camera has no honest answer, and inference has to
+        # cope with being told so rather than snapping to a mirrored ghost.
+        behind = viewport.project_point(context, context.region_data.view_matrix.inverted()
+                                        .translation + context.region_data.view_rotation
+                                        @ Vector((0.0, 0.0, 5.0)))
+        check("a point behind the camera projects to nothing", behind is None,
+              f"got {behind}")
 
         # Bonsai's overlay is installed on every polyline tool invoke and torn
         # down on exit. A draw handler that fails to register would take the

@@ -1,20 +1,20 @@
-# BonsaiBIM Sketch Mode - direct-modelling interaction for Bonsai
+# Bonsai Sketch Mode - direct-modelling interaction for Bonsai
 # Copyright (C) 2026 Innovations & Integrations
 #
-# This file is part of BonsaiBIM Sketch Mode.
+# This file is part of Bonsai Sketch Mode.
 #
-# BonsaiBIM Sketch Mode is free software: you can redistribute it and/or modify
+# Bonsai Sketch Mode is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# BonsaiBIM Sketch Mode is distributed in the hope that it will be useful,
+# Bonsai Sketch Mode is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with BonsaiBIM Sketch Mode.  If not, see <http://www.gnu.org/licenses/>.
+# along with Bonsai Sketch Mode.  If not, see <http://www.gnu.org/licenses/>.
 
 """Single point of coupling to Bonsai.
 

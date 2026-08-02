@@ -1,4 +1,4 @@
-# BonsaiBIM Sketch Mode - direct-modelling interaction for Bonsai
+# Bonsai Sketch Mode - direct-modelling interaction for Bonsai
 # Copyright (C) 2026 Innovations & Integrations
 #
 # This program is free software: you can redistribute it and/or modify
@@ -80,8 +80,8 @@ def corners(start: Vector, end: Vector, plane: str) -> Optional[list[Vector]]:
     ]
 
 
-class BONSAIBIM_SKETCH_OT_rectangle(bpy.types.Operator, PolylineToolBase):
-    bl_idname = "bonsaibim_sketch_mode.rectangle"
+class BONSAI_SKETCH_MODE_OT_rectangle(bpy.types.Operator, PolylineToolBase):
+    bl_idname = "bonsai_sketch_mode.rectangle"
     bl_label = "Rectangle"
     bl_description = "Draw a rectangle from two opposite corners"
     bl_options = {"REGISTER", "UNDO"}

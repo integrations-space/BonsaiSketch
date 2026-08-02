@@ -1,4 +1,4 @@
-# BonsaiBIM Sketch Mode - direct-modelling interaction for Bonsai
+# Bonsai Sketch Mode - direct-modelling interaction for Bonsai
 # Copyright (C) 2026 Innovations & Integrations
 #
 # This program is free software: you can redistribute it and/or modify
@@ -25,18 +25,18 @@ from __future__ import annotations
 
 import bpy
 
-from .line import BONSAIBIM_SKETCH_OT_line
-from .pushpull import BONSAIBIM_SKETCH_OT_push_pull
-from .rectangle import BONSAIBIM_SKETCH_OT_rectangle
+from .line import BONSAI_SKETCH_MODE_OT_line
+from .pushpull import BONSAI_SKETCH_MODE_OT_push_pull
+from .rectangle import BONSAI_SKETCH_MODE_OT_rectangle
 
-LINE_OP = BONSAIBIM_SKETCH_OT_line.bl_idname
-RECTANGLE_OP = BONSAIBIM_SKETCH_OT_rectangle.bl_idname
-PUSH_PULL_OP = BONSAIBIM_SKETCH_OT_push_pull.bl_idname
+LINE_OP = BONSAI_SKETCH_MODE_OT_line.bl_idname
+RECTANGLE_OP = BONSAI_SKETCH_MODE_OT_rectangle.bl_idname
+PUSH_PULL_OP = BONSAI_SKETCH_MODE_OT_push_pull.bl_idname
 
 classes = (
-    BONSAIBIM_SKETCH_OT_line,
-    BONSAIBIM_SKETCH_OT_rectangle,
-    BONSAIBIM_SKETCH_OT_push_pull,
+    BONSAI_SKETCH_MODE_OT_line,
+    BONSAI_SKETCH_MODE_OT_rectangle,
+    BONSAI_SKETCH_MODE_OT_push_pull,
 )
 
 

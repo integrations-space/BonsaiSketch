@@ -1,4 +1,4 @@
-# BonsaiBIM Sketch Mode - direct-modelling interaction for Bonsai
+# Bonsai Sketch Mode - direct-modelling interaction for Bonsai
 # Copyright (C) 2026 Innovations & Integrations
 #
 # This program is free software: you can redistribute it and/or modify
@@ -34,8 +34,8 @@ from .. import bridge, sketchmesh
 from .base import PolylineToolBase
 
 
-class BONSAIBIM_SKETCH_OT_line(bpy.types.Operator, PolylineToolBase):
-    bl_idname = "bonsaibim_sketch_mode.line"
+class BONSAI_SKETCH_MODE_OT_line(bpy.types.Operator, PolylineToolBase):
+    bl_idname = "bonsai_sketch_mode.line"
     bl_label = "Line"
     bl_description = "Draw connected edges. Type a distance for an exact length"
     bl_options = {"REGISTER", "UNDO"}

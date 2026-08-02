@@ -1,11 +1,11 @@
-# BonsaiSketch
+# Bonsai Sketch Mode
 
 A direct-modelling interaction layer for [Bonsai](https://bonsaibim.org/), the
 open-source native IFC authoring platform for Blender.
 
 Bonsai's IFC capability is excellent. Its adoption barrier is Blender's
-interface — and most architects already know a direct modeller. BonsaiSketch
-presents Bonsai's existing authoring tools through a familiar interaction
+interface — and most architects already know a direct modeller. Bonsai Sketch
+Mode presents Bonsai's existing authoring tools through a familiar interaction
 model: single-key tools, inference snapping, and a measurement box. The IFC
 layer underneath is untouched.
 
@@ -16,11 +16,11 @@ Three layers, each running inside the one below:
 ```
 Blender 5.0 / 5.2      the application you install and launch
   └─ Bonsai 0.8.4/0.8.5  add-on: turns Blender into an IFC/BIM authoring tool
-       └─ BonsaiSketch add-on: gives Bonsai a direct-modelling UI
+       └─ Bonsai Sketch Mode add-on: gives Bonsai a direct-modelling UI
 ```
 
-You install all three. BonsaiSketch does not replace Bonsai — it sits on top of
-it and calls into it.
+You install all three. Bonsai Sketch Mode does not replace Bonsai — it sits on
+top of it and calls into it.
 
 ## Quick start
 
@@ -55,9 +55,9 @@ tab appears in the bar across the top of the window.
 > at Python 3.11. If something misbehaves, your Bonsai version is the first
 > thing to put in a bug report.
 
-### Step 3 — Install BonsaiSketch
+### Step 3 — Install Bonsai Sketch Mode
 
-Download **`bonsaibim_sketch_mode-0.3.0.zip`** from
+Download the add-on zip — **`bonsai_sketch_mode-<version>.zip`** — from
 [the latest release](https://github.com/integrations-space/BonsaiSketch/releases/latest).
 Do not unzip it. Then, in Blender:
 
@@ -66,6 +66,19 @@ Do not unzip it. Then, in Blender:
 
 A **`Sketch`** tab appears in the top bar next to `BIM`, immediately — no
 restart, no reopening a file.
+
+> **Upgrading from 0.3.0 or earlier?** Remove the old add-on first. This was
+> called *BonsaiBIM Sketch Mode* up to and including 0.3.0, after the upstream
+> project it sits on, which renamed itself to Bonsai. The extension id changed
+> with the name, and Blender keys extensions by id — so the new one installs
+> *beside* the old one rather than replacing it, leaving two copies competing
+> for the same single-key shortcuts. Releases up to 0.3.0 are named
+> `bonsaibim_sketch_mode-<version>.zip`; anything later uses the new name.
+>
+> Being enabled is a saved preference keyed by the same id, so the old entry
+> stays switched on pointing at nothing, and the new one arrives switched off.
+> If the `Sketch` tab does not appear, that is why: find **Bonsai Sketch Mode**
+> in `Add-ons` and tick it.
 
 If Bonsai is missing or broken, the add-on's own preferences panel says so, in
 words, instead of failing quietly.
@@ -161,7 +174,7 @@ Early, but usable for sketching. Working:
 Not yet built: Offset, Follow Me, Eraser, Paint, and Push/Pull on parametric
 IFC elements. `F`, `B` and `E` are left unbound rather than pointed at an
 approximation. See the roadmap in
-[bonsaibim_sketch_mode/README.md](bonsaibim_sketch_mode/README.md).
+[bonsai_sketch_mode/README.md](bonsai_sketch_mode/README.md).
 
 ## Testing it, and telling us what broke
 
@@ -193,13 +206,19 @@ same terms. Nothing here is locked down.
 ```text
 git clone https://github.com/integrations-space/BonsaiSketch
 cd BonsaiSketch
-blender --command extension build --source-dir bonsaibim_sketch_mode --output-dir dist
+blender --command extension build --source-dir bonsai_sketch_mode --output-dir dist
 ```
 
-That produces `dist/bonsaibim_sketch_mode-<version>.zip`, which installs
+The repository is still called `BonsaiSketch`, from before the add-on settled on
+its name. That is an address rather than a name — renaming it would break every
+existing clone, issue link and release URL — so it stays as it is, the same way
+Bonsai's own docs read "Bonsai" while living at `bonsaibim.org`. Everything the
+software calls itself is **Bonsai Sketch Mode**.
+
+That produces `dist/bonsai_sketch_mode-<version>.zip`, which installs
 exactly like a release build via `Install from Disk`. A fork needs no other
 change — but do give it a different `id` and `name` in
-`bonsaibim_sketch_mode/blender_manifest.toml` if both versions might end up
+`bonsai_sketch_mode/blender_manifest.toml` if both versions might end up
 installed side by side, since Blender keys extensions by `id`.
 
 ## Development
@@ -208,7 +227,7 @@ Junction the add-on directory into Blender's user extension repository so edits
 are picked up in place:
 
 ```text
-mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsaibim_sketch_mode" "C:\2026_bonsai\bonsaibim_sketch_mode"
+mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsai_sketch_mode" "C:\2026_bonsai\bonsai_sketch_mode"
 ```
 
 Check it registers and its geometry is correct:
@@ -225,23 +244,23 @@ Push/Pull ultimately perform. Verified against Blender 5.0 and Bonsai 0.8.4.
 Build a distributable package:
 
 ```text
-blender --command extension build --source-dir bonsaibim_sketch_mode --output-dir dist
+blender --command extension build --source-dir bonsai_sketch_mode --output-dir dist
 ```
 
 Regenerate the workspace `.blend` after changing the layout:
 
 ```text
-blender -b --factory-startup --python tools/gen_workspace.py -- bonsaibim_sketch_mode/data/workspace.blend
+blender -b --factory-startup --python tools/gen_workspace.py -- bonsai_sketch_mode/data/workspace.blend
 ```
 
 All coupling to Bonsai is confined to
-[bonsaibim_sketch_mode/bridge.py](bonsaibim_sketch_mode/bridge.py). Bonsai is a
+[bonsai_sketch_mode/bridge.py](bonsai_sketch_mode/bridge.py). Bonsai is a
 rolling release with no stable public API contract, so when an upgrade breaks
 this add-on, that file should be the only one needing attention.
 
 ## Licence
 
-GPL-3.0-or-later. See [LICENSE](bonsaibim_sketch_mode/LICENSE).
+GPL-3.0-or-later. See [LICENSE](bonsai_sketch_mode/LICENSE).
 
 This add-on imports Bonsai, which is GPL-3.0-or-later, and is therefore a
 derivative work. If you distribute it — free or paid — you must ship the
