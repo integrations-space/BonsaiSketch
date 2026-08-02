@@ -260,9 +260,9 @@ plate_obj, _ = sketchmesh.commit(context, plate, close=True)
 flat = bmesh.new()
 flat.from_mesh(plate_obj.data)
 flat.faces.ensure_lookup_table()
-check("a drawn face reads as an open sheet", pushpull.face_is_in_flat_sheet(flat.faces[0]))
+check("a drawn face reads as an open sheet", pushpull.push_mode(flat.faces[0]) == pushpull.EXTRUDE)
 
-box = pushpull.extruded(flat, 0, identity, up, 3.0, keep_face=True)
+box = pushpull.extruded(flat, 0, identity, up, 3.0, pushpull.EXTRUDE)
 check("sheet extrudes to 8 vertices", len(box.verts) == 8, f"got {len(box.verts)}")
 check("sheet extrudes to 6 faces", len(box.faces) == 6, f"got {len(box.faces)}")
 check("box is closed", all(len(e.link_faces) == 2 for e in box.edges))
@@ -276,9 +276,9 @@ check("new solid's normals all point outward", box.calc_volume(signed=True) > 0,
 # Pulling a face of that solid must consume the original face, not bury it.
 box.faces.ensure_lookup_table()
 top = max(box.faces, key=lambda f: f.calc_center_median().z)
-check("a solid's face is not an open sheet", not pushpull.face_is_in_flat_sheet(top))
+check("a solid's face is not an open sheet", pushpull.push_mode(top) == pushpull.MOVE)
 
-taller = pushpull.extruded(box, top.index, identity, up, 2.0, keep_face=False)
+taller = pushpull.extruded(box, top.index, identity, up, 2.0, pushpull.MOVE)
 check("pulling a solid keeps 8 vertices", len(taller.verts) == 8, f"got {len(taller.verts)}")
 check("pulling a solid keeps 6 faces", len(taller.faces) == 6, f"got {len(taller.faces)}")
 check("no interior face left behind", all(len(e.link_faces) == 2 for e in taller.edges))
@@ -287,7 +287,7 @@ check("volume grows to 2x2x5", abs(taller.calc_volume(signed=False) - 20.0) < 1e
 
 # Widening a box sideways: the seam merges into the caps it extends.
 side = max(box.faces, key=lambda f: f.calc_center_median().x)
-wider = pushpull.extruded(box, side.index, identity, side.normal.copy(), 1.0, keep_face=False)
+wider = pushpull.extruded(box, side.index, identity, side.normal.copy(), 1.0, pushpull.MOVE)
 check("widening a box keeps 8 vertices", len(wider.verts) == 8, f"got {len(wider.verts)}")
 check("widening a box keeps 6 faces", len(wider.faces) == 6, f"got {len(wider.faces)}")
 check("volume grows to 3x2x3", abs(wider.calc_volume(signed=False) - 18.0) < 1e-6,
@@ -305,8 +305,8 @@ pair.normal_update()
 pair.faces.ensure_lookup_table()
 
 check("coplanar neighbours still count as a flat sheet",
-      pushpull.face_is_in_flat_sheet(pair.faces[0]))
-adjacent = pushpull.extruded(pair, 0, identity, up, 3.0, keep_face=True)
+      pushpull.push_mode(pair.faces[0]) == pushpull.EXTRUDE)
+adjacent = pushpull.extruded(pair, 0, identity, up, 3.0, pushpull.EXTRUDE)
 check("pushing one of two adjacent rectangles keeps its cap",
       len(adjacent.faces) == 7, f"got {len(adjacent.faces)} faces")
 # Only the untouched neighbour should still have free edges: 3 of its 4.
@@ -317,7 +317,7 @@ check("pushed volume is 2x2x3", abs(adjacent.calc_volume(signed=False) - 12.0) <
       f"got {adjacent.calc_volume(signed=False)}")
 
 # Pushing inward is the same operation with a negative distance.
-shorter = pushpull.extruded(box, top.index, identity, up, -1.0, keep_face=False)
+shorter = pushpull.extruded(box, top.index, identity, up, -1.0, pushpull.MOVE)
 check("pushing inward keeps it closed", all(len(e.link_faces) == 2 for e in shorter.edges))
 check("volume shrinks to 2x2x2", abs(shorter.calc_volume(signed=False) - 8.0) < 1e-6,
       f"got {shorter.calc_volume(signed=False)}")
@@ -333,12 +333,143 @@ check("pushing in leaves 6 faces", len(shorter.faces) == 6, f"got {len(shorter.f
 
 # Zero distance must not duplicate geometry -- it is the state the tool sits in
 # before the user has dragged, and every mouse move rebuilds from here.
-unchanged = pushpull.extruded(flat, 0, identity, up, 0.0, keep_face=True)
+unchanged = pushpull.extruded(flat, 0, identity, up, 0.0, pushpull.EXTRUDE)
 check("zero distance changes nothing", len(unchanged.verts) == 4 and len(unchanged.faces) == 1)
+
+# --- Regional push-pull ------------------------------------------------------
+#
+# A face divided by lines into sub-regions can be pushed independently. Pushing
+# one sub-region extrudes just that region, creating walls along its boundary,
+# while the surrounding sheet stays in place. This is the SketchUp behaviour
+# for intersected lines and shapes.
+
+# A 4x4 sheet divided into four 2x2 quadrants by a cross of lines.
+regional = bmesh.new()
+rv = [regional.verts.new(c) for c in [
+    (0, 0, 0), (2, 0, 0), (4, 0, 0),
+    (0, 2, 0), (2, 2, 0), (4, 2, 0),
+    (0, 4, 0), (2, 4, 0), (4, 4, 0),
+]]
+# Bottom-left quadrant.
+regional.faces.new([rv[0], rv[1], rv[4], rv[3]])
+# Bottom-right quadrant.
+regional.faces.new([rv[1], rv[2], rv[5], rv[4]])
+# Top-left quadrant.
+regional.faces.new([rv[3], rv[4], rv[7], rv[6]])
+# Top-right quadrant.
+regional.faces.new([rv[4], rv[5], rv[8], rv[7]])
+regional.normal_update()
+regional.faces.ensure_lookup_table()
+
+# Every quadrant has coplanar neighbours and nothing out of plane, so each is a
+# region of a sheet: extruded, with the original face left as the bottom cap.
+check("a divided sheet's region reads as extrudable",
+      all(pushpull.push_mode(f) == pushpull.EXTRUDE for f in regional.faces))
+
+# Pushing one quadrant extrudes just that region, leaving the other three flat.
+pushed_region = pushpull.extruded(regional, 0, identity, up, 3.0, pushpull.EXTRUDE)
+# 9 original verts + 4 new verts from the extruded quadrant = 13.
+check("regional push adds 4 vertices", len(pushed_region.verts) == 13,
+      f"got {len(pushed_region.verts)}")
+# 4 original faces + 1 extruded top + 4 side walls = 9.
+check("regional push adds 5 faces", len(pushed_region.faces) == 9,
+      f"got {len(pushed_region.faces)}")
+# The three untouched quadrants plus the pushed region's bottom cap stay at z=0.
+flat_centers = [f.calc_center_median().z for f in pushed_region.faces
+                if abs(f.calc_center_median().z) < 0.5]
+check("untouched regions stay flat", len(flat_centers) == 4, f"got {len(flat_centers)}")
+# The pushed region's top is at z=3.
+top_centers = [f.calc_center_median().z for f in pushed_region.faces
+               if f.calc_center_median().z > 2.5]
+check("pushed region rises to 3", len(top_centers) == 1, f"got {len(top_centers)}")
+# The dividing lines are undisturbed: the shared centre vertex is still at z=0.
+centre = next(v for v in pushed_region.verts if (v.co - Vector((2, 2, 0))).length < 1e-6)
+check("dividing lines stay in place", abs(centre.co.z) < 1e-6, f"centre z {centre.co.z}")
+
+# Pushing a region of a solid's face (e.g. a line across a box's top) must
+# extrude just that region, not move the whole face.
+# Build a 2x2x3 box with the top face split into two halves by a dividing
+# edge at x=1 -- exactly what a user gets by drawing a line across a box's top.
+# The dividing edge runs through the front, top and back faces, so each of
+# those is split into two faces.
+split = bmesh.new()
+sv = [split.verts.new(c) for c in [
+    (0, 0, 0), (1, 0, 0), (2, 0, 0), (2, 2, 0), (1, 2, 0), (0, 2, 0),
+    (0, 0, 3), (1, 0, 3), (2, 0, 3), (2, 2, 3), (1, 2, 3), (0, 2, 3),
+]]
+# Bottom-left face (wound so its normal points down).
+split.faces.new([sv[0], sv[5], sv[4], sv[1]])
+# Bottom-right face (wound so its normal points down).
+split.faces.new([sv[1], sv[4], sv[3], sv[2]])
+# Front-left face (y=0, x<1).
+split.faces.new([sv[0], sv[1], sv[7], sv[6]])
+# Front-right face (y=0, x>1).
+split.faces.new([sv[1], sv[2], sv[8], sv[7]])
+# Right face (x=2).
+split.faces.new([sv[2], sv[3], sv[9], sv[8]])
+# Back-right face (y=2, x>1).
+split.faces.new([sv[3], sv[4], sv[10], sv[9]])
+# Back-left face (y=2, x<1).
+split.faces.new([sv[4], sv[5], sv[11], sv[10]])
+# Left face (x=0).
+split.faces.new([sv[5], sv[0], sv[6], sv[11]])
+# Top-left half.
+split.faces.new([sv[6], sv[7], sv[10], sv[11]])
+# Top-right half.
+split.faces.new([sv[7], sv[8], sv[9], sv[10]])
+split.normal_update()
+split.faces.ensure_lookup_table()
+
+# Each half of the split top has a coplanar neighbour (the other half) and the
+# side walls out of plane, so it is a region of a *solid* -- CUT, not EXTRUDE.
+# The difference is the face the region grew from: on a sheet it becomes the
+# bottom cap, but here the solid's interior is behind it, and leaving it in
+# seals a membrane across the inside of the step.
+halves = [f for f in split.faces if f.normal.z > 0.9]
+check("a split solid face reads as a region", len(halves) == 2,
+      f"got {len(halves)} top faces")
+check("a region of a solid is cut, not capped",
+      all(pushpull.push_mode(f) == pushpull.CUT for f in halves))
+
+# Pushing one half up by 2 makes a step: 2x2x3 plus a raised 1x2x2.
+stepped = pushpull.extruded(split, halves[0].index, identity, up, 2.0, pushpull.CUT)
+check("stepped push leaves no open edges",
+      all(len(e.link_faces) >= 2 for e in stepped.edges))
+check("a step leaves no interior membrane",
+      all(len(e.link_faces) == 2 for e in stepped.edges),
+      f"{sum(1 for e in stepped.edges if len(e.link_faces) != 2)} edges are not shared by 2 faces")
+# The volume is the arithmetic and catches a buried membrane, which the face
+# and vertex counts alone do not: with the membrane left in this measured 14.
+check("stepped volume is 12 + 1x2x2", abs(stepped.calc_volume(signed=False) - 16.0) < 1e-6,
+      f"got {stepped.calc_volume(signed=False)}")
+check("the step points outward", stepped.calc_volume(signed=True) > 0,
+      f"signed volume {stepped.calc_volume(signed=True)}")
+# Exactly one horizontal face survives at the old height: the untouched half.
+at_old_height = [f for f in stepped.faces
+                 if abs(f.calc_center_median().z - 3.0) < 1e-6 and abs(f.normal.z) > 0.9]
+check("only the untouched half remains at the old height", len(at_old_height) == 1,
+      f"got {len(at_old_height)}")
+heights = sorted({round(v.co.z, 6) for v in stepped.verts})
+check("stepped push creates two levels", heights == [0.0, 3.0, 5.0],
+      f"heights {heights}")
+
+# The same region pushed the other way is a notch cut into the slab. The walls
+# inherit the winding of the face they grew from, which points the wrong way
+# for an inward push -- so this is where an un-recalculated shell shows up as a
+# negative volume.
+notched = pushpull.extruded(split, halves[0].index, identity, up, -1.0, pushpull.CUT)
+check("a notch stays closed", all(len(e.link_faces) == 2 for e in notched.edges))
+check("notched volume is 12 - 1x2x1", abs(notched.calc_volume(signed=False) - 10.0) < 1e-6,
+      f"got {notched.calc_volume(signed=False)}")
+check("the notch points outward", notched.calc_volume(signed=True) > 0,
+      f"signed volume {notched.calc_volume(signed=True)}")
+
+for mesh in (regional, pushed_region, split, stepped, notched):
+    mesh.free()
 
 # Non-uniform object scale must not distort the requested distance.
 half = Matrix.Diagonal(Vector((2.0, 1.0, 4.0))).to_3x3()
-scaled = pushpull.extruded(flat, 0, half.inverted(), up, 4.0, keep_face=True)
+scaled = pushpull.extruded(flat, 0, half.inverted(), up, 4.0, pushpull.EXTRUDE)
 heights = sorted({round(v.co.z, 6) for v in scaled.verts})
 check("world distance survives object scale", heights == [0.0, 1.0], f"local heights {heights}")
 

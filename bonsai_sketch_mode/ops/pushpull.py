@@ -27,6 +27,12 @@ material layers or profile, and overwriting that with a tessellated mesh would
 silently discard the parametric definition -- so those are declined with an
 explanation instead. Parametric depth belongs to Bonsai's own controls until
 this tool can drive them directly.
+
+Regional push-pull: a face divided by lines into sub-regions can be pushed
+independently, leaving the rest of the surface where it is. That is how a
+step gets cut into a slab, or a plinth raised out of one. It matches
+SketchUp's behaviour for intersected lines and shapes, and lets a user work
+from a single drawn surface without the dividing lines coming apart.
 """
 
 from __future__ import annotations
@@ -52,32 +58,75 @@ NEGLIGIBLE = 1e-9
 COPLANAR = 1e-5
 
 
-def face_is_in_flat_sheet(face: bmesh.types.BMFace) -> bool:
-    """True if nothing rises out of the plane of this face along its edges.
+#: Translate the face's own vertices. The walls already attached to them
+#: stretch to follow, so a box pushed down is simply a shorter box.
+MOVE = "MOVE"
 
-    This decides the fate of the face being pushed. On a flat sheet -- the
-    rectangle a user has just drawn -- the face becomes the bottom cap of the
-    new solid and has to stay. On a face of an existing solid it would become
-    an interior wall, so it has to go. Getting this backwards produces a mesh
-    that looks right and is not: either a hollow shell or a solid with a
-    membrane through it.
+#: Extrude, and leave the original face behind as the new solid's bottom cap.
+#: What a drawn sheet needs, since there is nothing underneath it yet.
+EXTRUDE = "EXTRUDE"
 
-    The test is coplanarity, not edge valency. An earlier version asked whether
-    every edge was a boundary, which meant two rectangles drawn side by side
-    into the same sketch disqualified each other: their shared edge has two
-    faces, so the face was read as part of a solid, its cap deleted, and the
-    push came out with sides missing. Faces meeting in the same plane are still
-    a flat sheet.
+#: Extrude, then remove the original face. What a region of a solid's surface
+#: needs: the walls raised along its boundary make the step, and the face it
+#: grew from would be left buried inside the result.
+CUT = "CUT"
+
+
+def _neighbourhood(face: bmesh.types.BMFace) -> tuple[bool, bool]:
+    """Whether ``face`` meets any coplanar face, and any face out of its plane.
+
+    These two answers between them say what kind of surface the face belongs
+    to, which is all :func:`push_mode` needs.
     """
+    coplanar = False
+    out_of_plane = False
     for edge in face.edges:
         for neighbour in edge.link_faces:
             if neighbour is face:
                 continue
             # abs(): a neighbour wound the opposite way is still coplanar, and
             # winding across a freshly drawn sheet is arbitrary.
-            if abs(neighbour.normal.dot(face.normal)) < 1.0 - COPLANAR:
-                return False
-    return True
+            if abs(neighbour.normal.dot(face.normal)) >= 1.0 - COPLANAR:
+                coplanar = True
+            else:
+                out_of_plane = True
+    return coplanar, out_of_plane
+
+
+def push_mode(face: bmesh.types.BMFace) -> str:
+    """What pushing this face should do to the face itself.
+
+    Three situations, told apart by what meets the face along its edges:
+
+    A face with something rising out of its plane and nothing beside it in
+    that plane is the whole face of a solid -- a box's top. Pushing it is not
+    an extrusion at all; the face moves and the walls follow, so ``MOVE``.
+
+    A face with neither is a sheet on its own, freshly drawn and hollow. It
+    becomes the bottom cap of the solid the push creates, so ``EXTRUDE``.
+
+    A face with a coplanar neighbour is a *region* of a larger surface, cut
+    out of it by a drawn line. Only that region moves, and walls appear along
+    the line dividing it from its neighbours. Whether the original face stays
+    depends on what is behind it -- and that is what the third answer decides.
+    On a sheet there is nothing behind it, so it stays as the cap: ``EXTRUDE``.
+    On a solid's surface the interior is behind it, and leaving it there would
+    seal a membrane across the inside of the result -- so ``CUT``.
+
+    That last distinction is easy to miss, because both cases look right from
+    outside until you cut a section or ask for the volume. A 2x2x3 box with one
+    half of its top raised by 2 measures 16; with the membrane left in, 14.
+
+    An earlier version asked whether *every* edge was a boundary, which meant
+    two rectangles drawn side by side into the same sketch disqualified each
+    other: their shared edge has two faces, so the face was read as part of a
+    solid, its cap deleted, and the push came out with sides missing. Faces
+    meeting in the same plane are still a flat sheet.
+    """
+    coplanar, out_of_plane = _neighbourhood(face)
+    if coplanar:
+        return CUT if out_of_plane else EXTRUDE
+    return MOVE if out_of_plane else EXTRUDE
 
 
 def extruded(
@@ -86,9 +135,13 @@ def extruded(
     to_local: Matrix,
     world_normal: Vector,
     distance: float,
-    keep_face: bool,
+    mode: str,
 ) -> bmesh.types.BMesh:
     """A copy of ``source`` with one face pushed along ``world_normal``.
+
+    ``mode`` is one of :data:`MOVE`, :data:`EXTRUDE` or :data:`CUT`, normally
+    whatever :func:`push_mode` said about the face. The caller passes it in
+    rather than letting this work it out, because ``Ctrl`` overrides it.
 
     ``to_local`` is the inverse of the object's world matrix, as a 3x3.
     Translating a world-space vector through it keeps the extrusion the
@@ -103,7 +156,7 @@ def extruded(
     face = bm.faces[face_index]
     offset = to_local @ (world_normal * distance)
 
-    if not keep_face:
+    if mode == MOVE:
         # The face already belongs to a solid, so this is not an extrusion at
         # all -- it is the face moving, with the walls around it following.
         # Sliding its own vertices does exactly that: every wall sharing them
@@ -119,22 +172,55 @@ def extruded(
         bm.normal_update()
         return bm
 
-    # A flat sheet has no walls yet, so here an extrusion is the point: the
-    # original face stays as the bottom cap and a copy of it travels.
+    # Asked before extruding, because extruding is what puts walls around the
+    # face: afterwards every face has something out of its plane beside it and
+    # the question no longer means anything.
+    _, stood_on_a_solid = _neighbourhood(face)
+
     result = bmesh.ops.extrude_face_region(bm, geom=[face])
     verts = [g for g in result["geom"] if isinstance(g, bmesh.types.BMVert)]
     bmesh.ops.translate(bm, verts=verts, vec=offset)
 
-    # Which way the sheet's one face pointed was arbitrary until now, and the
-    # new walls inherit that arbitrary winding -- extruding "up" from a face
-    # that happened to point down turns every side wall inside out, and the
-    # solid then renders with holes in it and exports worse.
-    #
-    # Consistency is a property of a whole connected shell, so that is the
-    # scope: not the extrusion's own geometry, which does not include the side
-    # walls that need flipping, and not the entire mesh, which may hold sketch
-    # work we were not asked to touch.
-    bmesh.ops.recalc_face_normals(bm, faces=_shell_faces(face))
+    if mode == CUT:
+        # The face was a region of a solid's surface, so the space behind it is
+        # the solid's inside. The walls just raised along its boundary are the
+        # step; the face they grew from is now a membrane sealed across the
+        # interior, and has to go. Only the face -- its vertices and edges are
+        # the rim those walls stand on.
+        bmesh.ops.delete(bm, geom=[face], context="FACES_ONLY")
+        # With the membrane gone the shell is a closed solid again, so "which
+        # way is out" has a single right answer and recalculating finds it.
+        # This is also what turns a downward push into a notch rather than an
+        # inside-out lump: the walls inherit the winding of the face they were
+        # extruded from, which points the wrong way when the push goes in.
+        anchor = next(
+            (g for g in result["geom"] if isinstance(g, bmesh.types.BMFace) and g.is_valid),
+            None,
+        )
+        if anchor is not None:
+            bmesh.ops.recalc_face_normals(bm, faces=_shell_faces(anchor))
+        bm.normal_update()
+        return bm
+
+    if not stood_on_a_solid:
+        # Which way the sheet's one face pointed was arbitrary until now, and
+        # the new walls inherit that arbitrary winding -- extruding "up" from a
+        # face that happened to point down turns every side wall inside out,
+        # and the solid then renders with holes in it and exports worse.
+        #
+        # Consistency is a property of a whole connected shell, so that is the
+        # scope: not the extrusion's own geometry, which does not include the
+        # side walls that need flipping, and not the entire mesh, which may
+        # hold sketch work we were not asked to touch.
+        #
+        # A sheet is the only case this is safe on. Ctrl stacks a new solid on
+        # a face that already belongs to one, and the original face stays put
+        # as the join between the two -- which makes the shell non-manifold,
+        # leaves "outward" genuinely ambiguous, and had recalculation turning
+        # the outer surface inside out. Extruding from a solid does not need
+        # the help anyway: the face it starts from is already wound correctly,
+        # and the new walls inherit that.
+        bmesh.ops.recalc_face_normals(bm, faces=_shell_faces(face))
     bm.normal_update()
     return bm
 
@@ -173,7 +259,7 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         self.normal = Vector((0.0, 0.0, 1.0))
         self.distance = 0.0
         self.typed = ""
-        self.keep_face = True
+        self.mode = EXTRUDE
         self.area: Optional[bpy.types.Area] = None
         # The click that starts the tool releases inside the modal handler, so
         # a bare release cannot mean "confirm" -- it would confirm a zero
@@ -225,7 +311,7 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         self.source.faces.ensure_lookup_table()
         face = self.source.faces[self.face_index]
 
-        self.keep_face = face_is_in_flat_sheet(face)
+        self.mode = push_mode(face)
 
         normal_matrix = obj.matrix_world.to_3x3().inverted().transposed()
         self.normal = (normal_matrix @ face.normal).normalized()
@@ -252,7 +338,7 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
             self.obj.matrix_world.to_3x3().inverted(),
             self.normal,
             distance,
-            self.keep_face,
+            self.mode,
         )
         try:
             bm.to_mesh(self.obj.data)

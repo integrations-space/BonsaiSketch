@@ -29,6 +29,13 @@ inference snapping, axis locks (`X`/`Y`/`Z`), plane locks (`Shift`+`X`/`Y`/`Z`)
 and measurement box — including imperial input and `=`-prefixed expressions.
 Push/Pull has its own measurement box using the same parser.
 
+Push/Pull supports regional extrusion: a surface divided by drawn lines can be
+pushed one region at a time. Only that region moves, walls appear along the
+lines dividing it from its neighbours, and the rest of the surface stays where
+it is — so a step or a notch is a line and a drag, on a drawn sheet or on a
+solid you have already built. Pushing a whole face of a solid still moves it
+and stretches the walls, as before.
+
 `F`, `B` and `E` are deliberately unbound. Their tools do not exist yet, and an
 unbound key is honest where a wrong one teaches the wrong muscle memory.
 
