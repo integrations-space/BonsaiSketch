@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import bpy
 
-from . import bridge, ground, keyconfig, ops, requirements, theme, tools, workspace
+from . import bridge, ground, keyconfig, marks, ops, requirements, theme, tools, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
@@ -239,6 +239,11 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
     axis_x_colour: _colour_prop("Red Axis", theme.AXIS_X, "The X axis")
     axis_y_colour: _colour_prop("Green Axis", theme.AXIS_Y, "The Y axis")
     axis_z_colour: _colour_prop("Blue Axis", theme.AXIS_Z, "The Z axis")
+    inference_colour: _colour_prop(
+        "Inference",
+        theme.INFERENCE,
+        "The mark drawn where a drag has snapped level with existing geometry",
+    )
 
     setup_workspace: bpy.props.BoolProperty(
         name="Add Sketch workspace tab",
@@ -341,6 +346,10 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
         col.prop(self, "axis_x_colour")
         col.prop(self, "axis_y_colour")
         col.prop(self, "axis_z_colour")
+
+        col = box.column(align=True)
+        col.label(text="Modelling colours")
+        col.prop(self, "inference_colour")
         box.operator(BONSAI_SKETCH_MODE_OT_reset_colours.bl_idname, icon="LOOP_BACK")
 
         ok, message = _tools_status
@@ -401,8 +410,13 @@ def register() -> None:
     # tab, so installing it globally costs nothing elsewhere.
     ground.install()
 
+    # The inference mark likewise: one comparison per redraw while no tool is
+    # showing one, and no per-modal lifecycle to leak.
+    marks.install()
+
 
 def unregister() -> None:
+    marks.uninstall()
     ground.uninstall()
     workspace.unregister_handlers()
     keyconfig.unload()

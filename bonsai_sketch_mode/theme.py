@@ -99,6 +99,11 @@ AXIS_Z = (0.0, 0.0, 1.0)
 #: wire disappears into the ground.
 WIRE = (0.09, 0.09, 0.09)
 
+#: The inference mark -- the dot a snap answers with. SketchUp's on-point
+#: green. Not in _TARGETS: nothing in Blender's theme carries it, it is read
+#: only by our own draw handler (marks.py).
+INFERENCE = (0.0, 0.878, 0.0)
+
 #: Values we set, as (path, attribute) pairs into preferences.themes[0].
 #: Anything listed here is snapshotted before apply() and put back by
 #: restore(), so adding a colour needs no other bookkeeping.
@@ -136,6 +141,7 @@ COLOUR_DEFAULTS = {
     "axis_x_colour": AXIS_X,
     "axis_y_colour": AXIS_Y,
     "axis_z_colour": AXIS_Z,
+    "inference_colour": INFERENCE,
 }
 
 

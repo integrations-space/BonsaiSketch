@@ -783,6 +783,43 @@ check("the grid comes back",
 check("an unknown workspace changes nothing", theme.set_floor_grid("Nope", False) == 0)
 
 
+# --- Inference mark ----------------------------------------------------------
+#
+# The dot that shows where a drag snapped. Whether it draws in the right place
+# needs a viewport and eyes; what can be pinned headless is the lifecycle --
+# installed with the add-on, silent without a mark, silent without a region --
+# and the arithmetic and colour plumbing under it.
+
+section("Inference mark")
+marks = addon.marks
+check("handler installed with the add-on", marks.is_drawing())
+check("installing twice is refused", marks.install() is False)
+
+check("nothing showing to begin with", not marks.is_showing())
+marks.show(Vector((1.0, 2.0, 3.0)))
+check("a shown mark is showing", marks.is_showing())
+# Headless there is no region to draw into; the callback must simply return.
+try:
+    marks.draw()
+    silent = True
+except Exception:
+    silent = False
+check("draw is silent without a viewport", silent)
+marks.hide()
+check("hidden is hidden", not marks.is_showing())
+
+corners = marks.square(Vector((10.0, 20.0)), 3.5)
+check("the dot is a square around its centre",
+      corners == [(6.5, 16.5), (13.5, 16.5), (13.5, 23.5), (6.5, 23.5)],
+      f"got {corners}")
+
+check("the mark's colour is a preference with a reset-covered default",
+      "inference_colour" in theme.COLOUR_DEFAULTS
+      and tuple(theme.colour("inference_colour")) == theme.INFERENCE)
+prefs_check = bpy.context.preferences.addons[ADDON].preferences
+check("the preference field exists", hasattr(prefs_check, "inference_colour"))
+
+
 # --- Unregister --------------------------------------------------------------
 
 section("Unregister")
@@ -795,6 +832,7 @@ except Exception as exc:
     message = str(exc)
 check("disables cleanly", clean, message)
 check("keyconfig removed", "Sketch" not in bpy.context.window_manager.keyconfigs)
+check("mark handler removed", not marks.is_drawing())
 
 
 # --- Result ------------------------------------------------------------------

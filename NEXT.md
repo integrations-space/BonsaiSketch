@@ -408,9 +408,17 @@ large the model.
 
 ### What this leaves
 
-- **No indicator.** `(aligned)` is text in the header. SketchUp draws coloured
-  inference marks, and #7 is not really closed for any tool until that exists
-  — see item 3 of section 8, and section 4's colour work behind it.
+- **The indicator exists now, for Push/Pull.** `marks.py` draws the inference
+  dot at the snapped point — `POST_PIXEL`, deliberately: the dot is a
+  screen-space cue, the same seven pixels at every zoom, and 2D drawing after
+  the frame has no depth buffer to negotiate with, which is exactly the
+  negotiation that has `ground.py` unfinished. Its colour is
+  `inference_colour`, grouped with the canvas colours and covered by Reset
+  All, defaulting to SketchUp's on-point green. Whether the dot lands where
+  the eye expects needs a viewport — headless pins the lifecycle, the
+  arithmetic and the colour plumbing. The drawing tools still have no marks
+  of their own (their snapping is Bonsai's, which draws its own indicators),
+  so #7's mark work continues with Offset and Eraser when they land.
 - **Offset and Eraser still have no inference**, and cannot get it here: both
   live in #1. Their inference should reuse `axis_offsets` and `bracketing`
   from `ops/pushpull.py`, which are pure functions for that reason. If a third

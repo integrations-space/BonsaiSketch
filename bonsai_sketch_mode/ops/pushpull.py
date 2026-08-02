@@ -52,7 +52,7 @@ import bpy
 from mathutils import Matrix, Vector
 from mathutils.geometry import intersect_line_line
 
-from .. import bridge, viewport
+from .. import bridge, marks, viewport
 
 #: Characters the measurement box accepts. Matches Bonsai's polyline input so
 #: imperial, fractions and "=" expressions all parse the same way.
@@ -628,8 +628,15 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         context.workspace.status_text_set(
             text="Confirm: LMB / Enter    Cancel: Esc    Type a distance for an exact value"
         )
+        # The header says a snap happened; the mark says where. Both track the
+        # same flag through the same choke point, so they cannot disagree.
+        if self.aligned and not self.typed:
+            marks.show(self.origin + self.normal * self.distance)
+        else:
+            marks.hide()
 
     def clear_state(self, context: bpy.types.Context) -> None:
+        marks.hide()
         if self.area is not None:
             self.area.header_text_set(None)
         context.workspace.status_text_set(text=None)
