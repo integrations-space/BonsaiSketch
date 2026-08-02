@@ -44,6 +44,7 @@ Modifiers, matching SketchUp:
 
 from __future__ import annotations
 
+import bisect
 from typing import Optional
 
 import bmesh
@@ -63,6 +64,21 @@ NEGLIGIBLE = 1e-9
 #: How parallel two face normals must be to count as one surface. 1e-5 on the
 #: dot product is roughly a quarter of a degree.
 COPLANAR = 1e-5
+
+#: Two inference candidates nearer than this are the same place, in Blender
+#: units.
+COINCIDENT = 1e-6
+
+#: How near the drag has to come to a candidate, in pixels, before the
+#: candidate takes it. Measured on screen rather than in the model, so
+#: inference grabs equally firmly close up and far away.
+SNAP_PIXELS = 10
+
+#: Vertices read from one object before it is reduced to its bounding box.
+#: Candidates are gathered once per push rather than once per mouse move, but
+#: a Bonsai model can hold millions of vertices and even one pass would be
+#: felt as a stall between pressing and the face starting to move.
+VERTEX_BUDGET = 20_000
 
 
 #: Translate the face's own vertices. The walls already attached to them
@@ -246,6 +262,73 @@ def _shell_faces(face: bmesh.types.BMFace) -> list:
     return list(seen)
 
 
+def axis_offsets(points, origin: Vector, normal: Vector) -> list[float]:
+    """How far the face must travel for its plane to reach each point.
+
+    These are the distances worth snapping to. A user dragging a face "up to
+    there" is aiming at a height something else already occupies -- the top of
+    the wall beside this one, the underside of the slab above it -- and every
+    one of those is a point whose offset along the push axis this returns.
+
+    Offsets of zero are dropped, which is doing more work than it looks.
+    Everything already in the face's plane answers zero: the face's own
+    corners, the rest of the surface it was cut out of, every coplanar
+    neighbour. None of them is anywhere to snap to, and zero is the one
+    distance the tool reads as no extrusion at all.
+
+    Sorted and de-duplicated, so a drag can find the candidates either side of
+    it by bisection rather than rescanning the model on every mouse move --
+    and so that a height a hundred vertices happen to share does not get a
+    hundred chances to outvote a nearer one.
+    """
+    offsets = sorted(
+        offset
+        for offset in ((point - origin).dot(normal) for point in points)
+        if abs(offset) > NEGLIGIBLE
+    )
+    unique: list[float] = []
+    for offset in offsets:
+        if not unique or offset - unique[-1] > COINCIDENT:
+            unique.append(offset)
+    return unique
+
+
+def bracketing(offsets: list[float], distance: float) -> list[float]:
+    """The candidates immediately below and above ``distance``.
+
+    Nowhere else can win. The projection of a straight line into the viewport
+    is still a straight line, so the candidate nearest in the model along the
+    push axis is also the nearest on screen, and the two either side of the
+    drag are the only ones worth measuring in pixels.
+    """
+    index = bisect.bisect_left(offsets, distance)
+    return offsets[max(0, index - 1):index + 1]
+
+
+def inference_points(context: bpy.types.Context) -> list[Vector]:
+    """World-space points worth snapping to, read once at the start of a push.
+
+    Once, not per mouse move: the model does not change while a face is being
+    dragged -- the pushed object's own mesh is rewritten each frame, but from
+    a pristine copy taken before any of this, so the vertices that were worth
+    aiming at when the drag began are the same ones throughout.
+    """
+    points: list[Vector] = []
+    for obj in context.visible_objects:
+        if obj.type != "MESH" or obj.data is None:
+            continue
+        matrix = obj.matrix_world
+        vertices = obj.data.vertices
+        if len(vertices) > VERTEX_BUDGET:
+            # Too large to read vertex by vertex without a stall. Its bounding
+            # box still carries the extents, and extents are most of what
+            # anyone aligns a sketch against a large imported model to reach.
+            points.extend(matrix @ Vector(corner) for corner in obj.bound_box)
+            continue
+        points.extend(matrix @ vertex.co for vertex in vertices)
+    return points
+
+
 class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
     bl_idname = "bonsai_sketch_mode.push_pull"
     bl_label = "Push/Pull"
@@ -282,6 +365,10 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         self.dragged = False
         #: Where the button went down, so a drag can be told from a click.
         self.press_mouse = (0, 0)
+        #: Distances along the push axis where geometry lines up, sorted.
+        self.offsets: list[float] = []
+        #: Whether the distance showing is one of them rather than the raw drag.
+        self.aligned = False
 
     # --- Setup ----------------------------------------------------------------
 
@@ -338,6 +425,8 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         self.armed = False
         self.dragged = False
         self.press_mouse = mouse
+        self.aligned = False
+        self.offsets = axis_offsets(inference_points(context), self.origin, self.normal)
 
         self.report_state(context)
         context.window_manager.modal_handler_add(self)
@@ -362,6 +451,33 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         finally:
             bm.free()
         self.obj.data.update()
+
+    def infer(
+        self, context: bpy.types.Context, distance: float
+    ) -> tuple[float, bool]:
+        """``distance`` pulled onto nearby geometry, and whether it moved.
+
+        The comparison happens in pixels rather than in the model. A tolerance
+        in metres is a different size at every zoom level, so inference that
+        felt right on one building would be unusable on a door handle.
+        """
+        if not self.offsets:
+            return distance, False
+        here = viewport.project_point(context, self.origin + self.normal * distance)
+        if here is None:
+            return distance, False
+        best: Optional[float] = None
+        best_pixels = float(SNAP_PIXELS)
+        for candidate in bracketing(self.offsets, distance):
+            there = viewport.project_point(context, self.origin + self.normal * candidate)
+            if there is None:
+                continue
+            pixels = (there - here).length
+            if pixels < best_pixels:
+                best, best_pixels = candidate, pixels
+        if best is None:
+            return distance, False
+        return best, True
 
     def past_drag_threshold(
         self, context: bpy.types.Context, event: bpy.types.Event
@@ -407,6 +523,10 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
             shown = self.typed
         else:
             shown = bridge.format_length(abs(self.distance))
+            if self.aligned:
+                # Without this the snap is invisible: the number stops tracking
+                # the mouse for a few pixels and there is nothing to say why.
+                shown += "  (aligned)"
         direction = "Push" if self.distance < 0 else "Pull"
         if self.area is not None:
             self.area.header_text_set(f"{direction}: {shown}")
@@ -434,7 +554,7 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
             if not self.typed:
                 moved = self.distance_from_mouse(context, event)
                 if moved is not None:
-                    self.distance = moved
+                    self.distance, self.aligned = self.infer(context, moved)
                     if self.past_drag_threshold(context, event):
                         self.dragged = True
                     self.apply(self.distance)
@@ -457,6 +577,7 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
             last = type(self).last_distance
             if last is not None and abs(last) > NEGLIGIBLE:
                 self.distance = last
+                self.aligned = False
                 self.apply(last)
                 return self.confirm(context)
             # Nothing to repeat yet -- the first push of the session. Blender
@@ -484,6 +605,8 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
 
     def apply_typed(self, context: bpy.types.Context) -> None:
         """Re-apply from the measurement box, keeping the drag direction."""
+        # An exact number is not an inference, whatever it happens to equal.
+        self.aligned = False
         if self.typed:
             value = bridge.parse_length(self.typed)
             if value is not None:

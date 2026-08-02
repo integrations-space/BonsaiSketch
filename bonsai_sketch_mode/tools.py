@@ -118,6 +118,8 @@ class SketchPushPullTool(WorkSpaceTool):
         row = layout.row(align=True)
         row.label(text="Double-click repeats the last distance", icon="MOUSE_LMB")
         row = layout.row(align=True)
+        row.label(text="Snaps level with existing geometry", icon="SNAP_ON")
+        row = layout.row(align=True)
         row.label(text="Type an exact distance to confirm", icon="EVENT_RETURN")
 
 

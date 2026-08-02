@@ -496,6 +496,81 @@ check("Ctrl stacking keeps the outer surface right side out", not flipped,
 for mesh in (regional, pushed_region, split, stepped, notched, stacked):
     mesh.free()
 
+# --- Inference --------------------------------------------------------------
+#
+# Dragging a face should stop where geometry already is: the top of the wall
+# beside this one, the underside of the slab above it. The candidates are the
+# distances the face has to travel for its plane to reach each point, gathered
+# once at the start of the push. Choosing between them happens in pixels and
+# needs a viewport, so what is checked here is which candidates exist and which
+# two of them a given drag is between.
+
+origin = Vector((0.0, 0.0, 0.0))
+points = [
+    Vector((5.0, 5.0, 3.0)),    # 3 above
+    Vector((-2.0, 9.0, 3.0)),   # also 3 above -- the same candidate
+    Vector((0.0, 0.0, 7.5)),    # 7.5 above
+    Vector((1.0, 1.0, -2.0)),   # 2 below: pushing in is inference too
+]
+offsets = pushpull.axis_offsets(points, origin, up)
+check("candidates are the distances to each point", offsets == [-2.0, 3.0, 7.5],
+      f"got {offsets}")
+
+# Anything already in the face's plane answers zero, and zero is the one
+# distance the tool reads as no extrusion -- so the face's own corners and
+# every coplanar neighbour must not become candidates.
+coplanar_points = [Vector((4.0, 0.0, 0.0)), Vector((0.0, 9.0, 0.0)), Vector((1.0, 1.0, 4.0))]
+check("geometry in the face's own plane is not a candidate",
+      pushpull.axis_offsets(coplanar_points, origin, up) == [4.0],
+      f"got {pushpull.axis_offsets(coplanar_points, origin, up)}")
+
+check("no geometry means no candidates", pushpull.axis_offsets([], origin, up) == [])
+
+# The axis is the face normal, not the world Z, so a sideways push infers off
+# the same geometry measured the other way.
+sideways = pushpull.axis_offsets(points, origin, Vector((1.0, 0.0, 0.0)))
+check("candidates follow the push axis", sideways == [-2.0, 1.0, 5.0], f"got {sideways}")
+
+# Only the two candidates either side of the drag can win, since projecting a
+# straight line into the viewport leaves it straight.
+check("a drag between two candidates is bracketed by them",
+      pushpull.bracketing(offsets, 4.0) == [3.0, 7.5],
+      f"got {pushpull.bracketing(offsets, 4.0)}")
+check("a drag below every candidate takes the lowest",
+      pushpull.bracketing(offsets, -9.0) == [-2.0],
+      f"got {pushpull.bracketing(offsets, -9.0)}")
+check("a drag above every candidate takes the highest",
+      pushpull.bracketing(offsets, 99.0) == [7.5],
+      f"got {pushpull.bracketing(offsets, 99.0)}")
+check("a drag exactly on a candidate still finds it",
+      3.0 in pushpull.bracketing(offsets, 3.0),
+      f"got {pushpull.bracketing(offsets, 3.0)}")
+check("no candidates brackets nothing", pushpull.bracketing([], 1.0) == [])
+
+# The real thing: a box beside a shorter one. Pushing the short box's top must
+# offer the tall box's height, so the two can be brought level by eye.
+context.view_layer.objects.active = None
+tall = bpy.data.meshes.new("tall")
+tall_bm = bmesh.new()
+bmesh.ops.create_cube(tall_bm, size=2.0)
+bmesh.ops.translate(tall_bm, verts=tall_bm.verts, vec=Vector((4.0, 0.0, 1.0)))
+tall_bm.to_mesh(tall)
+tall_bm.free()
+tall_obj = bpy.data.objects.new("tall", tall)
+context.scene.collection.objects.link(tall_obj)
+
+gathered = pushpull.inference_points(context)
+check("a visible object contributes its vertices in world space",
+      any((p - Vector((5.0, 1.0, 2.0))).length < 1e-6 for p in gathered),
+      "the tall box's top corner is not among the candidates")
+# Its top sits at z=2, so a face pushed up from z=0 should be offered 2.
+heights = pushpull.axis_offsets(gathered, origin, up)
+check("the neighbour's height is offered as a candidate",
+      any(abs(h - 2.0) < 1e-6 for h in heights), f"got {heights}")
+
+bpy.data.objects.remove(tall_obj, do_unlink=True)
+bpy.data.meshes.remove(tall)
+
 # Non-uniform object scale must not distort the requested distance.
 half = Matrix.Diagonal(Vector((2.0, 1.0, 4.0))).to_3x3()
 scaled = pushpull.extruded(flat, 0, half.inverted(), up, 4.0, pushpull.EXTRUDE)

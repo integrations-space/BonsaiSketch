@@ -22,6 +22,7 @@ import sys
 import traceback
 
 import bpy
+from mathutils import Vector
 
 ADDON = "bl_ext.user_default.bonsai_sketch_mode"
 
@@ -73,6 +74,7 @@ def run():
     tools = addon.tools
     ops = addon.ops
     workspace = addon.workspace
+    viewport = addon.viewport
 
     # The question a new user asks first: they enabled the add-on, is the tab
     # there? Enabling does not fire load_post, so this only passes because
@@ -175,6 +177,37 @@ def run():
                 ok = False
                 detail = str(exc)
             check(f"{tool_cls.bl_label} activates", ok, detail)
+
+        # Push/Pull's inference decides between candidates in pixels, which
+        # needs a region to project into. Headlessly there is none, so
+        # smoke_test can only check which candidates exist -- whether they can
+        # be compared at all is answerable only here.
+        centre = Vector((0.0, 0.0, 0.0))
+        projected = viewport.project_point(context, centre)
+        check("a world point projects into the region", projected is not None)
+        if projected is not None:
+            check(
+                "the projection lands inside the region",
+                0 <= projected.x <= region.width and 0 <= projected.y <= region.height,
+                f"{tuple(round(v, 1) for v in projected)} in {region.width}x{region.height}",
+            )
+            # Two points a metre apart along the view's vertical must land in
+            # different places, or every candidate would measure zero pixels
+            # away and inference would snap to whichever it saw first.
+            above = viewport.project_point(context, Vector((0.0, 0.0, 1.0)))
+            check(
+                "points a metre apart project apart",
+                above is not None and (above - projected).length > 1.0,
+                f"{(above - projected).length if above else '?'} px",
+            )
+
+        # A point behind the camera has no honest answer, and inference has to
+        # cope with being told so rather than snapping to a mirrored ghost.
+        behind = viewport.project_point(context, context.region_data.view_matrix.inverted()
+                                        .translation + context.region_data.view_rotation
+                                        @ Vector((0.0, 0.0, 5.0)))
+        check("a point behind the camera projects to nothing", behind is None,
+              f"got {behind}")
 
         # Bonsai's overlay is installed on every polyline tool invoke and torn
         # down on exit. A draw handler that fails to register would take the

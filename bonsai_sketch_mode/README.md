@@ -29,6 +29,14 @@ inference snapping, axis locks (`X`/`Y`/`Z`), plane locks (`Shift`+`X`/`Y`/`Z`)
 and measurement box — including imperial input and `=`-prefixed expressions.
 Push/Pull has its own measurement box using the same parser.
 
+Push/Pull also infers along its own axis. As a face is dragged it stops where
+existing geometry already is — the top of the wall beside this one, the
+underside of the slab above it — and the header reads `(aligned)` while it is
+held there. The candidates are the distances that bring the face level with
+something, read from every visible mesh once as the push begins; a drag lands
+on one when it comes within ten pixels of it. Typing a distance overrides
+inference, as it overrides the drag.
+
 Push/Pull supports regional extrusion: a surface divided by drawn lines can be
 pushed one region at a time. Only that region moves, walls appear along the
 lines dividing it from its neighbours, and the rest of the surface stays where
