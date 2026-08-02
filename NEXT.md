@@ -1,14 +1,15 @@
 # What to do next
 
-State as of 2026-07-28. The add-on has been renamed from BonsaiBIM to Bonsai,
+State as of 2026-08-02. The add-on has been renamed from BonsaiBIM to Bonsai,
 which changed every file path and every identifier — that reshapes the merge
 order below, so **read section 1 before touching the open PRs**. Two feature PRs
 are open and green; eight issues carry the SketchUp gap list.
 
-Eleven commits landed today, all on `next-steps`: the rename, the merge-order
-inversion, the Blender preference fix, configurable canvas colours, the class
-names, one project name, the floor-grid toggle, and an unfinished ground plane.
-Suites are green — 128 headless on both 5.0 and 5.2, 28 in the viewport.
+Fourteen commits on `next-steps`. Eleven landed on 07-28: the rename, the
+merge-order inversion, the Blender preference fix, configurable canvas colours,
+the class names, one project name, the floor-grid toggle, and an unfinished
+ground plane. Three landed on 08-02, all in Push/Pull — see section 10. Suites
+are green: 160 headless on both 5.0 and 5.2, 32 in the viewport.
 
 **Start at section 5.** It is the nearest to done, the most visible, and the
 only thing committed in a knowingly unfinished state.
@@ -252,18 +253,21 @@ Ordered by value per unit of work, not by size:
    because Bonsai already has the geometry — `bim.add_ifccircle`,
    `bim.cad_arc_from_2_points`, `bim.cad_arc_from_3_points`. The work is modal
    UX over proven operators. Also unblocks the two keys #2 just silenced.
-2. **[#4](https://github.com/integrations-space/BonsaiSketch/issues/4) Modifier and double-click behaviours.** A grep for `event.ctrl`,
-   `event.shift`, `event.alt` and `DOUBLE_CLICK` across the add-on returns
-   nothing, so none of SketchUp's modifier vocabulary works — Push/Pull `Ctrl`
-   for a new face, double-click to repeat a distance, `Ctrl`-drag to copy,
-   arrow keys to lock an axis. For a project whose premise is familiar muscle
-   memory, this is felt more than any single missing tool, and each piece is
-   independent.
-3. **[#7](https://github.com/integrations-space/BonsaiSketch/issues/7) Inference in three of six tools.** Line, Rectangle and Tape inherit
-   Bonsai's snapping; Push/Pull, Offset and Eraser each pick their own way with
-   no inference and no indicators. Users learn to trust inference while drawing
-   and lose it the moment they push a face. Section 4's colour work stops short
-   of SketchUp's magenta and cyan until this exists.
+2. **[#4](https://github.com/integrations-space/BonsaiSketch/issues/4) Modifier and double-click behaviours.** *Push/Pull's two are done*
+   (section 10); the rest of the vocabulary is not. Still missing:
+   `Ctrl`-drag on Move and Rotate to copy, then `3x` or `/3` for arrays
+   (Bonsai has `model/array.py`); `Ctrl` on the Eraser to soften and `Shift`
+   to hide; `Ctrl` with the Tape Measure to lay a guide, which is also item 4
+   below; double-click Select for a face and its edges, triple for everything
+   connected; arrow keys to lock an axis mid-tool. For a project whose premise
+   is familiar muscle memory this is felt more than any single missing tool,
+   and each piece is independent of the others.
+3. **[#7](https://github.com/integrations-space/BonsaiSketch/issues/7) Inference in two of six tools.** *Push/Pull now infers* (section 10),
+   which leaves Offset and Eraser — both of which live in #1 and so cannot be
+   fixed until it lands. Neither has indicators, and neither does Push/Pull:
+   it reports an alignment as `(aligned)` in the header rather than drawing
+   anything. Section 4's colour work stops short of SketchUp's magenta and
+   cyan until inference is drawn rather than described.
 4. **[#6](https://github.com/integrations-space/BonsaiSketch/issues/6) Construction tools, guides first.** `Ctrl` with the Tape Measure lays
    down a guide, and guide-driven layout is how much of the modelling actually
    gets done. Dimension and Text can produce real IFC annotation through
@@ -295,11 +299,11 @@ extensions by id, so it would never have been upgraded in place.
 
 Current state, after the rename:
 
-- **Blender 5.0** — junction to `bonsai_sketch_mode`, repointed. 111 headless
-  checks and 27 viewport checks pass.
+- **Blender 5.0** — junction to `bonsai_sketch_mode`, repointed. 160 headless
+  checks and 32 viewport checks pass.
 - **Blender 5.2 LTS** — uninstalled and reinstalled on 2026-07-28 from
   `blender-5.2.0-windows-x64.msi` (build 2026-07-14), replacing the stale zip
-  install with a junction. 111 headless checks and 27 viewport checks pass.
+  install with a junction. 160 headless checks pass, re-run on 2026-08-02.
   Bonsai survived the reinstall, because extensions live in the user config
   directory rather than under Program Files, so the 0.8.5 pairing is intact.
 - **Blender 4.2** — installed but below `blender_version_min = "5.0.0"`, so it
@@ -327,8 +331,8 @@ nothing is lost by not doing that locally.
 
 Whichever route, check the suite is loading what you think: it reports the module
 path it imported. On `main` today that is 111 headless checks plus 27 viewport
-checks. The figure of 181 quoted in the previous version of this note was written
-against #1's branch and does not describe `main`.
+checks; on `next-steps` it is 160 and 32. The figure of 181 quoted two versions
+ago was written against #1's branch and describes neither.
 
 One trap the junction does not cover: enabling an add-on is a *saved preference*,
 keyed by module path. The rename changed that path, so both Blenders went on
@@ -359,3 +363,74 @@ Both Blenders now start with no "not loaded" lines and list exactly
 lesson generalises past this add-on: a wrong module path in an instruction
 someone follows once outlives every correction made afterwards, because it lands
 in their preferences rather than in the repository.
+
+## 10. Push/Pull, 2026-08-02
+
+Three commits, all on `next-steps`, closing the Push/Pull half of #4 and the
+Push/Pull third of #7.
+
+**`1fc2a71` — regional push.** A face divided by drawn lines can be pushed one
+region at a time: a step or a notch is now a line and a drag. What the face
+itself does had only two answers, move or keep-as-cap, and needs three. A
+region of a *sheet* keeps it — nothing is behind it. A region of a *solid's*
+surface must not: the interior is behind it, and keeping it seals a membrane
+inside the result. `push_mode` names all three; `CUT` is the new one.
+
+The membrane was invisible from outside. Face counts, vertex heights and
+manifoldness were all satisfied by the wrong shape — only the volume gave it
+away, 14 where a 2x2x3 box with one half of its top raised by 2 should measure
+16. **Assert volumes, not just topology**, on anything that closes a shell.
+
+**`21bfa39` — `Ctrl` and double-click.** `Ctrl` stacks a new solid on the
+face; double-click repeats the last distance. Two traps, both worth keeping in
+mind for the modifiers still to build:
+
+- `Ctrl` leaves the shell non-manifold *on purpose*, so "which way is out" has
+  no answer and `recalc_face_normals` must not run — left in, it turned the
+  outer surface of a box inside out on an inward push.
+- Blender only falls a double click back to a press if nothing handled it, and
+  a modal handler that returns `RUNNING_MODAL` has. A double click with nothing
+  to repeat therefore has to arm the click itself or the click vanishes.
+
+Telling a drag from a click was also wrong, and had been since before either
+modifier: the test was "has the extrusion become non-zero", where zero means
+`1e-9`, so any tremor counted and the first click's release confirmed a sliver.
+It now uses Blender's own `drag_threshold_mouse`, in pixels.
+
+**`81be34e` — inference.** Push/Pull stops where geometry already is, and says
+`(aligned)` in the header while it is held there. Candidates are the distances
+that bring the face level with an existing point, read from every visible mesh
+once as the push begins rather than per mouse move; anything past
+`VERTEX_BUDGET` contributes its bounding box instead. Choosing happens in
+pixels, not metres — a metre tolerance is a different size at every zoom — and
+only the two candidates bracketing the drag can win, so it stays cheap however
+large the model.
+
+### What this leaves
+
+- **No indicator.** `(aligned)` is text in the header. SketchUp draws coloured
+  inference marks, and #7 is not really closed for any tool until that exists
+  — see item 3 of section 8, and section 4's colour work behind it.
+- **Offset and Eraser still have no inference**, and cannot get it here: both
+  live in #1. Their inference should reuse `axis_offsets` and `bracketing`
+  from `ops/pushpull.py`, which are pure functions for that reason. If a third
+  caller appears they should move to their own module.
+- **Nothing snaps to a face or an edge**, only to points. Pulling level with
+  the *plane* of a sloped roof is the obvious next want.
+- **The modal is still untested by machine.** Both suites cover the geometry
+  and the projection under it; placing points and dragging a face needs a
+  human. Worth a pass by hand before this branch merges — particularly the
+  double-click, whose timing no headless check can reach.
+
+### Not started, and asked about on 08-02
+
+**Booleans — union, subtract, trim, intersect — do not exist**, are not filed
+as an issue, and are not on the roadmap. Nor is shell/solidify. Worth knowing
+that SketchUp's Solid Tools are Pro-only: free SketchUp gets the same results
+by intersecting geometry and erasing, so the absence tracks the thing this
+add-on is imitating rather than being an oversight. `CUT` above is the nearest
+thing that exists, and it does step-and-notch subtraction on a single mesh
+without a boolean anywhere.
+
+**Offset** is written but unmerged, in #1, under the old path — so it needs
+section 1's rename sweep before it can land.
