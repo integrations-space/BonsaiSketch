@@ -464,7 +464,36 @@ check("notched volume is 12 - 1x2x1", abs(notched.calc_volume(signed=False) - 10
 check("the notch points outward", notched.calc_volume(signed=True) > 0,
       f"signed volume {notched.calc_volume(signed=True)}")
 
-for mesh in (regional, pushed_region, split, stepped, notched):
+# Ctrl overrides the mode and stacks a new solid on a face that already belongs
+# to one, leaving the original in place as the join. That makes the shell
+# non-manifold on purpose, so "outward" is ambiguous and normals must be left
+# as they are -- recalculating turned the outer surface inside out.
+box.faces.ensure_lookup_table()
+top = max(box.faces, key=lambda f: f.calc_center_median().z)
+stacked = pushpull.extruded(box, top.index, identity, up, 2.0, pushpull.EXTRUDE)
+check("Ctrl stacking adds a solid", len(stacked.verts) == 12 and len(stacked.faces) == 11,
+      f"got {len(stacked.verts)} verts, {len(stacked.faces)} faces")
+check("Ctrl stacking leaves no open edges",
+      all(len(e.link_faces) >= 2 for e in stacked.edges))
+check("Ctrl stacking keeps the join", len(
+    [f for f in stacked.faces
+     if abs(f.calc_center_median().z - 3.0) < 1e-6 and abs(f.normal.z) > 0.9]) == 1)
+# Every outward-facing face of the original box must still face outward.
+outward = {
+    (1.0, 1.0, 0.0): Vector((0.0, 0.0, -1.0)),
+    (2.0, 1.0, 1.5): Vector((1.0, 0.0, 0.0)),
+    (0.0, 1.0, 1.5): Vector((-1.0, 0.0, 0.0)),
+    (1.0, 2.0, 1.5): Vector((0.0, 1.0, 0.0)),
+    (1.0, 0.0, 1.5): Vector((0.0, -1.0, 0.0)),
+    (1.0, 1.0, 5.0): Vector((0.0, 0.0, 1.0)),
+}
+flipped = [key for f in stacked.faces
+           for key in [tuple(round(x, 2) for x in f.calc_center_median())]
+           if key in outward and f.normal.dot(outward[key]) < 0.9]
+check("Ctrl stacking keeps the outer surface right side out", not flipped,
+      f"flipped {flipped}")
+
+for mesh in (regional, pushed_region, split, stepped, notched, stacked):
     mesh.free()
 
 # Non-uniform object scale must not distort the requested distance.

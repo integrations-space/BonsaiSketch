@@ -113,6 +113,11 @@ class SketchPushPullTool(WorkSpaceTool):
         row = layout.row(align=True)
         row.label(text="Drag a Face", icon="MOUSE_LMB")
         row = layout.row(align=True)
+        row.label(text="", icon="EVENT_CTRL")
+        row.label(text="Stack a New Solid", icon="EVENT_LMB")
+        row = layout.row(align=True)
+        row.label(text="Double-click repeats the last distance", icon="MOUSE_LMB")
+        row = layout.row(align=True)
         row.label(text="Type an exact distance to confirm", icon="EVENT_RETURN")
 
 

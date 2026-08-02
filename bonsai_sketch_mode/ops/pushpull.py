@@ -33,6 +33,13 @@ independently, leaving the rest of the surface where it is. That is how a
 step gets cut into a slab, or a plinth raised out of one. It matches
 SketchUp's behaviour for intersected lines and shapes, and lets a user work
 from a single drawn surface without the dividing lines coming apart.
+
+Modifiers, matching SketchUp:
+
+- ``Ctrl`` while starting the push forces an extrusion even on a solid's
+  face, creating a new solid stacked on the original rather than moving
+  the face.
+- Double-clicking a face repeats the last push-pull distance.
 """
 
 from __future__ import annotations
@@ -245,6 +252,10 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
     bl_description = "Extrude the face under the cursor along its normal"
     bl_options = {"REGISTER", "UNDO"}
 
+    #: The distance of the last completed push, for double-click repeat.
+    #: Class-level so it survives across operator invocations.
+    last_distance: Optional[float] = None
+
     @classmethod
     def poll(cls, context: bpy.types.Context) -> bool:
         space = context.space_data
@@ -269,6 +280,8 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         # both, and so should this.
         self.armed = False
         self.dragged = False
+        #: Where the button went down, so a drag can be told from a click.
+        self.press_mouse = (0, 0)
 
     # --- Setup ----------------------------------------------------------------
 
@@ -311,7 +324,10 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         self.source.faces.ensure_lookup_table()
         face = self.source.faces[self.face_index]
 
-        self.mode = push_mode(face)
+        # Ctrl stacks a new solid on the face instead of doing whatever the
+        # face would otherwise call for -- the original stays put as the join
+        # between the two, which is exactly what EXTRUDE leaves behind.
+        self.mode = EXTRUDE if event.ctrl else push_mode(face)
 
         normal_matrix = obj.matrix_world.to_3x3().inverted().transposed()
         self.normal = (normal_matrix @ face.normal).normalized()
@@ -321,6 +337,7 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         self.typed = ""
         self.armed = False
         self.dragged = False
+        self.press_mouse = mouse
 
         self.report_state(context)
         context.window_manager.modal_handler_add(self)
@@ -345,6 +362,27 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         finally:
             bm.free()
         self.obj.data.update()
+
+    def past_drag_threshold(
+        self, context: bpy.types.Context, event: bpy.types.Event
+    ) -> bool:
+        """True once the cursor has left the pixel the button went down on.
+
+        Press-drag-release is told from click-move-click by whether the mouse
+        moved while the button was held, and the test used to be whether the
+        extrusion had become non-zero -- which any sub-pixel tremor satisfies.
+        A hand that is not quite still therefore confirmed a sliver of an
+        extrusion on the release of the very first click, before the user had
+        aimed at anything. The double-click repeat made that worse, since a
+        double click is a press, a wobble and another press.
+
+        The threshold is Blender's own, so it matches every other drag in the
+        application and follows the user's setting for it.
+        """
+        slop = context.preferences.inputs.drag_threshold_mouse
+        dx = event.mouse_region_x - self.press_mouse[0]
+        dy = event.mouse_region_y - self.press_mouse[1]
+        return (dx * dx + dy * dy) > slop * slop
 
     def distance_from_mouse(
         self, context: bpy.types.Context, event: bpy.types.Event
@@ -397,7 +435,7 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
                 moved = self.distance_from_mouse(context, event)
                 if moved is not None:
                     self.distance = moved
-                    if abs(self.distance) > NEGLIGIBLE:
+                    if self.past_drag_threshold(context, event):
                         self.dragged = True
                     self.apply(self.distance)
                     self.report_state(context)
@@ -412,6 +450,21 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         if event.value == "PRESS" and event.ascii in NUMBER_CHARS:
             self.typed += event.ascii
             self.apply_typed(context)
+            return {"RUNNING_MODAL"}
+
+        # Double-click repeats the last push-pull distance, as in SketchUp.
+        if event.type == "LEFTMOUSE" and event.value == "DOUBLE_CLICK":
+            last = type(self).last_distance
+            if last is not None and abs(last) > NEGLIGIBLE:
+                self.distance = last
+                self.apply(last)
+                return self.confirm(context)
+            # Nothing to repeat yet -- the first push of the session. Blender
+            # only falls a double click back to a press if no handler took it,
+            # and this one has, so arm it here instead: an unrepeatable double
+            # click should still work as the second click of click-move-click
+            # rather than vanishing.
+            self.armed = True
             return {"RUNNING_MODAL"}
 
         if event.type == "LEFTMOUSE" and event.value == "PRESS":
@@ -449,6 +502,8 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         if abs(distance) <= NEGLIGIBLE:
             self.report({"INFO"}, "No extrusion")
             return {"CANCELLED"}
+        # Remember the distance for double-click repeat.
+        type(self).last_distance = distance
         verb = "Pushed" if distance < 0 else "Pulled"
         self.report({"INFO"}, f"{verb} {name} by {bridge.format_length(abs(distance))}")
         return {"FINISHED"}

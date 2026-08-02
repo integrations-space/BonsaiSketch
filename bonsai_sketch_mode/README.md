@@ -16,7 +16,7 @@ the IFC layer underneath.
 | `Space` | Select | Blender's box select |
 | `L` | Line | Connected edges; closed coplanar loops become faces |
 | `R` | Rectangle | Two opposite corners |
-| `P` | Push/Pull | Extrudes the face under the cursor along its normal |
+| `P` | Push/Pull | Extrudes the face under the cursor along its normal; `Ctrl` stacks a new solid; double-click repeats the last distance |
 | `T` | Tape Measure | Bonsai's measure tool |
 | `M` `Q` `S` | Move / Rotate / Scale | Blender's transforms |
 | `O` `H` `Z` | Orbit / Pan / Zoom | `Shift+Z` for zoom extents |
@@ -35,6 +35,10 @@ lines dividing it from its neighbours, and the rest of the surface stays where
 it is — so a step or a notch is a line and a drag, on a drawn sheet or on a
 solid you have already built. Pushing a whole face of a solid still moves it
 and stretches the walls, as before.
+
+`Ctrl` while starting the push stacks a new solid on the face instead, leaving
+the original in place as the join between the two. Double-clicking a face
+repeats the last push-pull distance.
 
 `F`, `B` and `E` are deliberately unbound. Their tools do not exist yet, and an
 unbound key is honest where a wrong one teaches the wrong muscle memory.
