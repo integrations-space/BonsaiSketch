@@ -80,6 +80,13 @@ SNAP_PIXELS = 10
 #: felt as a stall between pressing and the face starting to move.
 VERTEX_BUDGET = 20_000
 
+#: Faces sampled from one object for plane inference. A face's plane offers an
+#: alignment its vertices often cannot -- the classic case is pulling level
+#: with the underside of a slope, where no single vertex carries the height.
+#: Beyond the budget the object is sampled at regular strides rather than read
+#: whole, which still captures the variety of planes a large mesh contains.
+FACE_BUDGET = 5_000
+
 
 #: Translate the face's own vertices. The walls already attached to them
 #: stretch to follow, so a box pushed down is simply a shorter box.
@@ -262,6 +269,28 @@ def _shell_faces(face: bmesh.types.BMFace) -> list:
     return list(seen)
 
 
+def _merge_offsets(*groups: list[float]) -> list[float]:
+    """Combine candidate groups, sorted and de-duplicated.
+
+    Candidates arrive from two places -- vertex inference and face-plane
+    inference -- and both must be searched by the same bisection. A height a
+    hundred vertices happen to share must not get a hundred chances to outvote
+    a nearer one, so duplicates collapse to a single entry regardless of which
+    group they came from.
+    """
+    ordered = sorted(
+        offset
+        for group in groups
+        for offset in group
+        if abs(offset) > NEGLIGIBLE
+    )
+    unique: list[float] = []
+    for offset in ordered:
+        if not unique or offset - unique[-1] > COINCIDENT:
+            unique.append(offset)
+    return unique
+
+
 def axis_offsets(points, origin: Vector, normal: Vector) -> list[float]:
     """How far the face must travel for its plane to reach each point.
 
@@ -275,22 +304,10 @@ def axis_offsets(points, origin: Vector, normal: Vector) -> list[float]:
     corners, the rest of the surface it was cut out of, every coplanar
     neighbour. None of them is anywhere to snap to, and zero is the one
     distance the tool reads as no extrusion at all.
-
-    Sorted and de-duplicated, so a drag can find the candidates either side of
-    it by bisection rather than rescanning the model on every mouse move --
-    and so that a height a hundred vertices happen to share does not get a
-    hundred chances to outvote a nearer one.
     """
-    offsets = sorted(
-        offset
-        for offset in ((point - origin).dot(normal) for point in points)
-        if abs(offset) > NEGLIGIBLE
+    return _merge_offsets(
+        [(point - origin).dot(normal) for point in points]
     )
-    unique: list[float] = []
-    for offset in offsets:
-        if not unique or offset - unique[-1] > COINCIDENT:
-            unique.append(offset)
-    return unique
 
 
 def bracketing(offsets: list[float], distance: float) -> list[float]:
@@ -327,6 +344,85 @@ def inference_points(context: bpy.types.Context) -> list[Vector]:
             continue
         points.extend(matrix @ vertex.co for vertex in vertices)
     return points
+
+
+def inference_planes(context: bpy.types.Context) -> list[tuple[Vector, Vector]]:
+    """(normal, world-space point) for faces worth aligning to.
+
+    A face's plane offers alignments its vertices cannot. Level the underside
+    of one slab with the top of the wall below it, or bring a plinth up flush
+    with the surface of the one above: no single vertex carries those heights,
+    the whole plane does.
+
+    This is a second, sparse pass. The vertex pass reads every mesh in the
+    scene or its bounding boxes; this one samples faces, at a stride when the
+    mesh is large, so it adds a bounded cost rather than doubling the read.
+    """
+    planes: list[tuple[Vector, Vector]] = []
+    for obj in context.visible_objects:
+        if obj.type != "MESH" or obj.data is None:
+            continue
+        mesh = obj.data
+        if len(mesh.polygons) == 0:
+            continue
+        matrix = obj.matrix_world
+        matrix_3x3 = matrix.to_3x3()
+        # The normal has to be rotated by the matrix, not the full transform,
+        # or a non-uniform scale distorts the direction.
+        normal_matrix = matrix_3x3.inverted().transposed()
+        # Sample at a stride when the mesh is large. BPy sequences do not
+        # accept extended slices reliably, so step by index.
+        stride = max(1, len(mesh.polygons) // FACE_BUDGET)
+        for index in range(0, len(mesh.polygons), stride):
+            polygon = mesh.polygons[index]
+            if polygon.normal.length_squared < 1e-12:
+                continue
+            normal = (normal_matrix @ polygon.normal).normalized()
+            if normal.length_squared < 1e-12:
+                continue
+            planes.append((normal, matrix @ polygon.center))
+    return planes
+
+
+def infer_offsets(
+    context: bpy.types.Context, origin: Vector, normal: Vector
+) -> list[float]:
+    """All candidates along ``normal`` from every kind of inference.
+
+    Two distinct sources:
+
+    - **Points** -- vertices and bounding-box corners. Anything at or reachable
+      from a point: level with a corner, level with an apex.
+    - **Face planes** -- a face that is parallel to the dragging face can be
+      brought *coplanar* with it, which is the one alignment no single vertex
+      carries. The classic case is a slab: level the underside of one slab with
+      the top of the wall below it, or pull a plinth up flush with the surface
+      above it. The candidate is the signed perpendicular distance from the
+      drag origin to that plane.
+
+    A target plane that is not parallel to the push axis offers nothing, and
+    must not. The dragging face keeps its orientation for the whole push, so an
+    inclined roof can never be met by moving a horizontal face -- the two planes
+    only ever intersect in a line, and a line is not an alignment. (Aligning an
+    *edge* of the face to that line is edge inference, which does not exist
+    yet.)
+    """
+    point_offsets = axis_offsets(inference_points(context), origin, normal)
+    plane_offsets: list[float] = []
+    for plane_normal, plane_point in inference_planes(context):
+        # |dot| near 1 means the target plane is parallel to the dragging
+        # face's plane, so moving along ``normal`` by the perpendicular
+        # distance brings the two coplanar. Anything else is a plane the drag
+        # can never flush up against.
+        if abs(abs(plane_normal.dot(normal)) - 1.0) > COPLANAR:
+            continue
+        # The offset is measured along the *push* normal, not the target
+        # plane's. A plane wound the other way still carries a distance: the
+        # sheet 4 above is at 4 however its single face happens to point.
+        offset = (plane_point - origin).dot(normal)
+        if abs(offset) > NEGLIGIBLE:
+            plane_offsets.append(offset)
+    return _merge_offsets(point_offsets, plane_offsets)
 
 
 class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
@@ -426,7 +522,7 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         self.dragged = False
         self.press_mouse = mouse
         self.aligned = False
-        self.offsets = axis_offsets(inference_points(context), self.origin, self.normal)
+        self.offsets = infer_offsets(context, self.origin, self.normal)
 
         self.report_state(context)
         context.window_manager.modal_handler_add(self)

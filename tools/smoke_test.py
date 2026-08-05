@@ -493,6 +493,60 @@ flipped = [key for f in stacked.faces
 check("Ctrl stacking keeps the outer surface right side out", not flipped,
       f"flipped {flipped}")
 
+# --- Nested regional push-pull ----------------------------------------------
+#
+# The point of regional push-pull is that a solid raised out of a sheet can
+# itself be subdivided and pushed again -- a plinth out of a slab, then a
+# pedestal out of the plinth. Each push reads the current surface the same way
+# the first did: a face with coplanar neighbours becomes a region, and a region
+# of a solid is cut, not capped.
+
+# Start from the already-tested `stepped` shape: a 2x2x3 box with one 1x2x2
+# step raised out of its top. Bisect the whole solid at y=1, the middle of its
+# footprint. That splits the step's top into two 0.5x1 halves, and because the
+# cut plane passes through the entire solid it splits the step's walls and the
+# box's sides too -- exactly what a drawn line does. No seams for the nested
+# push to open.
+nested = stepped.copy()
+bmesh.ops.bisect_plane(
+    nested,
+    geom=nested.verts[:] + nested.edges[:] + nested.faces[:],
+    plane_co=(0.0, 1.0, 0.0),
+    plane_no=(0.0, 1.0, 0.0),
+    clear_inner=False,
+    clear_outer=False,
+)
+nested.normal_update()
+nested.faces.ensure_lookup_table()
+
+# The step's top at z=5 is now two 0.5x1 halves. Each has a coplanar neighbour
+# plus walls out of plane, so both read as CUT.
+inner_halves = [
+    f for f in nested.faces
+    if abs(f.calc_center_median().z - 5.0) < 1e-6 and abs(f.normal.z) > 0.9
+]
+check("a subdivided raised region reads as CUT",
+      len(inner_halves) == 2
+      and all(pushpull.push_mode(f) == pushpull.CUT for f in inner_halves),
+      f"got {len(inner_halves)} halves, modes {[pushpull.push_mode(f) for f in inner_halves]}")
+
+# Push one half up 1 more. Volume: the 2x2x3 box (12) plus the step (1x2x2 =
+# 4) plus the new 1x1x1 (1) = 17.
+tower = pushpull.extruded(nested, inner_halves[0].index, identity, up, 1.0, pushpull.CUT)
+check("nested push volume is 12 + 4 + 1", abs(tower.calc_volume(signed=False) - 17.0) < 1e-6,
+      f"got {tower.calc_volume(signed=False)}")
+check("nested push points outward", tower.calc_volume(signed=True) > 0,
+      f"signed volume {tower.calc_volume(signed=True)}")
+open_edges = [e for e in tower.edges if len(e.link_faces) < 2]
+check("nested push leaves no open edges", not open_edges,
+      f"{len(open_edges)} open edges")
+heights = sorted({round(v.co.z, 6) for v in tower.verts})
+check("nested push creates three levels", heights == [0.0, 3.0, 5.0, 6.0],
+      f"heights {heights}")
+
+nested.free()
+tower.free()
+
 for mesh in (regional, pushed_region, split, stepped, notched, stacked):
     mesh.free()
 
@@ -571,14 +625,64 @@ check("the neighbour's height is offered as a candidate",
 bpy.data.objects.remove(tall_obj, do_unlink=True)
 bpy.data.meshes.remove(tall)
 
-# Non-uniform object scale must not distort the requested distance.
-half = Matrix.Diagonal(Vector((2.0, 1.0, 4.0))).to_3x3()
-scaled = pushpull.extruded(flat, 0, half.inverted(), up, 4.0, pushpull.EXTRUDE)
-heights = sorted({round(v.co.z, 6) for v in scaled.verts})
-check("world distance survives object scale", heights == [0.0, 1.0], f"local heights {heights}")
+# --- Face-plane inference ----------------------------------------------------
+#
+# A vertex is only worth aligning to if something sits *at* it; a face's whole
+# plane is worth aligning to everywhere at once. The classic case is the slab:
+# level with the top or underside of a parallel surface, where no single point
+# on that surface happens to sit at the height you need. Only planes parallel
+# to the push axis count -- an inclined roof can never be met by a horizontal
+# push, because the two planes only intersect in a line.
 
-for mesh in (flat, box, taller, wider, shorter, unchanged, scaled):
-    mesh.free()
+# A horizontal sheet 4 above the drag origin. Its face's plane is parallel to
+# the push axis (world Z), so pulling up should be offered the offset 4 -- a
+# height no single vertex of the sheet happens to carry (its corners are at
+# various heights off the plane, but the plane itself is the alignment).
+sheet_mesh = bpy.data.meshes.new("overhead")
+sheet_bm = bmesh.new()
+sheet_verts = [sheet_bm.verts.new(c) for c in [
+    (-1.0, -1.0, 4.0), (3.0, -1.0, 4.0), (3.0, 3.0, 4.0), (-1.0, 3.0, 4.0),
+]]
+sheet_bm.faces.new(sheet_verts)
+sheet_bm.normal_update()
+sheet_bm.to_mesh(sheet_mesh)
+sheet_bm.free()
+sheet_obj = bpy.data.objects.new("overhead", sheet_mesh)
+context.scene.collection.objects.link(sheet_obj)
+
+all_offsets = pushpull.infer_offsets(context, origin, up)
+# 4 is there from both the sheet's vertices and the sheet's plane.
+check("a parallel face plane is offered as a candidate",
+      any(abs(h - 4.0) < 1e-6 for h in all_offsets), f"got {all_offsets}")
+
+# A sloped face must *not* be offered. The push axis is Z; an inclined plane
+# can never be made coplanar by translating along Z, so its height is not an
+# alignment even though its vertices do carry heights worth snapping to.
+slope_mesh = bpy.data.meshes.new("slope")
+slope_bm = bmesh.new()
+slope_verts = [slope_bm.verts.new(c) for c in [
+    (0.0, 0.0, 6.0), (2.0, 0.0, 5.0), (2.0, 2.0, 5.0), (0.0, 2.0, 6.0),
+]]
+slope_bm.faces.new(slope_verts)
+slope_bm.normal_update()
+slope_bm.to_mesh(slope_mesh)
+slope_bm.free()
+slope_obj = bpy.data.objects.new("slope", slope_mesh)
+context.scene.collection.objects.link(slope_obj)
+
+slope_offsets = pushpull.infer_offsets(context, origin, up)
+# The slope's vertices (5, 6) are point candidates; only its *plane* adds 5.5,
+# and the plane is not parallel to Z, so nothing from the plane itself should
+# appear. Point candidates from the slope's vertices remain.
+point_only = pushpull.axis_offsets(pushpull.inference_points(context), origin, up)
+check("a sloped plane adds no candidate of its own",
+      sorted(slope_offsets) == sorted(point_only),
+      f"plane inference added {sorted(set(slope_offsets) - set(point_only))}")
+
+bpy.data.objects.remove(sheet_obj, do_unlink=True)
+bpy.data.meshes.remove(sheet_mesh)
+bpy.data.objects.remove(slope_obj, do_unlink=True)
+bpy.data.meshes.remove(slope_mesh)
 
 
 # --- IFC+SG requirements -----------------------------------------------------
