@@ -262,6 +262,7 @@ def run():
             "the sidebar panel is registered",
             hasattr(bpy.types, "BONSAI_SKETCH_MODE_PT_ifc"),
         )
+
         check(
             "it is filed under the Sketch category",
             sidebar.BONSAI_SKETCH_MODE_PT_ifc.bl_category == sidebar.CATEGORY,
@@ -353,6 +354,26 @@ def entered_sketch():
     addon = sys.modules[ADDON]
     workspace = addon.workspace
     window = state["window"]
+
+    # A sidebar region reads its category as UNSUPPORTED until it has been
+    # drawn, which is why this is asserted here and not when the tab was
+    # appended -- and why the add-on raises it on entering the tab rather than
+    # on creating it. Without that, the sidebar opens on Item/Transform and the
+    # IFC route is a collapsed tab down the edge: present, and still unfindable.
+    regions = [
+        region
+        for screen in bpy.data.workspaces[workspace.WORKSPACE_NAME].screens
+        for area_ in screen.areas
+        if area_.type == "VIEW_3D"
+        for region in area_.regions
+        if region.type == "UI"
+    ]
+    check("the Sketch viewport has a sidebar region", bool(regions))
+    check(
+        "the sidebar opens on the Sketch tab, not Item",
+        bool(regions) and all(r.active_panel_category == addon.sidebar.CATEGORY for r in regions),
+        "categories: %s" % [r.active_panel_category for r in regions],
+    )
 
     check(
         "Sketch tab is the active workspace",

@@ -92,12 +92,30 @@ def _on_workspace_change() -> None:
         if active_name != keyconfig.KEYCONFIG_NAME:
             _previous_keyconfig = active_name
             kcs.active = kcs[keyconfig.KEYCONFIG_NAME]
+        # A sidebar region reports its category as UNSUPPORTED until it has
+        # actually been drawn, so this cannot be done when the tab is appended
+        # -- only once the user is standing on it. One tick is enough, and it
+        # is cheap to reassert on every entry.
+        if not bpy.app.timers.is_registered(_raise_sidebar_category):
+            bpy.app.timers.register(_raise_sidebar_category, first_interval=0.0)
     else:
         if active_name == keyconfig.KEYCONFIG_NAME:
             restore = _previous_keyconfig or "Blender"
             if restore in kcs:
                 kcs.active = kcs[restore]
             _previous_keyconfig = None
+
+
+def _raise_sidebar_category() -> None:
+    """One-shot: put our tab at the front of the sidebar. Never reschedules."""
+    prefs = get_prefs()
+    if prefs is None or not prefs.show_sidebar:
+        return None
+    try:
+        sidebar.raise_category(WORKSPACE_NAME)
+    except Exception as exc:  # pragma: no cover - depends on host state
+        print(f"[bonsai_sketch_mode] sidebar: {exc}")
+    return None
 
 
 def subscribe() -> None:
@@ -201,4 +219,6 @@ def unregister_handlers() -> None:
     # pointing into an unregistered module.
     if bpy.app.timers.is_registered(_run_once):
         bpy.app.timers.unregister(_run_once)
+    if bpy.app.timers.is_registered(_raise_sidebar_category):
+        bpy.app.timers.unregister(_raise_sidebar_category)
     unsubscribe()

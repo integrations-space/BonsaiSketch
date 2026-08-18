@@ -98,6 +98,39 @@ def set_sidebar(workspace_name: str, show: bool) -> int:
     for space in theme.viewports(workspace_name):
         space.show_region_ui = show
         changed += 1
+    if show:
+        raise_category(workspace_name)
+    return changed
+
+
+def raise_category(workspace_name: str) -> int:
+    """Bring our tab to the front of the sidebar. Returns regions changed.
+
+    Opening the sidebar is not enough on its own. Blender remembers a category
+    per region and defaults to "Item", so the sidebar opens on Transform with
+    ours collapsed into a vertical tab down the edge -- which is the same
+    "there is no route into IFC" problem one click further in.
+
+    Best effort: the category only exists once the region has been drawn, and a
+    workspace appended moments ago may not have been. Failing here costs the
+    default tab, not the panel.
+    """
+    workspace = bpy.data.workspaces.get(workspace_name)
+    if workspace is None:
+        return 0
+    changed = 0
+    for screen in workspace.screens:
+        for area in screen.areas:
+            if area.type != "VIEW_3D":
+                continue
+            for region in area.regions:
+                if region.type != "UI":
+                    continue
+                try:
+                    region.active_panel_category = CATEGORY
+                    changed += 1
+                except (AttributeError, TypeError):
+                    pass
     return changed
 
 
