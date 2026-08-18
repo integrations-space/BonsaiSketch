@@ -118,7 +118,11 @@ def run():
                     space = next(s for s in area_.spaces if s.type == "VIEW_3D")
                     break
         check("tool palette shown", space is not None and space.show_region_toolbar)
-        check("properties sidebar hidden", space is not None and not space.show_region_ui)
+        # The sidebar used to be asserted closed, and that was right while it
+        # was empty. It now carries the Sketch tab's only route into IFC --
+        # New IFC Project, and Assign IFC Class -- so an open sidebar is the
+        # correct state, and the assertion is inverted rather than deleted.
+        check("IFC sidebar shown", space is not None and space.show_region_ui)
         check("perspective view", space is not None and space.region_3d.view_perspective == "PERSP")
         check("solid shading", space is not None and space.shading.type == "SOLID")
         # The canvas is raised when the workspace is added, so the Sketch tab
@@ -177,6 +181,104 @@ def run():
                 ok = False
                 detail = str(exc)
             check(f"{tool_cls.bl_label} activates", ok, detail)
+
+        # Bonsai's own tools share this toolbar, because the Sketch workspace
+        # does not filter tools by owner. That is worth checking rather than
+        # assuming: a user who clicks the Door tool before creating a project
+        # gets one "No IFC Project" label and no route forward from this tab,
+        # and the tool reads as broken when it is only gated. These checks
+        # separate the two -- present and activating, but with nothing behind
+        # them until an IFC project exists.
+        #
+        # Headless cannot reach any of this: bonsai/bim/module/model/__init__.py
+        # guards register_tool with `if not bpy.app.background`.
+        from bl_ui.space_toolsystem_common import ToolSelectPanelHelper
+
+        import bonsai.tool as bonsai_tool
+
+        present = set()
+        try:
+            panel = ToolSelectPanelHelper._tool_class_from_space_type("VIEW_3D")
+            for item in ToolSelectPanelHelper._tools_flatten(panel._tools["OBJECT"]):
+                if item is not None:
+                    present.add(item.idname)
+        except Exception as exc:
+            check("3D View toolbar is readable", False, str(exc))
+
+        BONSAI_TOOLS = (
+            "bim.wall_tool",
+            "bim.slab_tool",
+            "bim.door_tool",
+            "bim.window_tool",
+            "bim.column_tool",
+            "bim.beam_tool",
+            "bim.bim_tool",
+        )
+        for idname in BONSAI_TOOLS:
+            check(f"Bonsai {idname} is in the toolbar", idname in present)
+        check(
+            "the Sketch tools are in the same toolbar",
+            all(t.bl_idname in present for t in tools.tools),
+        )
+
+        sketch_ws = bpy.data.workspaces.get(workspace.WORKSPACE_NAME)
+        check(
+            "the Sketch workspace does not filter tools by owner",
+            sketch_ws is not None and not sketch_ws.use_filter_by_owner,
+            "filtering is on, so Bonsai's tools would be hidden here",
+        )
+
+        # The gate itself. If this ever passes with a project loaded the check
+        # is meaningless, so it asserts the precondition too.
+        check(
+            "no IFC project in a fresh session",
+            bonsai_tool.Ifc.get() is None,
+            "something created a project; the gating check below proves nothing",
+        )
+        for idname in ("bim.wall_tool", "bim.door_tool"):
+            try:
+                bpy.ops.wm.tool_set_by_id(name=idname)
+                active = context.workspace.tools.from_space_view3d_mode("OBJECT")
+                ok = active is not None and active.idname == idname
+                detail = f"active is {active.idname if active else None!r}"
+            except Exception as exc:
+                ok, detail = False, str(exc)
+            check(f"Bonsai {idname} activates without a project", ok, detail)
+
+        # The sidebar is the only route from this tab into IFC, so "is it on
+        # screen" is a product check, not a cosmetic one. It ships closed in
+        # workspace.blend and is opened by workspace.py at append time; if that
+        # ever stops happening the route is still there but unfindable.
+        sidebar = addon.sidebar
+        sketch_ws = bpy.data.workspaces.get(workspace.WORKSPACE_NAME)
+        spaces = list(addon.theme.viewports(workspace.WORKSPACE_NAME))
+        check("Sketch viewport found for the sidebar check", bool(spaces))
+        check(
+            "the IFC sidebar is open on the Sketch tab",
+            all(sp.show_region_ui for sp in spaces),
+            "show_region_ui is False, so the only route into IFC is hidden",
+        )
+        check(
+            "the sidebar panel is registered",
+            hasattr(bpy.types, "BONSAI_SKETCH_MODE_PT_ifc"),
+        )
+        check(
+            "it is filed under the Sketch category",
+            sidebar.BONSAI_SKETCH_MODE_PT_ifc.bl_category == sidebar.CATEGORY,
+        )
+        # The gate this whole panel exists to open: with no project, Bonsai's
+        # BIM tools draw "No IFC Project" and stop, and before this panel
+        # nothing on the tab could create one.
+        check(
+            "no IFC project yet, so the panel offers to create one",
+            not bridge.has_project(),
+        )
+        check(
+            "and the sidebar can be closed again",
+            sidebar.set_sidebar(workspace.WORKSPACE_NAME, False) == len(spaces)
+            and all(not sp.show_region_ui for sp in spaces),
+        )
+        sidebar.set_sidebar(workspace.WORKSPACE_NAME, True)
 
         # Push/Pull's inference decides between candidates in pixels, which
         # needs a region to project into. Headlessly there is none, so

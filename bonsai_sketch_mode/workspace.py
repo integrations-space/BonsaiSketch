@@ -33,7 +33,7 @@ import os
 
 import bpy
 
-from . import keyconfig, theme
+from . import keyconfig, sidebar, theme
 
 WORKSPACE_NAME = "Sketch"
 _BLEND = os.path.join(os.path.dirname(__file__), "data", "workspace.blend")
@@ -137,6 +137,10 @@ def _load_post(_dummy) -> None:
         print(f"[bonsai_sketch_mode] workspace: {message}")
     theme.ensure_applied(WORKSPACE_NAME)
     theme.set_floor_grid(WORKSPACE_NAME, prefs.show_floor_grid)
+    # The shipped workspace has the sidebar closed. It now holds the tab's only
+    # route into IFC, so it is opened here rather than left for the user to
+    # discover -- the same reason the tab itself is appended without being asked.
+    sidebar.set_sidebar(WORKSPACE_NAME, prefs.show_sidebar)
     subscribe()
 
 
@@ -150,6 +154,10 @@ def _append_once() -> None:
         print(f"[bonsai_sketch_mode] workspace: {message}")
     theme.ensure_applied(WORKSPACE_NAME)
     theme.set_floor_grid(WORKSPACE_NAME, prefs.show_floor_grid)
+    # The shipped workspace has the sidebar closed. It now holds the tab's only
+    # route into IFC, so it is opened here rather than left for the user to
+    # discover -- the same reason the tab itself is appended without being asked.
+    sidebar.set_sidebar(WORKSPACE_NAME, prefs.show_sidebar)
     subscribe()
 
 

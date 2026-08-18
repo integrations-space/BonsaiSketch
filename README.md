@@ -120,8 +120,17 @@ a key wired to an approximation teaches the wrong habit.
 Everything above is plain geometry, not IFC. That is the point: sketch first,
 decide what it *is* second.
 
-When a shape is right, select it, switch to the **`BIM`** tab and use Bonsai's
-**Assign IFC Class** to make it a wall, a slab, or whatever it actually is.
+The **`IFC`** panel in the Sketch sidebar is where that happens, without
+leaving the tab. It shows one of two things:
+
+- **No IFC project yet** — a **New IFC Project** button. Make one first.
+  Bonsai's Wall, Slab, Door and Window tools share the Sketch toolbar, and
+  without a project every one of them just reads `No IFC Project`.
+- **A project is open** — select a finished sketch, pick a class, press
+  **Assign**. It becomes a real `IfcWall`, `IfcSlab`, or whatever you chose.
+
+Anything past that — construction types, properties, spatial structure — is
+still Bonsai's **`BIM`** tab, which has the room for it.
 
 Push/Pull deliberately **refuses** to touch an element that is already IFC. Its
 shape is generated from material layers or a profile, and overwriting that with
@@ -136,6 +145,8 @@ own depth controls for those.
 | No `Sketch` tab after installing | The add-on is installed but not ticked in `Preferences > Add-ons` |
 | `Sketch` tab present, letter keys do nothing | You are on a different tab. The keymap is only live on `Sketch` |
 | Tools greyed out, or an error in their settings bar | Bonsai is missing or failed to load — check the `BIM` tab exists |
+| Wall/Door/Window tools say `No IFC Project` | There is no project yet. `IFC` panel in the sidebar → **New IFC Project** |
+| No `IFC` panel in the sidebar | The sidebar is closed — press `N`, or re-tick **IFC sidebar** in the add-on preferences |
 | Push/Pull says "no face under the cursor" | Hover directly over a face. It will also decline objects that have modifiers |
 
 Still stuck: `Window > Toggle System Console` shows what Blender is complaining

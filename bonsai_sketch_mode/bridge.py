@@ -119,6 +119,7 @@ MEASURE_OP = "bim.measure_tool"  # bim/module/project/operator.py
 MEASURE_FACE_AREA_OP = "bim.measure_face_area_tool"  # bim/module/project/operator.py
 CLEAR_MEASUREMENT_OP = "bim.clear_measurement"  # bim/module/project/operator.py
 ASSIGN_CLASS_OP = "bim.assign_class"  # bim/module/root/operator.py
+CREATE_PROJECT_OP = "bim.create_project"  # bim/module/project/operator.py
 UPDATE_REPRESENTATION_OP = "bim.update_representation"  # bim/module/geometry/operator.py
 DELETE_OP = "bim.override_object_delete"  # bim/module/geometry/operator.py
 
@@ -222,6 +223,34 @@ def has_project() -> bool:
         return _tool.Ifc.get() is not None
     except Exception:
         return False
+
+
+def project_name() -> Optional[str]:
+    """The open project's name, for a one-line "there is a project" readout."""
+    if _tool is None:
+        return None
+    try:
+        ifc = _tool.Ifc.get()
+        if ifc is None:
+            return None
+        projects = ifc.by_type("IfcProject")
+        return projects[0].Name or "Unnamed Project" if projects else None
+    except Exception:
+        return None
+
+
+def root_props() -> Any:
+    """Bonsai's class-assignment properties, or None if unreachable.
+
+    These back the Assign IFC Class controls. Read through Root rather than off
+    the scene, because that is the accessor Bonsai's own panel uses.
+    """
+    if _tool is None:
+        return None
+    try:
+        return _tool.Root.get_root_props()
+    except Exception:
+        return None
 
 
 def get_entity(obj: Any) -> Any:

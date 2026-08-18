@@ -32,11 +32,12 @@ from __future__ import annotations
 
 import bpy
 
-from . import bridge, ground, keyconfig, ops, requirements, theme, tools, workspace
+from . import bridge, ground, keyconfig, ops, requirements, sidebar, theme, tools, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
 _tools_status: tuple[bool, str] = (False, "Not yet loaded")
+_sidebar_status: tuple[bool, str] = (False, "Not yet loaded")
 
 
 class BONSAI_SKETCH_MODE_OT_activate_keyconfig(bpy.types.Operator):
@@ -206,6 +207,22 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
         ),
     )
 
+    show_sidebar: bpy.props.BoolProperty(
+        name="IFC sidebar",
+        description=(
+            "Open the Sketch sidebar, which holds the tab's only route into "
+            "IFC: New IFC Project, and Assign IFC Class for a finished "
+            "sketch.\n\n"
+            "Without a project the BIM tools in the toolbar can do nothing, "
+            "and nothing else on this tab can create one. Turn this off to "
+            "get the bare viewport back -- N still opens it"
+        ),
+        default=True,
+        update=lambda self, context: sidebar.set_sidebar(
+            workspace.WORKSPACE_NAME, self.show_sidebar
+        ),
+    )
+
     canvas_on_setup: bpy.props.BoolProperty(
         name="Sketch canvas on by default",
         description=(
@@ -283,6 +300,7 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
         sub = box.row()
         sub.enabled = self.setup_workspace
         sub.prop(self, "activate_workspace")
+        box.prop(self, "show_sidebar")
         if workspace.exists():
             box.label(text="Sketch tab is in the top bar.", icon="CHECKMARK")
         else:
@@ -367,7 +385,7 @@ classes = (
 
 
 def register() -> None:
-    global _keyconfig_status, _tools_status
+    global _keyconfig_status, _tools_status, _sidebar_status
 
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -385,6 +403,13 @@ def register() -> None:
     _tools_status = tools.register()
     if not _tools_status[0]:
         print(f"[bonsai_sketch_mode] tools: {_tools_status[1]}")
+
+    # The Sketch tab's only route into IFC. Registered like the toolbar is --
+    # reported rather than raised -- because losing one panel should not cost
+    # the user the drawing tools as well.
+    _sidebar_status = sidebar.register()
+    if not _sidebar_status[0]:
+        print(f"[bonsai_sketch_mode] sidebar: {_sidebar_status[1]}")
 
     _keyconfig_status = keyconfig.load()
     if not _keyconfig_status[0]:
@@ -404,6 +429,7 @@ def register() -> None:
 
 def unregister() -> None:
     ground.uninstall()
+    sidebar.unregister()
     workspace.unregister_handlers()
     keyconfig.unload()
     tools.unregister()

@@ -288,6 +288,57 @@ project's own ideas rather than SketchUp parity: live rectangle preview while
 dragging, Push/Pull driving Bonsai's parametric depth on typed IFC elements, the
 condensed Entity Info panel (see section 7), and the Instructor panel.
 
+## 8b. Fixed, 2026-08-18: the Sketch tab had no route into IFC
+
+Reported as "difficulties inserting walls, or simple IFC content". Nothing was
+broken. `tools/bonsai_check.py` walked Bonsai's whole authoring path headlessly
+and passed 38/38 -- project, types, occurrences, voids, assign class. The fault
+was that none of it was reachable from the tab the user was sitting on.
+
+The measurements, taken against Bonsai 0.8.5:
+
+- The Sketch workspace is exactly one `VIEW_3D` area. No Properties editor, no
+  Outliner. That is deliberate and still right.
+- Bonsai's UI is 202 `PROPERTIES` panels against 38 `VIEW_3D` ones, and most of
+  the latter are gizmos. The two that matter here are both Properties panels:
+  `BIM_PT_new_project_wizard` (`bl_context = "scene"`) and `BIM_PT_class`
+  (`bl_context = "object"`).
+- Bonsai adds nothing to the top bar or the File menu, so there was no second
+  route either.
+- The workspace does not filter tools by owner, so all thirteen BIM tools sit
+  in the Sketch toolbar. They activate fine. They then draw `No IFC Project`
+  and return (`model/workspace.py:478`), and nothing on the tab could create
+  the project that would unblock them.
+
+So: a gated tool that looks identical to a broken one, and a README step 5 that
+resolved to "leave this tab".
+
+`sidebar.py` is the fix -- the two missing buttons, and deliberately nothing
+else. New IFC Project when there is none; class dropdown and Assign when there
+is one and a sketch is selected. The workspace now opens the sidebar at append
+time, behind an **IFC sidebar** preference for anyone who wants the bare
+viewport back.
+
+One trap found while building it and closed: Bonsai's class list is filtered by
+`ifc_product`, which defaults to `IfcElementType`. A panel showing only the
+class would happily assign a *construction type* to a drawn shape. So Assign
+goes through `bonsai_sketch_mode.assign_class`, which pins the product to
+`IfcElement` first -- Bonsai's own update callback then maps `IfcWallType` to
+`IfcWall`. `bonsai_check.py` asserts that mapping.
+
+Checked, not assumed, along the way: Bonsai's tool hotkeys are all
+Shift/Ctrl/Alt-modified, so they do **not** collide with the Sketch tab's bare
+letter keys. The `Sketch` keyconfig does lack the add-on tool keymaps that live
+in `Blender`/`Blender addon` (95 tool keymaps against 129), but Blender resolves
+tools through the merged user config, so both our tools and Bonsai's bind
+correctly with `Sketch` active. Neither was the bug.
+
+Still true, and still the next question: nothing here creates walls *as walls*.
+Draw-then-assign gives an `IfcWall` with a mesh body, not a parametric wall with
+material layers. Bonsai's own Wall tool in the shared toolbar does that, and now
+that a project can be created from this tab it works -- verified placing an
+occurrence from the Sketch viewport, landing in `IfcBuildingStorey/My Storey`.
+
 ## 9. Development environment note
 
 The installed extension in Blender's user repository goes stale silently, and it
