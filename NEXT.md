@@ -1,18 +1,66 @@
 # What to do next
 
-State as of 2026-08-02. The add-on has been renamed from BonsaiBIM to Bonsai,
+State as of 2026-08-18. The add-on has been renamed from BonsaiBIM to Bonsai,
 which changed every file path and every identifier — that reshapes the merge
 order below, so **read section 1 before touching the open PRs**. Two feature PRs
 are open and green; eight issues carry the SketchUp gap list.
 
-Fourteen commits on `next-steps`. Eleven landed on 07-28: the rename, the
-merge-order inversion, the Blender preference fix, configurable canvas colours,
-the class names, one project name, the floor-grid toggle, and an unfinished
-ground plane. Three landed on 08-02, all in Push/Pull — see section 10. Suites
-are green: 160 headless on both 5.0 and 5.2, 32 in the viewport.
+`next-steps` has diverged from its own remote — **read section 0 before
+pushing anything.** Five commits are local and unpushed, two are on the remote
+and not local, and three files conflict.
 
-**Start at section 5.** It is the nearest to done, the most visible, and the
-only thing committed in a knowingly unfinished state.
+Four of those five landed on 08-18 and are new ground: the Sketch tab could not
+reach IFC at all (8b), a text-to-model channel (8c), Claude wired under Sketch
+(8d), and what the Wall Tool does when a wall type has no material layers (8e).
+
+Suites are green on Blender 5.0 and 5.2: 253 headless — `smoke_test` 166,
+`bonsai_check` 49, `claude_check` 38 — and 102 in the viewport across
+`ui_check` 52, `textmodel_check` 35 and `describe_check` 15. 355 in total, up
+from 192, and three of the six suites did not exist a fortnight ago.
+
+**Start at section 0.** Nothing else can be published until that is settled.
+
+## 0. `next-steps` has diverged from itself, 2026-08-18
+
+Nothing from 08-18 has been pushed. The branch is `ahead 5, behind 2`, so a
+plain `git push` is refused.
+
+On the remote and not local — Push/Pull inference, continued:
+
+| | |
+| --- | --- |
+| `234a3bc` | Draw the inference dot Push/Pull's header could only describe |
+| `64ccd4c` | Let Push/Pull stop level with a sloped plane, not just level with points |
+
+Local and not on the remote:
+
+| | |
+| --- | --- |
+| `337dd1e` | Add face-plane inference and nested regional push-pull tests |
+| `4b6df31` | Give the Sketch tab a way into IFC at all |
+| `401c0b2` | Let something other than a mouse drive Sketch Mode |
+| `b850072` | Open the sidebar on our tab, not on Transform |
+| `101bde8` | Wire Claude under Sketch, so a sentence becomes a building |
+
+`git merge-tree` says three files conflict, and they are two different problems
+that should not be conflated:
+
+- **`bonsai_sketch_mode/__init__.py`** — mechanical. Both sides added a
+  registration and some preferences; the remote adds `marks.py`, the local
+  commits add the sidebar, the Describe panel, and the Anthropic key. Nothing
+  disagrees, the edits merely landed in the same place.
+- **`bonsai_sketch_mode/ops/pushpull.py` and `tools/smoke_test.py`** — not
+  mechanical, and nothing to do with the 08-18 work, which never touched either
+  file. This is `337dd1e` against `234a3bc`/`64ccd4c`: *two parallel
+  implementations of Push/Pull inference*, developed on two machines. Deciding
+  which survives is a design call about that feature, not a merge chore. Read
+  both before resolving; taking either side wholesale is likely wrong, since one
+  draws the indicator section 8 asks for and the other infers the face plane.
+
+`NEXT.md` auto-merges despite both sides editing it.
+
+Order, then: settle the Push/Pull question first, because it is the one that
+needs judgement. `__init__.py` can be resolved by keeping both blocks.
 
 ## 1. Merge order, now that the rename has landed
 
@@ -474,6 +522,79 @@ finishes), any way to revise what was built rather than add to it, and prompt
 caching -- the tool list is deliberately order-stable so caching can be switched
 on later without a cache-miss-per-call, but nothing sets `cache_control` yet.
 
+## 8e. Diagnosed, not ours, 2026-08-18: the Wall Tool's two personalities
+
+Reported as "when I click on screen, a panel appears immediately, I cannot
+select the second point to determine the length?" -- clicking with the Wall
+Tool produced an **Add Type Occurrence** dialog offering "No Geometry", instead
+of letting a wall run be drawn.
+
+Two separate things, and only the second is interesting.
+
+**The Wall Tool does not draw on click.** Its `bl_keymap` binds LEFTMOUSE to
+`view3d.select`. The polyline drawer only starts from **Add** (or `Shift+A`),
+and once it is running, each click places a *point* -- nothing becomes a wall
+until the run is confirmed with `Enter`, `Numpad Enter` or right-click
+(`wall.py:700`). Points on screen and no geometry is the expected midpoint of
+that interaction, not a failure.
+
+**`Add` does completely different things depending on the wall type.** From
+`workspace.py:1183`:
+
+```python
+if tool.Model.get_usage_type(relating_type) == "LAYER2":
+    return bpy.ops.bim.draw_polyline_wall(...)   # click points, Enter
+...
+return bpy.ops.bim.draw_occurrence(...)          # single point + a dialog
+```
+
+and `get_usage_type` returns `LAYER2` only when the type carries an
+`IfcMaterialLayerSet`. A wall type without one has no layer geometry to sweep
+along a path, so it falls through to generic occurrence placement. There is no
+second point to pick because that code path never runs.
+
+### Is it a bug
+
+Not in the logic -- the fallback is the correct behaviour for a type that
+genuinely has no layers. It is a real usability defect: the same button on the
+same tool with a same-looking type silently swaps the entire interaction model,
+and nothing in the tool header says which one is in force. "No Geometry" names
+the symptom and never the cause. Worth filing upstream as *"Add silently
+changes interaction model when the wall type has no material layer set"*.
+
+Not ours either, and that was checked rather than assumed. Both normal creation
+routes produce a layered type in a clean project:
+
+```text
+Quick Create (add_default_type)   usage=LAYER2   material=IfcMaterialLayerSet
+Create New   (add_element)        usage=LAYER2   material=IfcMaterialLayerSet
+```
+
+`commands.create_type` calls the first of those, and the sidebar's Assign pins
+the product to an occurrence so it cannot create a type at all. A layerless
+wall type has to have come from a Type Manager template or from a class
+assigned to mesh geometry through Bonsai's own panel.
+
+To tell them apart:
+
+```python
+import bonsai.tool as tool, ifcopenshell.util.element as ue
+for t in tool.Ifc.get().by_type("IfcWallType"):
+    print(t.Name, tool.Model.get_usage_type(t), ue.get_material(t, should_inherit=False))
+```
+
+`bpy.ops.bim.add_default_type(ifc_element_type="IfcWallType")` makes a good one.
+Note that Quick Create will not reappear in the tool header to offer this --
+it only shows while *no* wall types exist.
+
+### Agreed follow-up
+
+The fair criticism of our side is that the Sketch sidebar was on screen
+throughout and said nothing useful. The IFC panel should warn when the selected
+wall type has no material layers, naming the cause and offering
+`add_default_type`, so this is read rather than discovered through a mystery
+dialog. Small -- roughly twenty lines and a check. Not yet built.
+
 ## 9. Development environment note
 
 The installed extension in Blender's user repository goes stale silently, and it
@@ -485,13 +606,16 @@ extensions by id, so it would never have been upgraded in place.
 
 Current state, after the rename:
 
-- **Blender 5.0** — junction to `bonsai_sketch_mode`, repointed. 160 headless
-  checks and 32 viewport checks pass.
+- **Blender 5.0** — junction to `bonsai_sketch_mode`, repointed. 253 headless
+  checks pass, re-run on 2026-08-18 including the two new suites. Python 3.11
+  there against 3.13 on 5.2, which is the reason to keep running it: it is the
+  only check that the 08-18 code is not quietly 3.13-only.
 - **Blender 5.2 LTS** — uninstalled and reinstalled on 2026-07-28 from
   `blender-5.2.0-windows-x64.msi` (build 2026-07-14), replacing the stale zip
-  install with a junction. 160 headless checks pass, re-run on 2026-08-02.
-  Bonsai survived the reinstall, because extensions live in the user config
-  directory rather than under Program Files, so the 0.8.5 pairing is intact.
+  install with a junction. 253 headless and 102 viewport checks pass, re-run on
+  2026-08-18. Bonsai survived the reinstall, because extensions live in the user
+  config directory rather than under Program Files, so the 0.8.5 pairing is
+  intact.
 - **Blender 4.2** — installed but below `blender_version_min = "5.0.0"`, so it
   is not a target.
 
@@ -517,8 +641,23 @@ nothing is lost by not doing that locally.
 
 Whichever route, check the suite is loading what you think: it reports the module
 path it imported. On `main` today that is 111 headless checks plus 27 viewport
-checks; on `next-steps` it is 160 and 32. The figure of 181 quoted two versions
-ago was written against #1's branch and describes neither.
+checks; on `next-steps` it is 253 and 102. Any older figure in this file's
+history — 160/32, or the 181 quoted two versions ago against #1's branch —
+describes none of them.
+
+Three of the six suites are new as of 08-18, and where they can run differs:
+
+| Suite | Needs | Why |
+| --- | --- | --- |
+| `smoke_test` 166 | headless | |
+| `bonsai_check` 49 | headless | Bonsai's authoring path, which `smoke_test` deliberately never touches |
+| `claude_check` 38 | headless | drives its own main-thread pump, so no event loop is needed |
+| `ui_check` 52 | GUI | tool activation and the sidebar need a real region |
+| `textmodel_check` 35 | GUI | the socket's pump is a `bpy.app.timers` callback, and `-b` has no event loop to fire it |
+| `describe_check` 15 | GUI | the Describe panel is a modal operator |
+
+CI runs 5.0 only and cannot run the three GUI suites at all, so half the checks
+are local-only. Run them by hand before trusting anything about the viewport.
 
 One trap the junction does not cover: enabling an add-on is a *saved preference*,
 keyed by module path. The rename changed that path, so both Blenders went on
