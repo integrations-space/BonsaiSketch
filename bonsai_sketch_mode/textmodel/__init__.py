@@ -55,19 +55,33 @@ from __future__ import annotations
 
 from typing import Optional
 
-from . import server
+from . import server, ui
 
 #: Re-exported so callers need only this package.
 DEFAULT_PORT = server.DEFAULT_PORT
 
 
 def register(port: int = DEFAULT_PORT) -> tuple[bool, str]:
-    """Start the channel. Returns (ok, message). Never raises."""
+    """Open the socket channel. Returns (ok, message). Never raises."""
     return server.start(port)
 
 
 def unregister() -> None:
+    """Close the socket channel. The panel is registered separately."""
     server.stop()
+
+
+def register_ui() -> tuple[bool, str]:
+    """Add the Describe panel. Independent of the socket, and always on.
+
+    The panel costs nothing until it is used and asks for no permission --
+    unlike the socket, which is a listener and stays shut until asked for.
+    """
+    return ui.register()
+
+
+def unregister_ui() -> None:
+    ui.unregister()
 
 
 def is_running() -> bool:

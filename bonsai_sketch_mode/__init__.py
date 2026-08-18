@@ -30,6 +30,8 @@ GPL-3.0-or-later, matching Bonsai.
 
 from __future__ import annotations
 
+import os
+
 import bpy
 
 from . import bridge, ground, keyconfig, ops, requirements, sidebar, textmodel, theme, tools, workspace
@@ -38,6 +40,7 @@ _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
 _tools_status: tuple[bool, str] = (False, "Not yet loaded")
 _sidebar_status: tuple[bool, str] = (False, "Not yet loaded")
+_textmodel_status: tuple[bool, str] = (False, "Not yet loaded")
 
 
 class BONSAI_SKETCH_MODE_OT_activate_keyconfig(bpy.types.Operator):
@@ -285,6 +288,24 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
     axis_y_colour: _colour_prop("Green Axis", theme.AXIS_Y, "The Y axis")
     axis_z_colour: _colour_prop("Blue Axis", theme.AXIS_Z, "The Z axis")
 
+    anthropic_api_key: bpy.props.StringProperty(
+        name="Anthropic API key",
+        description=(
+            "Used by the Describe box on the Sketch tab to build from a "
+            "sentence. Requests go to Anthropic and are billed to this key.\n\n"
+            "Blender stores preferences in plain text. If that is not "
+            "acceptable, leave this empty and set ANTHROPIC_API_KEY in the "
+            "environment instead -- it is read when this is blank"
+        ),
+        default="",
+        subtype="PASSWORD",
+    )
+    anthropic_model: bpy.props.StringProperty(
+        name="Model",
+        description="Which Claude model the Describe box uses",
+        default=textmodel.claude.DEFAULT_MODEL,
+    )
+
     textmodel_enabled: bpy.props.BoolProperty(
         name="Text-to-model channel",
         description=(
@@ -347,7 +368,19 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
         box.prop(self, "show_sidebar")
 
         box = layout.box()
-        box.label(text="Text to Model", icon="CONSOLE")
+        box.label(text="Describe", icon="OUTLINER_OB_FONT")
+        column = box.column(align=True)
+        column.scale_y = 0.8
+        column.label(text="Type what to build on the Sketch tab, and let")
+        column.label(text="Claude build it with the Sketch tools.")
+        box.prop(self, "anthropic_api_key")
+        box.prop(self, "anthropic_model")
+        if not self.anthropic_api_key and not os.environ.get("ANTHROPIC_API_KEY"):
+            row = box.row()
+            row.label(text="No key set, so the Describe box is hidden.", icon="INFO")
+
+        box = layout.box()
+        box.label(text="Text to Model channel", icon="CONSOLE")
         column = box.column(align=True)
         column.scale_y = 0.8
         column.label(text="A local command channel, for an agent or a script.")
@@ -456,7 +489,7 @@ classes = (
 
 
 def register() -> None:
-    global _keyconfig_status, _tools_status, _sidebar_status
+    global _keyconfig_status, _tools_status, _sidebar_status, _textmodel_status
 
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -482,6 +515,12 @@ def register() -> None:
     if not _sidebar_status[0]:
         print(f"[bonsai_sketch_mode] sidebar: {_sidebar_status[1]}")
 
+    # The Describe panel, which is UI and therefore always present. The socket
+    # channel next to it is a listener and stays shut until asked for.
+    _textmodel_status = textmodel.register_ui()
+    if not _textmodel_status[0]:
+        print(f"[bonsai_sketch_mode] textmodel: {_textmodel_status[1]}")
+
     _keyconfig_status = keyconfig.load()
     if not _keyconfig_status[0]:
         print(f"[bonsai_sketch_mode] keymap: {_keyconfig_status[1]}")
@@ -501,6 +540,7 @@ def register() -> None:
 def unregister() -> None:
     # First: it is the only thing here holding an OS resource and a thread.
     textmodel.unregister()
+    textmodel.unregister_ui()
     ground.uninstall()
     sidebar.unregister()
     workspace.unregister_handlers()

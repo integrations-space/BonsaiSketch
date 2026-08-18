@@ -409,6 +409,71 @@ placed -- an agent can build but not revise. It also writes immediately, with no
 proposal step: that is the deliberate line between this and the adapter, and it
 is why running the governed path is still the better default for anything real.
 
+## 8d. New, 2026-08-18: Claude wired under Sketch
+
+Agreed: wire Claude in directly, so a user types a sentence on the Sketch tab
+and gets a building. The socket channel (8c) is the thing Claude talks *to*;
+this is the half that does the talking, and it lives in the same package.
+
+`Describe` panel in the Sketch sidebar -> worker thread -> Messages API with the
+nine verbs as tools -> tool-use loop -> verbs on the main thread. Verified from
+"a 5 by 5 room, 2.7m high" to four parametric `IfcWall`s at 5.00m x 2.70m.
+
+### Raw HTTP, and why that is not laziness
+
+The Anthropic Python SDK is the right default in a Python project. It is the
+wrong default here, for a reason this repo already documented: the manifest pins
+our Blender range because *Bonsai* ships compiled wheels that must match the host
+Python. The SDK brings `pydantic-core` and `jiter`, both compiled. Vendoring it
+would re-import exactly the fragility that comment exists to warn about, to make
+one kind of POST request.
+
+So `urllib.request`, and `claude.py` is the only module that would need
+rewriting if that ever changes. Stated here because it is a deliberate
+divergence from the house rule, not an oversight.
+
+### What the API actually wants (checked, not recalled)
+
+- `claude-opus-5`, thinking adaptive and on by default.
+- `budget_tokens` is **removed** -- 400 on Opus 5. So are `temperature`,
+  `top_p`, `top_k`. `claude_check.py` asserts none of them are ever sent,
+  because they are exactly the kind of thing that gets re-added from memory.
+- `stop_reason: "refusal"` returns **HTTP 200**. Read it before reading
+  `content`, or a decline reports as a successful build of nothing.
+- Assistant prefill is removed too. Nothing here used it; worth not adding.
+
+### Three things that shaped the code
+
+- **One user message per turn.** Every `tool_result` for a turn goes back in a
+  single user message. Splitting them teaches the model to stop asking for more
+  than one thing at a time, and it is invisible from the outside -- so the test
+  asserts on what went *out*, not just what came back.
+- **A failed verb is a result, not an exception.** "no IfcWallType exists" comes
+  back as `is_error` and the model creates one. Raising instead would turn every
+  recoverable mistake into a dead run.
+- **The modal operator drives the pump itself.** A modal owns Blender's event
+  loop and `bpy.app.timers` is not promised a slot underneath one. The worker
+  waits on `mainthread.submit` for every verb, so without `pump_once()` in the
+  modal's TIMER handler, every build would hang to its timeout. `describe_check.py`
+  exists specifically to catch that, and it needs a GUI to do so.
+
+`mainthread.py` came out of `server.py` in the process -- both halves need the
+same trick, and two copies of it would have been one too many. It is reference
+counted, so closing the socket cannot strand a Claude request mid-flight.
+
+### The line this does not cross
+
+There is still no proposal step, no critique and no human gate: the panel writes
+straight to the model. That remains the difference between this and the IDD
+`bonsai_adapter`, and it is the reason the governed path is still the right
+default for anything that matters. `Ctrl+Z` is the whole safety story here, and
+the README says so.
+
+Also absent: streaming (so a long build shows "thinking" and no detail until it
+finishes), any way to revise what was built rather than add to it, and prompt
+caching -- the tool list is deliberately order-stable so caching can be switched
+on later without a cache-miss-per-call, but nothing sets `cache_control` yet.
+
 ## 9. Development environment note
 
 The installed extension in Blender's user repository goes stale silently, and it

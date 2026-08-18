@@ -173,6 +173,27 @@ direct modeller's workflow is to sketch first and assign meaning second, and
 Bonsai's own **Assign IFC Class** completes it. Push/Pull declines to touch an
 IFC element rather than tessellate away its parametric definition.
 
+## Describe what you want
+
+Type a sentence on the Sketch tab and let Claude build it with the Sketch
+tools. `IFC` sidebar -> `Describe`:
+
+> a 6 by 4 metre room, 3 metres high
+
+Four real parametric walls, with material layers and thickness -- not a mesh box
+called a wall. Claude drives the same verbs listed below, so anything it builds,
+you could have built by hand, and it refuses the same things you would be
+refused.
+
+Add an Anthropic API key in **Preferences > Add-ons > Bonsai Sketch Mode >
+Describe**, or set `ANTHROPIC_API_KEY` in the environment. Requests go to
+Anthropic and are billed to that key. Without a key the panel stays hidden and
+nothing else changes.
+
+It edits your live model and there is no proposal step, so treat it the way you
+would treat any other edit: know what you asked for, and check what you got.
+`Ctrl+Z` undoes a build.
+
 ## Text to model
 
 An optional command channel, so something other than a person at a mouse can

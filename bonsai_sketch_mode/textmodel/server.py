@@ -31,6 +31,9 @@ A request therefore costs at least one timer interval, which is the price of
 never touching ``bpy`` off the main thread. It is not a slow price -- the pump
 runs at 20 Hz -- and it is the only correct one.
 
+The pump itself lives in ``mainthread``, because the Claude client needs the
+same trick and two copies of it would be one too many.
+
 The listener binds to loopback and nothing else. Blender has no notion of a
 privileged operation, so anything that can reach this socket can rewrite the
 model; that is a local development channel by construction, not a service.
@@ -39,15 +42,12 @@ model; that is a local development channel by construction, not a service.
 from __future__ import annotations
 
 import hmac
-import queue
 import socket
 import threading
 import traceback
 from typing import Any, Optional
 
-import bpy
-
-from . import protocol
+from . import mainthread, protocol
 
 #: Chosen high and unassigned. Configurable in preferences.
 DEFAULT_PORT = 4271
@@ -56,12 +56,8 @@ DEFAULT_PORT = 4271
 #: model has no business being reachable from another machine.
 HOST = "127.0.0.1"
 
-#: How often the main thread drains the queue. Fast enough to feel immediate,
-#: slow enough to cost nothing while idle.
-PUMP_INTERVAL = 0.05
-
 #: How long a client waits for the main thread. Generous, because the main
-#: thread may be busy drawing, and a modal operator blocks the timer entirely.
+#: thread may be busy drawing, and a modal operator blocks the pump entirely.
 REQUEST_TIMEOUT = 60.0
 
 #: Read timeout on an idle connection, so a client that goes away is dropped.
@@ -76,51 +72,6 @@ _state: dict[str, Any] = {
     "running": False,
     "served": 0,
 }
-
-_requests: "queue.Queue[_Call]" = queue.Queue()
-
-
-class _Call:
-    """One request in flight, and the event the socket thread waits on."""
-
-    __slots__ = ("command", "params", "done", "result", "failure")
-
-    def __init__(self, command: str, params: dict) -> None:
-        self.command = command
-        self.params = params
-        self.done = threading.Event()
-        self.result: Any = None
-        self.failure: Optional[str] = None
-
-
-# --- Main thread -------------------------------------------------------------
-
-
-def _pump() -> Optional[float]:
-    """Run queued verbs on the main thread. Registered as a Blender timer."""
-    if not _state["running"]:
-        return None
-
-    # Imported here, not at module scope: commands reaches into the rest of the
-    # add-on, and this keeps the socket layer importable on its own.
-    from . import commands
-
-    while True:
-        try:
-            call = _requests.get_nowait()
-        except queue.Empty:
-            break
-        try:
-            call.result = commands.run(call.command, call.params)
-        except Exception as exc:
-            call.failure = f"{type(exc).__name__}: {exc}"
-            traceback.print_exc()
-        finally:
-            call.done.set()
-            _state["served"] += 1
-
-    return PUMP_INTERVAL
-
 
 # --- Socket threads ----------------------------------------------------------
 
@@ -146,16 +97,16 @@ def _dispatch(payload: dict) -> dict:
     if not isinstance(params, dict):
         return protocol.error(request_id, "params must be an object")
 
-    call = _Call(command, params)
-    _requests.put(call)
-    if not call.done.wait(REQUEST_TIMEOUT):
-        return protocol.error(
-            request_id,
-            "timed out after %.0fs -- Blender may be in a modal tool" % REQUEST_TIMEOUT,
-        )
-    if call.failure is not None:
-        return protocol.error(request_id, call.failure)
-    return protocol.ok(request_id, call.result)
+    # commands reaches into the rest of the add-on, so it is imported here
+    # rather than at module scope: the socket layer stays importable on its own.
+    from . import commands
+
+    try:
+        result = mainthread.submit(commands.run, command, params, timeout=REQUEST_TIMEOUT)
+    except Exception as exc:
+        return protocol.error(request_id, "%s: %s" % (type(exc).__name__, exc))
+    _state["served"] += 1
+    return protocol.ok(request_id, result)
 
 
 def _serve(connection: socket.socket) -> None:
@@ -236,8 +187,7 @@ def start(port: int = DEFAULT_PORT) -> tuple[bool, str]:
     thread.start()
     _state["thread"] = thread
 
-    if not bpy.app.timers.is_registered(_pump):
-        bpy.app.timers.register(_pump, first_interval=PUMP_INTERVAL, persistent=True)
+    mainthread.acquire()
 
     _state["path"] = protocol.write_discovery(_state["port"], token)
     where = _state["path"] or "(discovery file could not be written)"
@@ -259,21 +209,8 @@ def stop() -> None:
         except OSError:
             pass
 
-    # Release anything still waiting on the main thread, which will not run
-    # again once the timer is gone.
-    while True:
-        try:
-            call = _requests.get_nowait()
-        except queue.Empty:
-            break
-        call.failure = "the text-to-model channel was closed"
-        call.done.set()
-
-    if bpy.app.timers.is_registered(_pump):
-        try:
-            bpy.app.timers.unregister(_pump)
-        except ValueError:
-            pass
+    # Anything still queued is released by the pump when the last user lets go.
+    mainthread.release()
 
     protocol.clear_discovery()
     _state.update(socket=None, thread=None, token=None, port=None, path=None)
