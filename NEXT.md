@@ -339,6 +339,76 @@ material layers. Bonsai's own Wall tool in the shared toolbar does that, and now
 that a project can be created from this tab it works -- verified placing an
 occurrence from the Sketch viewport, landing in `IfcBuildingStorey/My Storey`.
 
+## 8c. New, 2026-08-18: text to model, as a package under Sketch Mode
+
+Asked directly: is Claude wired into Bonsai, and if not can Sketch set up the
+wire. Checked rather than recalled -- Bonsai 0.8.5 contains no reference to
+anthropic, claude, openai, mcp or langchain. Nothing is wired. There is a
+precedent for the transport though: Bonsai already runs websocket servers in
+process for its own web UI (`bim.connect_websocket_server`, `IfcTesterWebSocketServer`).
+
+More usefully, our own IDD stack already declares the counterpart. `list_adapters`
+returns a `bonsai_adapter` -- "BonsaiBIM Adapter", transport `local-service`,
+capabilities `context-extraction`, `action-execution`, `headless`,
+`geometry-write`, handles `*` -- and its status is **offline**. The contract
+exists. What is missing is the thing on the Blender end for it to talk to.
+
+### Why it is a package, not a module
+
+Agreed explicitly, and worth writing down because it constrains what goes in it.
+`bonsai_sketch_mode/textmodel/` is a self-contained subpackage with `register`
+and `unregister` as its whole surface. Nothing outside it imports `server` or
+`commands`.
+
+- It is a *second way in*, for a caller that is not a person at a mouse.
+  Everything else in this add-on is interaction; this is not, and mixing the two
+  would leave the drawing tools carrying a socket they never use.
+- It is off unless switched on, bound to loopback, and every request carries a
+  per-session token. A socket that can rewrite the model is not something to
+  open because an add-on happens to be installed.
+- It is a candidate for extraction. Wrapping it as the IDD `bonsai_adapter`
+  should be a wrapping job, not a rewrite. Keeping the boundary sharp now is
+  what buys that.
+- No model, no prompt, no API key lives here. This is not Claude; it is the
+  thing Claude talks *to*. Governance -- propose, critique, human gate -- belongs
+  to the adapter, and building it here would mean building it twice.
+
+### What it does
+
+Nine verbs, each a thin checked shell over something a user could do by hand:
+`ping`, `describe`, `list_elements`, `create_project`, `create_type`,
+`add_walls`, `sketch_polyline`, `push_pull`, `assign_class`.
+
+`add_walls` is the one that makes this worth having. It reaches
+`DumbWallGenerator` through the bridge and drives its POLYLINE insertion, which
+is the non-modal half of the wall tool: real walls with material layers and
+thickness, not a mesh box called a wall. Verified from a terminal against a live
+Blender -- an L-shaped plan of six points became six parametric `IfcWall`s at the
+right lengths, and a sketched slab became an `IfcSlab`.
+
+The rest is the sketch-then-name path the product already believes in, which is
+what to reach for when Bonsai has no parametric generator for the shape.
+
+### Two things that shaped the code
+
+- **Blender's API is single threaded.** The socket thread never touches `bpy`.
+  It queues, a `bpy.app.timers` pump drains the queue on the main thread, and
+  the socket thread wakes to write the reply. This is also why the channel does
+  not work under `-b`: no event loop, so no pump. `textmodel_check.py` needs a
+  GUI for that reason and says so.
+- **`obj.dimensions` lags the depsgraph.** `push_pull` reported a height of zero
+  in a GUI session while reading correctly headless -- the reply carried the size
+  from *before* the push. A `view_layer.update()` fixes it, and the check now
+  pins the value rather than only the `ok` flag. Worth remembering: the headless
+  suites cannot see this class of bug at all.
+
+### Not done
+
+The channel has no undo verb, no delete, and no way to edit an element once
+placed -- an agent can build but not revise. It also writes immediately, with no
+proposal step: that is the deliberate line between this and the adapter, and it
+is why running the governed path is still the better default for anything real.
+
 ## 9. Development environment note
 
 The installed extension in Blender's user repository goes stale silently, and it

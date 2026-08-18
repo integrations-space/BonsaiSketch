@@ -192,6 +192,77 @@ def polyline_unavailable_reason() -> Optional[str]:
     return _polyline_reason
 
 
+# --- Bonsai's wall generator -------------------------------------------------
+# The wall tools a user reaches are modal: they need a viewport and a mouse.
+# DumbWallGenerator is the class underneath them, and its POLYLINE insertion
+# builds a run of parametric walls from a list of points -- material layers,
+# thickness and joins included, rather than a mesh box called a wall.
+#
+# That is what makes a typed instruction into a real model, so it is the one
+# piece of Bonsai the text-to-model package cannot do without.
+
+_wall_reason: Optional[str] = None
+_DumbWallGenerator: Any = None
+
+if _tool is not None:
+    try:
+        from bonsai.bim.module.model.wall import DumbWallGenerator as _DumbWallGenerator
+    except Exception as exc:  # pragma: no cover - depends on host install
+        _wall_reason = f"Bonsai's wall generator could not be imported: {exc}"
+else:
+    _wall_reason = _unavailable_reason
+
+
+def wall_generator_available() -> bool:
+    return _DumbWallGenerator is not None
+
+
+def wall_generator_unavailable_reason() -> Optional[str]:
+    return _wall_reason
+
+
+def create_walls(relating_type: Any, points: list, height: Optional[float] = None) -> list:
+    """Parametric walls along ``points``. Returns the Blender objects made.
+
+    Bonsai reads the run from its own polyline properties rather than from an
+    argument, so they are written and then cleared again -- leaving them
+    populated would give the next interactive wall a phantom starting path.
+    """
+    if _DumbWallGenerator is None:
+        raise RuntimeError(_wall_reason or "Bonsai's wall generator is unavailable")
+    if len(points) < 2:
+        raise ValueError("a wall run needs at least two points")
+
+    props = _tool.Model.get_model_props()
+    if height is not None:
+        props.extrusion_depth = float(height)
+
+    polyline_props = _tool.Model.get_polyline_props()
+    polyline_props.insertion_polyline.clear()
+    polyline = polyline_props.insertion_polyline.add()
+    for point in points:
+        entry = polyline.polyline_points.add()
+        entry.x, entry.y, entry.z = (float(point[0]), float(point[1]), float(point[2]))
+
+    try:
+        result = _DumbWallGenerator(relating_type).generate(insertion_type="POLYLINE")
+    finally:
+        polyline_props.insertion_polyline.clear()
+
+    walls = result[0] if isinstance(result, tuple) else (result or [])
+    return [wall["obj"] for wall in walls if wall and wall.get("obj")]
+
+
+def model_props() -> Any:
+    """Bonsai's model properties -- wall height, length, angle."""
+    if _tool is None:
+        return None
+    try:
+        return _tool.Model.get_model_props()
+    except Exception:
+        return None
+
+
 # --- Bonsai tool namespaces --------------------------------------------------
 # Bound once at import so callers write ``bridge.Polyline.foo()`` rather than
 # threading a namespace object around. None when Bonsai is absent; the

@@ -173,6 +173,41 @@ direct modeller's workflow is to sketch first and assign meaning second, and
 Bonsai's own **Assign IFC Class** completes it. Push/Pull declines to touch an
 IFC element rather than tessellate away its parametric definition.
 
+## Text to model
+
+An optional command channel, so something other than a person at a mouse can
+drive this Blender -- an agent, a script, a CI job. It lives in its own package
+(`bonsai_sketch_mode/textmodel/`), it is closed unless you open it, it listens on
+loopback only, and every request carries a token generated for that session.
+
+Open it in **Preferences > Add-ons > Bonsai Sketch Mode > Text to Model**. The
+port and token are published to a file the client finds on its own:
+
+```
+python tools/textmodel_client.py ping
+python tools/textmodel_client.py create_project
+python tools/textmodel_client.py create_type '{"ifc_class": "IfcWallType"}'
+python tools/textmodel_client.py add_walls '{"points": [[0,0],[6,0],[6,4],[0,4],[0,0]], "height": 3}'
+```
+
+That last line produces four real walls with material layers and thickness, not
+a mesh box called a wall -- it drives Bonsai's own wall generator.
+
+| Verb | |
+| --- | --- |
+| `ping` | What is running, and whether a project is open |
+| `describe` | The model in one reply: counts by class, types, loose sketches |
+| `list_elements` | Elements of a class, with their objects |
+| `create_project` | The gate everything else is behind |
+| `create_type` | A construction type, such as `IfcWallType` |
+| `add_walls` | Parametric walls along a run of points |
+| `sketch_polyline` | Plain sketch geometry, as the Line tool leaves it |
+| `push_pull` | Extrude one face of a sketch |
+| `assign_class` | Turn a finished sketch into an IFC element |
+
+Anything that reaches this socket can rewrite the model — there is no
+proposal step and no undo. It is a local development channel, not a service.
+
 ## Status
 
 Early, but usable for sketching. Working:

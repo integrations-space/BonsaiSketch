@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import bpy
 
-from . import bridge, ground, keyconfig, ops, requirements, sidebar, theme, tools, workspace
+from . import bridge, ground, keyconfig, ops, requirements, sidebar, textmodel, theme, tools, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
@@ -72,6 +72,34 @@ class BONSAI_SKETCH_MODE_OT_open_workspace(bpy.types.Operator):
         if prefs is not None:
             theme.set_floor_grid(workspace.WORKSPACE_NAME, prefs.show_floor_grid)
         workspace.subscribe()
+        self.report({"INFO"}, message)
+        return {"FINISHED"}
+
+
+class BONSAI_SKETCH_MODE_OT_toggle_textmodel(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.toggle_textmodel"
+    bl_label = "Text-to-Model Channel"
+    bl_description = (
+        "Open or close the local command channel that lets an agent or a script "
+        "drive this Blender. Loopback only, and closed unless switched on"
+    )
+
+    def execute(self, context: bpy.types.Context):
+        prefs = workspace.get_prefs()
+        if textmodel.is_running():
+            textmodel.unregister()
+            if prefs is not None:
+                prefs.textmodel_enabled = False
+            self.report({"INFO"}, "Text-to-model channel closed")
+            return {"FINISHED"}
+
+        port = prefs.textmodel_port if prefs is not None else textmodel.DEFAULT_PORT
+        ok, message = textmodel.register(port)
+        if not ok:
+            self.report({"ERROR"}, message)
+            return {"CANCELLED"}
+        if prefs is not None:
+            prefs.textmodel_enabled = True
         self.report({"INFO"}, message)
         return {"FINISHED"}
 
@@ -257,6 +285,22 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
     axis_y_colour: _colour_prop("Green Axis", theme.AXIS_Y, "The Y axis")
     axis_z_colour: _colour_prop("Blue Axis", theme.AXIS_Z, "The Z axis")
 
+    textmodel_enabled: bpy.props.BoolProperty(
+        name="Text-to-model channel",
+        description=(
+            "Records whether the channel was left open. Use the button, not "
+            "this -- it is what the button writes to"
+        ),
+        default=False,
+    )
+    textmodel_port: bpy.props.IntProperty(
+        name="Port",
+        description="Loopback port the text-to-model channel listens on",
+        default=textmodel.DEFAULT_PORT,
+        min=1024,
+        max=65535,
+    )
+
     setup_workspace: bpy.props.BoolProperty(
         name="Add Sketch workspace tab",
         description="Add a Sketch tab to the top bar when a file is loaded",
@@ -301,6 +345,32 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
         sub.enabled = self.setup_workspace
         sub.prop(self, "activate_workspace")
         box.prop(self, "show_sidebar")
+
+        box = layout.box()
+        box.label(text="Text to Model", icon="CONSOLE")
+        column = box.column(align=True)
+        column.scale_y = 0.8
+        column.label(text="A local command channel, for an agent or a script.")
+        column.label(text="Loopback only, and anything that reaches it can")
+        column.label(text="rewrite the model. Closed unless you open it.")
+        row = box.row(align=True)
+        row.prop(self, "textmodel_port")
+        row = box.row(align=True)
+        if textmodel.is_running():
+            row.operator(
+                BONSAI_SKETCH_MODE_OT_toggle_textmodel.bl_idname, text="Close", icon="CANCEL"
+            )
+            box.label(text=textmodel.status(), icon="CHECKMARK")
+            path = textmodel.discovery_file()
+            if path:
+                sub = box.column(align=True)
+                sub.scale_y = 0.8
+                sub.label(text="Port and token:")
+                sub.label(text=path)
+        else:
+            row.operator(
+                BONSAI_SKETCH_MODE_OT_toggle_textmodel.bl_idname, text="Open", icon="PLAY"
+            )
         if workspace.exists():
             box.label(text="Sketch tab is in the top bar.", icon="CHECKMARK")
         else:
@@ -377,6 +447,7 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
 classes = (
     BONSAI_SKETCH_MODE_OT_activate_keyconfig,
     BONSAI_SKETCH_MODE_OT_open_workspace,
+    BONSAI_SKETCH_MODE_OT_toggle_textmodel,
     BONSAI_SKETCH_MODE_OT_apply_theme,
     BONSAI_SKETCH_MODE_OT_restore_theme,
     BONSAI_SKETCH_MODE_OT_reset_colours,
@@ -428,6 +499,8 @@ def register() -> None:
 
 
 def unregister() -> None:
+    # First: it is the only thing here holding an OS resource and a thread.
+    textmodel.unregister()
     ground.uninstall()
     sidebar.unregister()
     workspace.unregister_handlers()
