@@ -813,9 +813,15 @@ check("the dot is a square around its centre",
       corners == [(6.5, 16.5), (13.5, 16.5), (13.5, 23.5), (6.5, 23.5)],
       f"got {corners}")
 
+# Compared with SAME_COLOUR, not equality: section 4's byte-storage lesson
+# again, one storage down. FloatVectorProperty holds float32, so the shipped
+# default 0.878 reads back as 0.87800002... and an exact comparison fails on
+# the very default it is checking.
+mark_colour = tuple(theme.colour("inference_colour"))
 check("the mark's colour is a preference with a reset-covered default",
       "inference_colour" in theme.COLOUR_DEFAULTS
-      and tuple(theme.colour("inference_colour")) == theme.INFERENCE)
+      and all(abs(a - b) <= theme.SAME_COLOUR for a, b in zip(mark_colour, theme.INFERENCE)),
+      f"got {mark_colour!r}")
 prefs_check = bpy.context.preferences.addons[ADDON].preferences
 check("the preference field exists", hasattr(prefs_check, "inference_colour"))
 
