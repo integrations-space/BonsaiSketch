@@ -73,6 +73,43 @@ def _distance(a: tuple, b: tuple) -> float:
     return math.hypot(a[0] - b[0], a[1] - b[1])
 
 
+def _orientation(a: tuple, b: tuple, c: tuple) -> float:
+    """Twice the signed area of abc: which side of ab the point c falls."""
+    return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
+
+def self_crossing(points: list) -> bool:
+    """Whether the closed loop through these points crosses itself.
+
+    A loop whose edges properly cross -- a figure of eight, a bowtie -- has
+    no single face, but bmesh does not know that: ``faces.new`` checks
+    topology, not geometry, and happily builds a bowtie quad that renders
+    and extrudes as garbage. So the guard has to happen out here, before
+    the face does.
+
+    Proper crossings only: adjacent edges share an endpoint by construction,
+    and two chains healed into a pinch that merely touches are left for the
+    face to decide. Quadratic over the loop's own edges, which a drafted
+    outline keeps small.
+    """
+    count = len(points)
+    if count < 4:
+        return False
+    for i in range(count):
+        a = points[i]
+        b = points[(i + 1) % count]
+        for j in range(i + 1, count):
+            if j == i + 1 or (i == 0 and j == count - 1):
+                continue  # neighbours meet at a vertex, they do not cross
+            c = points[j]
+            d = points[(j + 1) % count]
+            first = _orientation(a, b, c) * _orientation(a, b, d)
+            second = _orientation(c, d, a) * _orientation(c, d, b)
+            if first < 0.0 and second < 0.0:
+                return True
+    return False
+
+
 def _cleaned(points: list, weld: float) -> list:
     """Consecutive points closer than the weld are one point."""
     kept: list = []

@@ -95,11 +95,19 @@ def build_layer(
         faces = []
         for loop in loops:
             verts = [bm.verts.new((x, y, 0.0)) for x, y in loop]
+            # The crossing test lives out here because bmesh will not do it:
+            # faces.new checks topology, not geometry, and builds a bowtie
+            # quad without complaint. The ValueError catch below still covers
+            # the topological refusals -- duplicate vertices, a face that
+            # already exists.
+            if heal.self_crossing(loop):
+                unfaceable += 1
+                for i in range(len(verts)):
+                    bm.edges.new((verts[i], verts[(i + 1) % len(verts)]))
+                continue
             try:
                 faces.append(bm.faces.new(verts))
             except ValueError:
-                # Self-touching after healing. The boundary is still real
-                # linework; a face over it would be a guess.
                 unfaceable += 1
                 for i in range(len(verts)):
                     edge = (verts[i], verts[(i + 1) % len(verts)])

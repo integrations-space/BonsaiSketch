@@ -707,6 +707,13 @@ tight_loops, tight_opens, tight_report = heal.heal(wall_pairs, weld=0.001, gap=0
 check("a gap wider than the tolerance stays open",
       tight_loops == [] and tight_report.left_open == 1)
 
+# The crossing test itself, both ways round: bmesh checks topology, not
+# geometry, so this test is the only thing standing between a healed figure
+# of eight and a bowtie face.
+check("a crossing loop is recognised, an honest one is not",
+      heal.self_crossing([(0.0, 0.0), (2.0, 2.0), (2.0, 0.0), (0.0, 2.0)])
+      and not heal.self_crossing([(0.0, 0.0), (2.0, 0.0), (2.0, 2.0), (0.0, 2.0)]))
+
 # The whole pipeline through the real operator, extruding 2m.
 import os
 import tempfile
