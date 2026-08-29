@@ -303,5 +303,165 @@ class BONSAI_SKETCH_MODE_OT_import_cad(bpy.types.Operator, ImportHelper):
         return {"FINISHED"}
 
 
+def stand_up_object(
+    obj: bpy.types.Object, weld: float, gap: float, height: float
+) -> Optional[tuple["heal.Report", int]]:
+    """Heal one flat sketch object's loose linework and stand its faces up.
+
+    Returns (report, unfaceable loops), or None when the object is not flat
+    linework -- already standing, or drawn out of the plane. Declining is the
+    honest answer there: extruding an extrusion doubles it, and this operator
+    exists to be re-run with different numbers, not to stack.
+
+    The wire edges are rebuilt wholesale from the heal's answer -- loops
+    become faces, still-open chains stay edges -- because heal does not say
+    which source segment landed where, and a rebuild from its output is
+    simpler than bookkeeping that only exists to avoid one. Faces the object
+    already has are left exactly as they are and join the extrusion.
+    """
+    bm = bmesh.new()
+    try:
+        bm.from_mesh(obj.data)
+        if bm.verts:
+            zs = [v.co.z for v in bm.verts]
+            if max(zs) - min(zs) > max(weld, 1e-9):
+                return None
+            floor = min(zs)
+        else:
+            floor = 0.0
+
+        wires = [e for e in bm.edges if not e.link_faces]
+        segments = [
+            ([(e.verts[0].co.x, e.verts[0].co.y), (e.verts[1].co.x, e.verts[1].co.y)], False)
+            for e in wires
+        ]
+        loops, opens, report = heal.heal(segments, weld, gap)
+
+        wire_verts = {v for e in wires for v in e.verts}
+        for edge in wires:
+            bm.edges.remove(edge)
+        for vert in wire_verts:
+            if vert.is_valid and not vert.link_edges and not vert.link_faces:
+                bm.verts.remove(vert)
+
+        unfaceable = 0
+        for loop in loops:
+            verts = [bm.verts.new((x, y, floor)) for x, y in loop]
+            if heal.self_crossing(loop):
+                unfaceable += 1
+                for i in range(len(verts)):
+                    bm.edges.new((verts[i], verts[(i + 1) % len(verts)]))
+                continue
+            try:
+                bm.faces.new(verts)
+            except ValueError:
+                unfaceable += 1
+                for i in range(len(verts)):
+                    edge = (verts[i], verts[(i + 1) % len(verts)])
+                    if bm.edges.get(edge) is None:
+                        bm.edges.new(edge)
+        for chain in opens:
+            verts = [bm.verts.new((x, y, floor)) for x, y in chain]
+            for start, end in zip(verts, verts[1:]):
+                bm.edges.new((start, end))
+
+        if height > 0.0 and bm.faces:
+            grown = bmesh.ops.extrude_face_region(bm, geom=list(bm.faces))
+            raised = [g for g in grown["geom"] if isinstance(g, bmesh.types.BMVert)]
+            bmesh.ops.translate(bm, verts=raised, vec=(0.0, 0.0, height))
+            bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+
+        bm.normal_update()
+        bm.to_mesh(obj.data)
+    finally:
+        bm.free()
+    obj.data.update()
+    return report, unfaceable
+
+
+class BONSAI_SKETCH_MODE_OT_stand_up(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.stand_up"
+    bl_label = "Stand Up Outlines"
+    bl_description = (
+        "Heal the selected sketch layers' loose linework -- welding endpoints, "
+        "enclosing outlines whose gaps are within the tolerance -- and stand "
+        "every closed outline up to the given height. Each run is one height, "
+        "so selecting one layer at a time gives each layer its own"
+    )
+    bl_options = {"REGISTER", "UNDO"}
+
+    height: bpy.props.FloatProperty(
+        name="Height",
+        description="How tall the enclosed outlines stand. Zero heals and faces, standing nothing up",
+        default=3.0,
+        min=0.0,
+        subtype="DISTANCE",
+    )
+    weld: bpy.props.FloatProperty(
+        name="Weld",
+        description="Endpoints closer than this are the same point",
+        default=0.001,
+        min=0.0,
+        subtype="DISTANCE",
+    )
+    gap: bpy.props.FloatProperty(
+        name="Close Gaps Up To",
+        description="An outline whose free ends are nearer than this is enclosed",
+        default=0.01,
+        min=0.0,
+        subtype="DISTANCE",
+    )
+
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        return context.mode == "OBJECT" and bool(context.selected_objects)
+
+    def execute(self, context: bpy.types.Context):
+        stood = 0
+        not_ours = 0
+        not_flat = 0
+        unfaceable = 0
+        healed = heal.Report()
+        for obj in context.selected_objects:
+            if not sketchmesh.is_sketch_object(obj):
+                # IFC elements and foreign meshes alike: an element's shape
+                # is Bonsai's to generate, and geometry we did not mark is
+                # not ours to rebuild.
+                not_ours += 1
+                continue
+            result = stand_up_object(obj, self.weld, self.gap, self.height)
+            if result is None:
+                not_flat += 1
+                continue
+            report, failed = result
+            stood += 1
+            unfaceable += failed
+            healed.closed_already += report.closed_already
+            healed.welded += report.welded
+            healed.bridged += report.bridged
+            healed.left_open += report.left_open
+
+        if not stood:
+            reasons = []
+            if not_ours:
+                reasons.append(f"{not_ours} not sketch geometry")
+            if not_flat:
+                reasons.append(f"{not_flat} already standing or not flat")
+            self.report({"WARNING"}, "Nothing to stand up: " + (", ".join(reasons) or "nothing selected"))
+            return {"CANCELLED"}
+
+        if unfaceable:
+            self.report({"WARNING"}, f"{unfaceable} loop(s) cross themselves and stay as edges")
+        if not_flat:
+            self.report({"WARNING"}, f"{not_flat} object(s) already standing were left alone")
+        verb = f"stood up to {self.height:.2f}m" if self.height > 0 else "healed flat"
+        self.report({"INFO"}, f"{stood} layer(s) {verb}: {healed.summary()}")
+        return {"FINISHED"}
+
+
 def menu_entry(self, context: bpy.types.Context) -> None:
     self.layout.operator(BONSAI_SKETCH_MODE_OT_import_cad.bl_idname, text="CAD Drawing (.dxf/.dwg)")
+
+
+def object_menu_entry(self, context: bpy.types.Context) -> None:
+    self.layout.operator(BONSAI_SKETCH_MODE_OT_stand_up.bl_idname)

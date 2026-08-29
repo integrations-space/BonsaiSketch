@@ -141,6 +141,12 @@ without re-importing. Gaps wider than the tolerance stay open on purpose: a
 doorway is not a drafting error, and the import says what it healed and what
 it left alone.
 
+Different layers want different heights: import flat, then select a layer's
+object and run **`Object` > `Stand Up Outlines`** — the same healing and
+extrusion with its own height, gap and weld, re-adjustable in the panel after
+each run. WALLS at 3 m, PARTITIONS at 2.4 m, one selection at a time. Layers
+already standing are left alone rather than doubled.
+
 DWG needs the free [ODA File Converter](https://www.opendesign.com/guestfiles/oda_file_converter)
 installed and pointed at in the add-on preferences — it is a proprietary
 format, and converting is the honest route. Without it, the import explains

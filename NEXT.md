@@ -219,6 +219,13 @@ re-importing:
    room outlines become massing in one import. The suite asserts volumes on
    the results, per the membrane lesson.
 
+Per-layer heights come after the import: **Object > Stand Up Outlines** runs
+the same heal-face-extrude on the *selected* sketch layers with its own
+height, weld and gap — one run, one height, selection says which layers, so
+WALLS can stand 3m and PARTITIONS 2.4m. Standing geometry is declined, not
+doubled: the operator exists to be re-run with different numbers, and only
+flat sketch objects carrying our marker are touched.
+
 The parser (`dxf.py`, pure Python, no dependency) reads the drafting subset:
 LINE, LWPOLYLINE with bulges (positive bulge is counter-clockwise — the spec's
 sign, pinned by a check), old-style POLYLINE, ARC, CIRCLE at SketchUp's 24

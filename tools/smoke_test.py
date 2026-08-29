@@ -773,6 +773,80 @@ bow_data = bow_obj.data
 bpy.data.objects.remove(bow_obj, do_unlink=True)
 bpy.data.meshes.remove(bow_data)
 
+# Per-layer heights, after the fact: import flat with a gap tolerance too
+# tight to close anything, then Stand Up Outlines on the selected layers with
+# a working tolerance and a height of its own. This is the "each layer its
+# own height" path -- one run, one height, selection says which layers.
+with tempfile.NamedTemporaryFile("w", suffix=".dxf", delete=False) as handle:
+    handle.write(fixture)
+    flat_path = handle.name
+for existing in bpy.data.objects:
+    existing.select_set(False)
+result = bpy.ops.bonsai_sketch_mode.import_cad(
+    filepath=flat_path, weld=0.001, gap=0.0001, extrude=0.0)
+check("a flat import finishes", result == {"FINISHED"}, str(result))
+flat_stem = os.path.splitext(os.path.basename(flat_path))[0]
+flat_walls = bpy.data.objects.get(f"{flat_stem}/WALLS")
+flat_furniture = bpy.data.objects.get(f"{flat_stem}/FURNITURE")
+check("the too-tight gap left the square as wire",
+      flat_walls is not None and len(flat_walls.data.polygons) == 0
+      and len(flat_walls.data.edges) >= 3)
+
+for existing in bpy.data.objects:
+    existing.select_set(False)
+flat_walls.select_set(True)
+flat_furniture.select_set(True)
+context.view_layer.objects.active = flat_walls
+result = bpy.ops.bonsai_sketch_mode.stand_up(height=2.5, weld=0.001, gap=0.005)
+check("standing up the selection finishes", result == {"FINISHED"}, str(result))
+
+stood_bm = bmesh.new()
+stood_bm.from_mesh(flat_walls.data)
+check("the wire square healed and stood to 4x3x2.5",
+      abs(stood_bm.calc_volume(signed=False) - 30.0) < 1e-6,
+      f"got {stood_bm.calc_volume(signed=False)}")
+stood_bm.free()
+
+furn_bm = bmesh.new()
+furn_bm.from_mesh(flat_furniture.data)
+expected_furniture = (0.5 * 1.0 * 0.8 + 0.5 * 24 * 0.25 * _math.sin(_math.radians(15.0))) * 2.5
+check("already-faced layers take the same height",
+      abs(furn_bm.calc_volume(signed=False) - expected_furniture) < 1e-6,
+      f"got {furn_bm.calc_volume(signed=False)}")
+furn_bm.free()
+
+# Standing geometry is declined, not doubled: this operator exists to be
+# re-run with different numbers, and stacking would make every re-run wrong.
+for existing in bpy.data.objects:
+    existing.select_set(False)
+flat_walls.select_set(True)
+result = bpy.ops.bonsai_sketch_mode.stand_up(height=2.5)
+still_bm = bmesh.new()
+still_bm.from_mesh(flat_walls.data)
+check("a standing layer is left alone",
+      result == {"CANCELLED"} and abs(still_bm.calc_volume(signed=False) - 30.0) < 1e-6,
+      f"{result}, volume {still_bm.calc_volume(signed=False)}")
+still_bm.free()
+
+# Geometry we did not mark is not ours to rebuild.
+foreign = bpy.data.objects.new("foreign", bpy.data.meshes.new("foreign"))
+context.scene.collection.objects.link(foreign)
+for existing in bpy.data.objects:
+    existing.select_set(False)
+foreign.select_set(True)
+check("unmarked geometry is declined",
+      bpy.ops.bonsai_sketch_mode.stand_up(height=1.0) == {"CANCELLED"})
+check("stand-up operator registered", hasattr(bpy.ops.bonsai_sketch_mode, "stand_up"))
+
+foreign_data = foreign.data
+bpy.data.objects.remove(foreign, do_unlink=True)
+bpy.data.meshes.remove(foreign_data)
+for gone in (flat_walls, flat_furniture):
+    data = gone.data
+    bpy.data.objects.remove(gone, do_unlink=True)
+    bpy.data.meshes.remove(data)
+os.unlink(flat_path)
+
 # DWG without the converter refuses with directions, not silence.
 converted, why_not = importer.convert_dwg("plan.dwg", "")
 check("DWG without ODA says what to install",
