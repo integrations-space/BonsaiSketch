@@ -196,26 +196,48 @@ flat background colour, sky and ground become per-workspace and the canvas stops
 needing the global theme change at all -- section 4's warning would shrink to
 just the grid, wire and axis colours that genuinely have nowhere else to live.
 
-## 6. Agreed: DXF import
+## 6. Built: CAD import — DXF native, DWG through ODA, healed and stood up
 
-No import code exists anywhere in the add-on today. DXF is the one of the three
-formats worth doing:
+File > Import > CAD Drawing now exists. The open question above got the
+answer the drawing tools already embody: imported linework is **sketch
+geometry**, one object per layer named `<file>/<layer>` and carrying our
+marker — so "which layers matter" is ordinary object selection, every
+existing tool works on what arrives, and Assign IFC Class gives it meaning
+when a shape is right. The import chains three steps, each an adjustable
+unit-aware value in the redo panel, so a plan can be re-cut without
+re-importing:
 
-- **DXF** — feasible. `ezdxf` is pure Python, and Blender ships an official DXF
-  importer whose approach is worth reading before writing anything.
-- **DWG** — proprietary, with no reliable free reader. The usual route is
-  converting to DXF first with ODA File Converter, a separate tool with its own
-  licence terms. Out of scope until DXF works and someone actually asks.
-- **SKP** — hardest by a distance. The SketchUp SDK is C++, licence-restricted,
-  and has no Python binding in Blender. Not a weekend job.
+1. **Heal** (`heal.py`, pure Python): endpoints within *Weld* are one point
+   and chains join across them; an open chain whose free ends are within
+   *Close Gaps Up To* is enclosed — the n-sided polygon the drafter saw but
+   the file only almost drew. Wider gaps stay open: a doorway is not a
+   drafting error. Everything is counted and reported — joined, bridged,
+   already closed, left open.
+2. **Face**: closed loops become n-gon faces. A healed loop that crosses
+   itself stays as edges and is counted, not guessed at.
+3. **Extrude**: a non-zero height stands every faced loop up into a solid —
+   room outlines become massing in one import. The suite asserts volumes on
+   the results, per the membrane lesson.
 
-The parsing is the easy half. A DXF import yields dumb geometry, not IFC
-entities, so the real question is what happens to it afterwards: does an
-imported polyline become sketch geometry carrying our marker, or does it get
-classified into IFC through Bonsai? That is the same unanswered question as
-Groups and Components in section 8, and answering it once should cover both.
-Simplest honest first version: import as sketch geometry, marked as ours, and
-let the existing tools work on it.
+The parser (`dxf.py`, pure Python, no dependency) reads the drafting subset:
+LINE, LWPOLYLINE with bulges (positive bulge is counter-clockwise — the spec's
+sign, pinned by a check), old-style POLYLINE, ARC, CIRCLE at SketchUp's 24
+chords, layer names, and `$INSUNITS` scaling to metres. Entities outside the
+subset are counted and reported, never silently dropped. `ezdxf` was
+deliberately not taken on: it would ship as a wheel and track Blender's
+Python, the needed subset is a few hundred lines, and Blender's own DXF
+importer is a separate extension now — nothing bundled to lean on.
+
+- **DWG** — reads through ODA File Converter (free, opendesign.com), pointed
+  at by a preference; without it the import says exactly what to install.
+  The conversion path needs a machine with the converter on it — untested by
+  CI, worth one manual run.
+- **SKP** — unchanged: C++ SDK, licence-restricted, no Python binding. Not a
+  weekend job.
+
+Still open here: the healed-but-unfaceable report could offer the loop for
+inspection (it is findable today — the object with edges and no faces), and
+arcs import as chords, so a healed arc-walled room extrudes faceted.
 
 ## 7. Agreed: wire the IFC+SG requirements to something
 

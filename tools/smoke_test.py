@@ -638,6 +638,141 @@ for mesh in (flat, box, taller, wider, shorter, unchanged, scaled):
     mesh.free()
 
 
+# --- CAD import --------------------------------------------------------------
+#
+# A DXF comes in as sketch geometry, one object per layer; broken outlines are
+# healed up to a gap tolerance; closed outlines become faces; a non-zero
+# extrude stands them up. The parser and healer are pure Python and get their
+# analytic checks here; the built solids get volume checks, because volumes
+# are what caught the membrane bug that topology checks slept through.
+
+section("CAD import")
+dxf = addon.dxf
+heal = addon.heal
+importer = sys.modules[ADDON + ".ops.importer"]
+
+def dxf_pairs(*items):
+    return "\n".join(str(x) for pair in items for x in pair) + "\n"
+
+# Millimetre file: a 4000x3000 square of LINEs on WALLS with one 2mm gap, a
+# closed triangle and a circle on FURNITURE, and an entity outside the subset.
+fixture = dxf_pairs(
+    (0, "SECTION"), (2, "HEADER"),
+    (9, "$INSUNITS"), (70, 4),
+    (0, "ENDSEC"),
+    (0, "SECTION"), (2, "ENTITIES"),
+    (0, "LINE"), (8, "WALLS"), (10, 0), (20, 0), (11, 4000), (21, 0),
+    (0, "LINE"), (8, "WALLS"), (10, 4000), (20, 0), (11, 4000), (21, 3000),
+    (0, "LINE"), (8, "WALLS"), (10, 4000), (20, 3000), (11, 0), (21, 3000),
+    (0, "LINE"), (8, "WALLS"), (10, 0), (20, 3000), (11, 0), (21, 2),
+    (0, "LWPOLYLINE"), (8, "FURNITURE"), (90, 3), (70, 1),
+    (10, 0), (20, 0), (10, 1000), (20, 0), (10, 500), (20, 800),
+    (0, "CIRCLE"), (8, "FURNITURE"), (10, 9000), (20, 9000), (40, 500),
+    (0, "MTEXT"), (8, "NOTES"), (10, 0), (20, 0),
+    (0, "ENDSEC"), (0, "EOF"),
+)
+
+drawing = dxf.parse(fixture)
+check("layers found", sorted(drawing.layers) == ["FURNITURE", "WALLS"],
+      str(sorted(drawing.layers)))
+check("millimetres understood and scaled", drawing.scale == 0.001
+      and drawing.layers["WALLS"][0].points[1] == (4.0, 0.0))
+check("entities outside the subset are counted, not silently dropped",
+      drawing.skipped == {"MTEXT": 1}, str(drawing.skipped))
+circle = [p for p in drawing.layers["FURNITURE"] if len(p.points) == 24][0]
+check("a circle is SketchUp's 24 chords, closed", circle.closed)
+
+# The spec's bulge sign: positive arcs counter-clockwise from start to end,
+# which for a rightward chord is the LOWER semicircle.
+bulged = dxf.parse(dxf_pairs(
+    (0, "SECTION"), (2, "ENTITIES"),
+    (0, "LWPOLYLINE"), (8, "0"), (90, 2), (70, 0),
+    (10, 0), (20, 0), (42, 1), (10, 2), (20, 0),
+    (0, "ENDSEC"), (0, "EOF"),
+)).layers["0"][0]
+check("a bulge of 1 is a counter-clockwise half circle",
+      abs(min(p[1] for p in bulged.points) + 1.0) < 1e-6
+      and bulged.points[-1] == (2.0, 0.0),
+      f"low point {min(p[1] for p in bulged.points)}")
+
+# Healing: a 2mm break closes under a 5mm gap tolerance and stays open under
+# a 1.5mm one -- a doorway is not a drafting error.
+wall_pairs = [(p.points, p.closed) for p in drawing.layers["WALLS"]]
+loops, opens, report = heal.heal(wall_pairs, weld=0.001, gap=0.005)
+check("the broken square closes as one loop", len(loops) == 1 and opens == [],
+      f"{len(loops)} loops, {len(opens)} open")
+check("healing says what it did", report.welded == 3 and report.bridged == 1,
+      report.summary())
+tight_loops, tight_opens, tight_report = heal.heal(wall_pairs, weld=0.001, gap=0.0015)
+check("a gap wider than the tolerance stays open",
+      tight_loops == [] and tight_report.left_open == 1)
+
+# The whole pipeline through the real operator, extruding 2m.
+import os
+import tempfile
+
+context.view_layer.objects.active = None
+for existing in list(bpy.data.objects):
+    existing.select_set(False)
+with tempfile.NamedTemporaryFile("w", suffix=".dxf", delete=False) as handle:
+    handle.write(fixture)
+    plan_path = handle.name
+result = bpy.ops.bonsai_sketch_mode.import_cad(
+    filepath=plan_path, weld=0.001, gap=0.005, extrude=2.0)
+check("the import operator finishes", result == {"FINISHED"}, str(result))
+
+plan_stem = os.path.splitext(os.path.basename(plan_path))[0]
+walls_obj = bpy.data.objects.get(f"{plan_stem}/WALLS")
+furniture_obj = bpy.data.objects.get(f"{plan_stem}/FURNITURE")
+check("one object per layer, named for it",
+      walls_obj is not None and furniture_obj is not None,
+      str(sorted(o.name for o in bpy.data.objects if plan_stem in o.name)))
+check("imported layers are sketch geometry",
+      sketchmesh.is_sketch_object(walls_obj) and sketchmesh.is_sketch_object(furniture_obj))
+
+walls_bm = bmesh.new()
+walls_bm.from_mesh(walls_obj.data)
+check("the healed square stood up: volume is 4x3x2",
+      abs(walls_bm.calc_volume(signed=False) - 24.0) < 1e-6,
+      f"got {walls_bm.calc_volume(signed=False)}")
+walls_bm.free()
+
+# Triangle prism 0.5*1*0.8*2 plus a 24-gon prism 0.5*24*r^2*sin(15deg)*2.
+import math as _math
+
+furniture_bm = bmesh.new()
+furniture_bm.from_mesh(furniture_obj.data)
+expected = (0.5 * 1.0 * 0.8 + 0.5 * 24 * 0.25 * _math.sin(_math.radians(15.0))) * 2.0
+check("the furniture layer's solids measure up",
+      abs(furniture_bm.calc_volume(signed=False) - expected) < 1e-6,
+      f"got {furniture_bm.calc_volume(signed=False)}, expected {expected}")
+furniture_bm.free()
+
+for gone in (walls_obj, furniture_obj):
+    data = gone.data
+    bpy.data.objects.remove(gone, do_unlink=True)
+    bpy.data.meshes.remove(data)
+os.unlink(plan_path)
+
+# A healed loop that crosses itself has no single face; it stays as edges and
+# is counted rather than guessed at.
+bow = dxf.Polyline("L", [(0.0, 0.0), (2.0, 2.0), (2.0, 0.0), (0.0, 2.0)], True)
+bow_obj, _bow_report, unfaceable = importer.build_layer(
+    context, "bowtie", [bow], weld=0.001, gap=0.005, extrude=1.0)
+check("a self-crossing loop stays as edges", unfaceable == 1
+      and len(bow_obj.data.polygons) == 0 and len(bow_obj.data.edges) == 4,
+      f"{unfaceable} unfaceable, {len(bow_obj.data.polygons)} faces")
+bow_data = bow_obj.data
+bpy.data.objects.remove(bow_obj, do_unlink=True)
+bpy.data.meshes.remove(bow_data)
+
+# DWG without the converter refuses with directions, not silence.
+converted, why_not = importer.convert_dwg("plan.dwg", "")
+check("DWG without ODA says what to install",
+      converted is None and "opendesign.com" in why_not, why_not)
+check("import operator registered", hasattr(bpy.ops.bonsai_sketch_mode, "import_cad"))
+
+
 # --- IFC+SG requirements -----------------------------------------------------
 
 section("IFC+SG requirements")

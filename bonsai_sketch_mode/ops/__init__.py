@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import bpy
 
+from .importer import BONSAI_SKETCH_MODE_OT_import_cad, menu_entry
 from .line import BONSAI_SKETCH_MODE_OT_line
 from .pushpull import BONSAI_SKETCH_MODE_OT_push_pull
 from .rectangle import BONSAI_SKETCH_MODE_OT_rectangle
@@ -32,20 +33,27 @@ from .rectangle import BONSAI_SKETCH_MODE_OT_rectangle
 LINE_OP = BONSAI_SKETCH_MODE_OT_line.bl_idname
 RECTANGLE_OP = BONSAI_SKETCH_MODE_OT_rectangle.bl_idname
 PUSH_PULL_OP = BONSAI_SKETCH_MODE_OT_push_pull.bl_idname
+IMPORT_OP = BONSAI_SKETCH_MODE_OT_import_cad.bl_idname
 
 classes = (
     BONSAI_SKETCH_MODE_OT_line,
     BONSAI_SKETCH_MODE_OT_rectangle,
     BONSAI_SKETCH_MODE_OT_push_pull,
+    BONSAI_SKETCH_MODE_OT_import_cad,
 )
 
 
 def register() -> None:
     for cls in classes:
         bpy.utils.register_class(cls)
+    bpy.types.TOPBAR_MT_file_import.append(menu_entry)
 
 
 def unregister() -> None:
+    try:
+        bpy.types.TOPBAR_MT_file_import.remove(menu_entry)
+    except Exception:
+        pass
     for cls in reversed(classes):
         try:
             bpy.utils.unregister_class(cls)

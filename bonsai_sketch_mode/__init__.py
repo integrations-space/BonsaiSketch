@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import bpy
 
-from . import bridge, ground, keyconfig, marks, ops, requirements, theme, tools, workspace
+from . import bridge, dxf, ground, heal, keyconfig, marks, ops, requirements, theme, tools, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
@@ -176,6 +176,19 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
     #: The theme values as they were before we touched them, as JSON. Kept in
     #: preferences rather than memory so a restore still works next session.
     saved_theme: bpy.props.StringProperty(default="")
+
+    oda_converter: bpy.props.StringProperty(
+        name="ODA File Converter",
+        description=(
+            "Path to the ODA File Converter executable (free, from "
+            "opendesign.com). DWG is a proprietary format with no reliable "
+            "free reader, so File > Import reads DWG by converting it to DXF "
+            "through this tool first. Leave empty and DWG import explains "
+            "itself instead of failing quietly"
+        ),
+        default="",
+        subtype="FILE_PATH",
+    )
     theme_applied: bpy.props.BoolProperty(default=False)
 
     show_ground: bpy.props.BoolProperty(
@@ -351,6 +364,11 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
         col.label(text="Modelling colours")
         col.prop(self, "inference_colour")
         box.operator(BONSAI_SKETCH_MODE_OT_reset_colours.bl_idname, icon="LOOP_BACK")
+
+        box = layout.box()
+        box.label(text="Import", icon="IMPORT")
+        box.label(text="File > Import > CAD Drawing reads DXF natively.")
+        box.prop(self, "oda_converter")
 
         ok, message = _tools_status
         box = layout.box()

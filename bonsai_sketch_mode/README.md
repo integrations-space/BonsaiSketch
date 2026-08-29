@@ -188,11 +188,16 @@ workspace.py    the Sketch workspace tab, and the keymap that follows it
 tools.py        toolbar entries
 sketchmesh.py   the meshes the drawing tools write into
 viewport.py     cursor-to-geometry queries (pure Blender)
-ops/            the modal tools
+marks.py        the inference dot a snap answers with
+ground.py       the drawn ground plane (unfinished, off by default)
+dxf.py          the drafting subset of DXF, read without a dependency
+heal.py         closing the polygons a drafted plan almost draws
+ops/            the modal tools and the importer
   base.py       shared modal skeleton for the polyline tools
   line.py       Line
   rectangle.py  Rectangle
   pushpull.py   Push/Pull
+  importer.py   File > Import > CAD Drawing (.dxf/.dwg)
 ```
 
 All coupling to Bonsai is confined to `bridge.py`. Bonsai is a rolling release
