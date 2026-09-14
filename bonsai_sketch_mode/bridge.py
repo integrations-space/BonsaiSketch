@@ -99,6 +99,13 @@ def require() -> Any:
     return _tool
 
 
+def element_properties(entity: Any) -> dict:
+    """Occurrence and inherited type properties, with exact names preserved."""
+    import ifcopenshell.util.element
+
+    return ifcopenshell.util.element.get_psets(entity)
+
+
 # --- Verified Bonsai surface -------------------------------------------------
 # Tool idnames read from bonsai/bim/module/model/workspace.py (Bonsai 0.8.4).
 # Keep this list in sync when bumping the tested version.
@@ -376,3 +383,10 @@ def update_viewport() -> None:
         _tool.Blender.update_viewport()
     except Exception:
         pass
+
+
+def execute_ifc_operator(operator: Any, context: Any) -> set:
+    """Group approved commands in Bonsai's IFC undo transaction."""
+    from bonsai.bim.ifc import IfcStore
+
+    return IfcStore.execute_ifc_operator(operator, context)

@@ -14,31 +14,33 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""A box to type in, on the Sketch tab.
+"""Five-agent proposal and approval controls on the Sketch tab.
 
-The request runs on a worker thread and the verbs it calls run on the main
-thread, so the operator is modal: it starts the thread, then drives the pump
+Proposal requests run on a worker thread; approved commands run on the main
+thread in a separate undo-aware operator. Proposal generation is modal: it starts the thread, then drives the pump
 from its own timer until the thread is done. Driving the pump here rather than
 leaving it to ``bpy.app.timers`` is deliberate -- a modal operator owns the
 event loop, and a timer is not promised a slot underneath one.
 
-Escape leaves the request running rather than pretending to cancel it. There is
-no way to un-send an HTTPS request, and half-built geometry from a request the
-user thinks they stopped is worse than waiting.
+Escape leaves the read-only proposal request running until its HTTP timeout.
+No geometry changes during generation. Reject discards a completed proposal.
 """
 
 from __future__ import annotations
 
 import os
+import json
 import threading
 import traceback
 
 import bpy
 
 from .. import bridge, sidebar
-from . import claude, mainthread
+from . import claude, mainthread, agents
 
 #: Where the last run's outcome is kept for the panel to draw.
+_pending = None
+
 _status = {"busy": False, "message": "", "detail": "", "error": False}
 
 
@@ -59,9 +61,9 @@ def _api_key(prefs) -> str:
 
 class BONSAI_SKETCH_MODE_OT_build_from_text(bpy.types.Operator):
     bl_idname = "bonsai_sketch_mode.build_from_text"
-    bl_label = "Build"
-    bl_description = "Describe what to build, and let Claude build it with the Sketch tools"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_label = "Plan with Agents"
+    bl_description = "Ask five agents for a plan to review before changing the model"
+    bl_options = {"REGISTER"}
 
     _timer = None
     _thread = None
@@ -86,6 +88,14 @@ class BONSAI_SKETCH_MODE_OT_build_from_text(bpy.types.Operator):
             return {"CANCELLED"}
 
         model = getattr(prefs, "anthropic_model", claude.DEFAULT_MODEL) or claude.DEFAULT_MODEL
+        from .. import sg
+        global _pending
+        try:
+            self._snapshot = sg.snapshot()
+        except Exception as exc:
+            self.report({"ERROR"}, str(exc))
+            return {"CANCELLED"}
+        _pending = None
         self._outcome = {}
 
         _status.update(busy=True, message="thinking", detail="", error=False)
@@ -110,14 +120,15 @@ class BONSAI_SKETCH_MODE_OT_build_from_text(bpy.types.Operator):
         try:
             self._outcome = {
                 "ok": True,
-                "result": claude.build(
+                "result": agents.propose(
                     instruction,
+                    snapshot=self._snapshot,
                     api_key=key,
                     model=model,
                     on_event=lambda message: _status.update(message=message),
                 ),
             }
-        except claude.ClaudeError as exc:
+        except (claude.ClaudeError, agents.PlanError) as exc:
             self._outcome = {"ok": False, "error": str(exc)}
         except Exception as exc:  # pragma: no cover - unexpected, still reported
             traceback.print_exc()
@@ -159,30 +170,115 @@ class BONSAI_SKETCH_MODE_OT_build_from_text(bpy.types.Operator):
             self.report({"ERROR"}, outcome.get("error", "failed"))
             return {"CANCELLED"}
 
+        global _pending
         result = outcome["result"]
-        _status.update(
-            message="Done",
-            detail=result.get("text", ""),
-            error=False,
-        )
-        self.report(
-            {"INFO"},
-            "%s (%d tool calls, %d in / %d out tokens)"
-            % (
-                result.get("text", "Done."),
-                len(result.get("called", [])),
-                result.get("input_tokens", 0),
-                result.get("output_tokens", 0),
-            ),
-        )
+        _pending = agents.PendingPlan(result)
+        review = bpy.data.texts.get("Sketch Agent Review.json") or bpy.data.texts.new("Sketch Agent Review.json")
+        review.clear()
+        review.write(json.dumps(result, indent=2))
+        _status.update(message="Ready for review" if result["ready"] else "Questions need answers",
+                       detail=result["plan"]["summary"], error=False)
+        self.report({"INFO"}, "Agent proposal ready. Review it before approving")
         return {"FINISHED"}
+
+
+class BONSAI_SKETCH_MODE_OT_approve_plan(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.approve_plan"
+    bl_label = "Approve and Apply"
+    bl_description = "Apply the reviewed commands once to the unchanged model"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return _pending is not None and not _pending.used and not _status["busy"] and _pending.review()["ready"]
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=650)
+
+    def draw(self, context):
+        if _pending is None:
+            return
+        result = _pending.review()
+        self.layout.label(text="Apply these changes to the current model:")
+        for i, action in enumerate(result["plan"]["actions"]):
+            box = self.layout.box()
+            box.label(text=f"{i + 1}. {action['operation']}")
+            for line in _wrap(json.dumps(action["parameters"]), 85):
+                box.label(text=line)
+        self.layout.label(text="Full parameters and specialist findings: Sketch Agent Review.json")
+
+    transaction_key = ""
+    transaction_data = None
+
+    def execute(self, context):
+        from .. import sg
+        if _pending is None:
+            return {"CANCELLED"}
+        if sg.fingerprint() != _pending.review()["fingerprint"]:
+            _pending.used = True
+            self.report({"ERROR"}, "The model or stage changed. Generate a new plan")
+            return {"CANCELLED"}
+        return bridge.execute_ifc_operator(self, context)
+
+    def _execute(self, context):
+        from .. import sg
+        from . import commands
+        try:
+            def dispatch(name, params):
+                target = bpy.data.objects.get(params.get("object", ""))
+                if name in {"push_pull", "sketch_polyline", "assign_class"} and target is not None:
+                    if target.modifiers or (target.type == "MESH" and target.data.shape_keys):
+                        raise agents.PlanError("Apply or remove modifiers/shape keys before agent editing")
+                return commands.run(name, params)
+            result = _pending.execute(sg.fingerprint(), dispatch)
+        except Exception as exc:
+            self.report({"ERROR"}, str(exc))
+            return {"CANCELLED"}
+        log = bpy.data.texts.get("Sketch Agent Execution.json") or bpy.data.texts.new("Sketch Agent Execution.json")
+        log.clear()
+        log.write(json.dumps(result, indent=2, default=str))
+        if result["ok"]:
+            message = f"Applied {len(result['completed'])} commands"
+        else:
+            message = f"Stopped at action {result['failed_action'] + 1}: {result['error']}. Check execution log for partial changes."
+        _status.update(message=message, detail=message, error=not result["ok"])
+        self.report({"INFO"} if result["ok"] else {"WARNING"}, message)
+        # FINISHED preserves Blender undo registration even after a partial run.
+        return {"FINISHED"}
+
+
+class BONSAI_SKETCH_MODE_OT_reject_plan(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.reject_plan"
+    bl_label = "Reject Plan"
+
+    def execute(self, context):
+        global _pending
+        if _pending:
+            _pending.used = True
+        _pending = None
+        _status.update(message="Rejected", detail="Edit your request and generate another plan", error=False)
+        return {"FINISHED"}
+
+
+class BONSAI_SKETCH_MODE_OT_review_plan(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.review_plan"
+    bl_label = "Open Full Review"
+
+    def execute(self, context):
+        text = bpy.data.texts.get("Sketch Agent Review.json")
+        if text is None:
+            return {"CANCELLED"}
+        context.area.type = "TEXT_EDITOR"
+        context.area.spaces.active.text = text
+        return {"FINISHED"}
+
 
 
 class BONSAI_SKETCH_MODE_PT_describe(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = sidebar.CATEGORY
-    bl_label = "Describe"
+    bl_label = "Sketch Agents"
     bl_idname = "BONSAI_SKETCH_MODE_PT_describe"
     bl_options = {"DEFAULT_CLOSED"}
 
@@ -211,8 +307,27 @@ class BONSAI_SKETCH_MODE_PT_describe(bpy.types.Panel):
             row.label(text=_status["message"] or "working", icon="SORTTIME")
         else:
             row.operator(
-                BONSAI_SKETCH_MODE_OT_build_from_text.bl_idname, text="Build", icon="PLAY"
+                BONSAI_SKETCH_MODE_OT_build_from_text.bl_idname, text="Plan with Agents", icon="PLAY"
             )
+
+        if _pending is not None and not _pending.used:
+            result = _pending.review()
+            box = layout.box()
+            box.label(text=f"{len(result['plan']['actions'])} proposed commands")
+            for role in ("Geometry", "BIM/IFC", "Compliance", "QA"):
+                box.label(text=role + " reviewed", icon="CHECKMARK")
+            for question in result["plan"]["questions"]:
+                for line in _wrap(question, 34):
+                    box.label(text=line, icon="QUESTION")
+            if not result["reports"]["QA"]["approved"]:
+                box.label(text="QA blocked this plan", icon="ERROR")
+                for finding in result["reports"]["QA"]["findings"]:
+                    for line in _wrap(finding, 34):
+                        box.label(text=line)
+            box.operator("bonsai_sketch_mode.review_plan")
+            row = box.row(align=True)
+            row.operator("bonsai_sketch_mode.approve_plan")
+            row.operator("bonsai_sketch_mode.reject_plan")
 
         if _status["detail"]:
             box = layout.box()
@@ -243,6 +358,9 @@ def _wrap(text: str, width: int) -> list:
 classes = (
     BONSAI_SKETCH_MODE_OT_build_from_text,
     BONSAI_SKETCH_MODE_PT_describe,
+    BONSAI_SKETCH_MODE_OT_approve_plan,
+    BONSAI_SKETCH_MODE_OT_reject_plan,
+    BONSAI_SKETCH_MODE_OT_review_plan,
 )
 
 
@@ -270,6 +388,8 @@ def register() -> tuple[bool, str]:
 
 
 def unregister() -> None:
+    global _pending
+    _pending = None
     try:
         del bpy.types.WindowManager.bonsai_sketch_prompt
     except AttributeError:

@@ -208,6 +208,19 @@ TOOLS: dict = {
 }
 
 
+TOOLS.update({
+    "ifc_sg_requirements": {
+        "description": "Read stage-specific IFC+SG candidate requirements, source and limitations. Not a compliance verdict.",
+        "schema": {"type": "object", "properties": {
+            "ifc_class": {"type": "string"}, "stage": {"type": "string"},
+            "predefined_type": {"type": "string"}}, "required": ["ifc_class"]}},
+    "check_ifc_sg": {
+        "description": "Read an IFC object's candidate missing parameter names and exact property evidence. Applicability and official Pset mapping need review.",
+        "schema": {"type": "object", "properties": {
+            "object": {"type": "string"}, "stage": {"type": "string"}}, "required": ["object"]}},
+})
+
+
 def tool_definitions(names: list) -> list:
     """Messages API tool definitions for ``names``, in a stable order.
 

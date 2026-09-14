@@ -38,7 +38,7 @@ from __future__ import annotations
 
 import bpy
 
-from . import bridge, sketchmesh, theme
+from . import bridge, sketchmesh, theme, requirements
 
 CATEGORY = "Sketch"
 
@@ -219,13 +219,70 @@ class BONSAI_SKETCH_MODE_PT_ifc(bpy.types.Panel):
             column.label(text="Assign makes the element itself.")
 
 
-classes = (BONSAI_SKETCH_MODE_OT_assign_class, BONSAI_SKETCH_MODE_PT_ifc)
+class BONSAI_SKETCH_MODE_OT_sg_check(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.sg_check"
+    bl_label = "Check Selected IFC+SG"
+
+    @classmethod
+    def poll(cls, context):
+        return bridge.has_project() and bool(context.selected_objects)
+
+    def execute(self, context):
+        import json
+        from . import sg
+        report = {"source": requirements.source(), "stage": sg.stage(),
+                  "elements": [sg.inspect(obj) for obj in context.selected_objects]}
+        text = bpy.data.texts.get("Sketch IFC+SG Report.json") or bpy.data.texts.new("Sketch IFC+SG Report.json")
+        text.clear()
+        text.write(json.dumps(report, indent=2, default=str))
+        self.report({"INFO"}, "Checklist saved in Text Editor: Sketch IFC+SG Report.json")
+        return {"FINISHED"}
+
+
+class BONSAI_SKETCH_MODE_PT_sg(bpy.types.Panel):
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = CATEGORY
+    bl_label = "IFC+SG Requirements"
+    bl_idname = "BONSAI_SKETCH_MODE_PT_sg"
+
+    def draw(self, context):
+        from . import sg
+        layout = self.layout
+        layout.prop(context.scene, "bonsai_sketch_sg_stage", text="Stage")
+        layout.label(text="Model Content Requirements V2.0")
+        layout.label(text="20 Mar 2026; candidate checklist")
+        if requirements.load_error():
+            layout.label(text=requirements.load_error(), icon="ERROR")
+            return
+        obj = context.active_object
+        if obj is None or bridge.get_entity(obj) is None:
+            layout.label(text="Select a classified IFC element", icon="INFO")
+            return
+        result = sg.inspect(obj)
+        layout.label(text=result["element"] or "Unmapped element", icon="INFO")
+        layout.label(text="Review applicability and Pset mapping")
+        missing = result["missing"]
+        layout.label(text=f"{len(missing)} candidate fields missing")
+        for name in missing[:10]:
+            layout.label(text=name, icon="DOT")
+        if len(missing) > 10:
+            layout.label(text=f"... and {len(missing) - 10} more in report")
+        layout.operator(BONSAI_SKETCH_MODE_OT_sg_check.bl_idname)
+        layout.label(text="Not a regulatory compliance verdict")
+
+
+classes = (BONSAI_SKETCH_MODE_OT_assign_class, BONSAI_SKETCH_MODE_PT_ifc,
+           BONSAI_SKETCH_MODE_OT_sg_check, BONSAI_SKETCH_MODE_PT_sg)
 
 
 def register() -> tuple[bool, str]:
     """Add the Sketch sidebar panel. Returns (ok, message). Never raises."""
     added = []
     try:
+        bpy.types.Scene.bonsai_sketch_sg_stage = bpy.props.EnumProperty(
+            name="IFC+SG Stage", items=[(key, label, label) for key, label in requirements.stages()],
+            default="conceptual")
         for cls in classes:
             bpy.utils.register_class(cls)
             added.append(cls)
@@ -240,6 +297,8 @@ def register() -> tuple[bool, str]:
 
 
 def unregister() -> None:
+    if hasattr(bpy.types.Scene, "bonsai_sketch_sg_stage"):
+        del bpy.types.Scene.bonsai_sketch_sg_stage
     for cls in reversed(classes):
         try:
             bpy.utils.unregister_class(cls)

@@ -236,3 +236,11 @@ derivative work. If you distribute it — free or paid — you must ship the
 complete source under the same terms. Internal use carries no such obligation.
 
 Bonsai is copyright Dion Moult and contributors.
+
+
+## IFC+SG and multi-agent authoring
+
+Sketch now includes stage-based candidate IFC+SG requirement checks and a
+five-agent proposal/review/approval workflow using the existing Anthropic
+integration. See [AGENTS_WORKFLOW.md](AGENTS_WORKFLOW.md) for setup, capabilities,
+source limitations, execution behavior and validation commands.

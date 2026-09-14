@@ -196,3 +196,46 @@ def summary() -> dict[str, int]:
         "mapped": mapped,
         "classes": len(_by_class),
     }
+
+
+def check_element(ifc_class: str, stage: str, properties: dict,
+                  predefined_type: str = "", element: Optional[str] = None) -> dict:
+    """Conservative name-presence checklist, not an IFC+SG certification.
+
+    The source workbook has no exact Pset bindings or value constraints.
+    Matching a name is evidence to review, never proof of submission validity.
+    Sub-element requirements remain candidates until applicability is reviewed.
+    """
+    if load_error():
+        raise ValueError(load_error())
+    if stage not in dict(stages()):
+        raise ValueError("Choose a valid IFC+SG project stage")
+    if element is not None and element not in elements():
+        raise ValueError("Unknown IFC+SG element category")
+    category = element or element_for_class(ifc_class)
+    if element is None:
+        if ifc_class.startswith("IfcSlab") and predefined_type == "ROOF":
+            category = "Roof"
+        elif ifc_class == "IfcCovering" and predefined_type != "CEILING":
+            category = None
+    candidates = parameters(category, stage) if category else []
+    values = {}
+    for pset, fields in properties.items():
+        if isinstance(fields, dict):
+            for name, value in fields.items():
+                if (name != "id" and value is not None and value != [] and value != {}
+                        and not (isinstance(value, str) and not value.strip())):
+                    values.setdefault(name, []).append({"path": f"{pset}.{name}", "value": value})
+    rows = [dict(p, evidence=values.get(p["name"], []),
+                 status="present_unverified" if values.get(p["name"]) else "missing")
+            for p in candidates]
+    return {
+        "source": source(), "stage": stage, "ifc_class": ifc_class,
+        "element": category, "status": "review_required" if category else "unmapped",
+        "mapping_review": needs_review(category) if category else "No applicable class mapping",
+        "limitations": "Candidate name-presence checks only; review sub-element applicability, "
+                        "exact Pset, data type, controlled values and current CORENET X mapping. "
+                        "This is not IDS validation or regulatory approval.",
+        "parameters": rows,
+        "missing": sorted({p["name"] for p in rows if p["status"] == "missing"}),
+    }

@@ -173,26 +173,36 @@ direct modeller's workflow is to sketch first and assign meaning second, and
 Bonsai's own **Assign IFC Class** completes it. Push/Pull declines to touch an
 IFC element rather than tessellate away its parametric definition.
 
-## Describe what you want
+## IFC+SG and Sketch Agents
 
-Type a sentence on the Sketch tab and let Claude build it with the Sketch
-tools. `IFC` sidebar -> `Describe`:
+The **Sketch > IFC+SG Requirements** sidebar panel shows candidate requirements
+for the selected IFC element and project stage. **Check Selected IFC+SG** writes
+an evidence report to Blender's Text Editor. The bundled source is *IFC+SG Model
+Content Requirements V2.0, 20 Mar 2026*. These are name-presence checks; exact
+SGPset bindings, controlled values, applicability and submission validation still
+require the official CORENET X mapping and validators.
 
-> a 6 by 4 metre room, 3 metres high
+In **Sketch > Sketch Agents**, type a request and choose **Plan with Agents**.
+Geometry, BIM/IFC and Compliance specialists review the model; the Coordinator
+proposes commands; QA reviews the exact plan. Generation does not edit geometry.
+Use **Open Full Review** to inspect `Sketch Agent Review.json` in the Text Editor
+(change the editor back to 3D View to return). **Approve and Apply** previews the
+commands and then executes them. **Reject Plan** discards the proposal. Edit your
+request and generate again to resolve questions or QA findings.
 
-Four real parametric walls, with material layers and thickness -- not a mesh box
-called a wall. Claude drives the same verbs listed below, so anything it builds,
-you could have built by hand, and it refuses the same things you would be
-refused.
+Add an Anthropic API key under **Preferences > Add-ons > Bonsai Sketch Mode**,
+or set `ANTHROPIC_API_KEY`. Select a Claude model available to your account.
+Each proposal makes five API calls and sends the request, model context and
+stage requirements to Anthropic. Keys stay in Blender preferences or the local
+environment and are not included in model context or review reports.
 
-Add an Anthropic API key in **Preferences > Add-ons > Bonsai Sketch Mode >
-Describe**, or set `ANTHROPIC_API_KEY` in the environment. Requests go to
-Anthropic and are billed to that key. Without a key the panel stays hidden and
-nothing else changes.
+Plans are single-use and expire when the model, selection or stage changes.
+Approved commands use Bonsai's IFC undo transaction. A failed command stops the
+run and records completed operations in `Sketch Agent Execution.json`; partial
+changes can remain and should be inspected before another proposal.
 
-It edits your live model and there is no proposal step, so treat it the way you
-would treat any other edit: know what you asked for, and check what you got.
-`Ctrl+Z` undoes a build.
+See [the agent workflow guide](bonsai_sketch_mode/AGENTS_WORKFLOW.md) for supported
+commands, source limitations, architecture and test instructions.
 
 ## Text to model
 

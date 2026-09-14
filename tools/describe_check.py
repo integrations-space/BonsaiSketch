@@ -4,7 +4,7 @@ Run with:
     blender --python tools/describe_check.py -- <report-file>
 
 `claude_check.py` tests the loop by calling it directly. This tests the thing a
-user actually touches: type a sentence on the Sketch tab, press Build, and the
+user actually touches: type a sentence on the Sketch tab, generate a plan, review it, then approve and the
 model appears. It needs a GUI because that path is a modal operator.
 
 The specific risk it exists to catch: a modal operator owns Blender's event
@@ -148,7 +148,7 @@ def stages():
             prefs.anthropic_model,
         )
 
-        section("Pressing Build with nothing typed")
+        section("Generating a plan with nothing typed")
         prefs.anthropic_api_key = "test-key"
         bpy.context.window_manager.bonsai_sketch_prompt = ""
         try:
@@ -158,25 +158,17 @@ def stages():
             check("an empty box is refused", "CANCELLED" in str(exc) or True, str(exc))
         check("and nothing is running", not ui.status()["busy"])
 
-        section("Building from a sentence")
-        script.extend(
-            [
-                tool_turn([("create_project", {})]),
-                tool_turn([("create_type", {"ifc_class": "IfcWallType"})]),
-                tool_turn(
-                    [
-                        (
-                            "add_walls",
-                            {
-                                "points": [[0, 0], [5, 0], [5, 5], [0, 5], [0, 0]],
-                                "height": 2.7,
-                            },
-                        )
-                    ]
-                ),
-                (200, stop_message("Built a 5 by 5 metre room with 2.7m walls.")),
-            ]
-        )
+        section("Proposing from a sentence")
+        specialist = {"findings": ["Reviewed supplied dimensions"], "questions": []}
+        plan = {"summary": "Proposed a 5 by 5 metre room with 2.7m walls.", "questions": [], "actions": [
+            {"operation": "create_project", "parameters": {}, "reason": "A project is required"},
+            {"operation": "create_type", "parameters": {"ifc_class": "IfcWallType"}, "reason": "Wall construction"},
+            {"operation": "add_walls", "parameters": {
+                "points": [[0, 0], [5, 0], [5, 5], [0, 5], [0, 0]], "height": 2.7,
+                "type_id": {"$ref": "1.id"}}, "reason": "Requested room"}]}
+        script.extend([tool_turn([("submit_review", specialist)]) for _ in range(3)])
+        script.extend([tool_turn([("submit_review", plan)]),
+                       tool_turn([("submit_review", {"approved": True, "findings": []})])])
         bpy.context.window_manager.bonsai_sketch_prompt = "a 5 by 5 room, 2.7m high"
         bpy.ops.bonsai_sketch_mode.build_from_text("INVOKE_DEFAULT")
         check("the operator started", ui.status()["busy"])
@@ -203,6 +195,11 @@ def stages():
 
     import bonsai.tool as tool
 
+    check("proposal did not create a project", tool.Ifc.get() is None)
+    check("proposal waits for approval", ui._pending is not None and not ui._pending.used)
+    check("full review is available", "Sketch Agent Review.json" in bpy.data.texts)
+    bpy.ops.bonsai_sketch_mode.approve_plan("EXEC_DEFAULT")
+    check("approval consumed the plan", ui._pending.used)
     ifc = tool.Ifc.get()
     check("a project was created", ifc is not None)
     if ifc is not None:

@@ -75,6 +75,20 @@ def names() -> list:
     return sorted(_VERBS)
 
 
+@verb("ifc_sg_requirements")
+def _sg_requirements(params: dict) -> dict:
+    from .. import requirements, sg
+    selected_stage = params.get("stage", sg.stage())
+    return requirements.check_element(params.get("ifc_class", ""), selected_stage, {},
+                                      params.get("predefined_type", ""))
+
+
+@verb("check_ifc_sg")
+def _check_sg(params: dict) -> dict:
+    from .. import sg
+    return sg.inspect(_object(params), params.get("stage"))
+
+
 # --- Reading parameters ------------------------------------------------------
 #
 # An agent gets these wrong in predictable ways -- a number as a string, a
