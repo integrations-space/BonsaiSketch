@@ -137,6 +137,30 @@ shape is generated from material layers or a profile, and overwriting that with
 a plain mesh would silently throw the parametric definition away. Use Bonsai's
 own depth controls for those.
 
+### Already have a plan drawn?
+
+**`File` > `Import` > `CAD Drawing (.dxf/.dwg)`** brings a DXF in as sketch
+geometry, one object per layer, so choosing the layers that matter is ordinary
+selection and every tool above works on what arrives. Outlines the drafter
+left almost-closed are healed up to an adjustable gap tolerance and become
+faces; set an **Extrude** height in the import options and every closed
+outline stands up as a solid — a plan of room outlines becomes massing in one
+step, and all three values can be re-adjusted in the panel after the import
+without re-importing. Gaps wider than the tolerance stay open on purpose: a
+doorway is not a drafting error, and the import says what it healed and what
+it left alone.
+
+Different layers want different heights: import flat, then select a layer's
+object and run **`Object` > `Stand Up Outlines`** — the same healing and
+extrusion with its own height, gap and weld, re-adjustable in the panel after
+each run. WALLS at 3 m, PARTITIONS at 2.4 m, one selection at a time. Layers
+already standing are left alone rather than doubled.
+
+DWG needs the free [ODA File Converter](https://www.opendesign.com/guestfiles/oda_file_converter)
+installed and pointed at in the add-on preferences — it is a proprietary
+format, and converting is the honest route. Without it, the import explains
+itself instead of failing.
+
 ### If something does not work
 
 | Symptom | Cause |
@@ -247,6 +271,7 @@ Early, but usable for sketching. Working:
 - The `Sketch` workspace tab, added automatically on file load
 - A complete `Sketch` keyconfig
 - Line, Rectangle, Push/Pull and Tape Measure
+- DXF/DWG import by layer, with gap healing and one-step extrusion
 
 Not yet built: Offset, Follow Me, Eraser, Paint, and Push/Pull on parametric
 IFC elements. `F`, `B` and `E` are left unbound rather than pointed at an

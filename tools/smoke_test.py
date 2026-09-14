@@ -625,14 +625,68 @@ check("the neighbour's height is offered as a candidate",
 bpy.data.objects.remove(tall_obj, do_unlink=True)
 bpy.data.meshes.remove(tall)
 
-# --- Face-plane inference ----------------------------------------------------
-#
-# A vertex is only worth aligning to if something sits *at* it; a face's whole
-# plane is worth aligning to everywhere at once. The classic case is the slab:
-# level with the top or underside of a parallel surface, where no single point
-# on that surface happens to sit at the height you need. Only planes parallel
-# to the push axis count -- an inclined roof can never be met by a horizontal
-# push, because the two planes only intersect in a line.
+# Planes, not just points: a wall pulled up beside a sloped roof should stop
+# where it touches the roof's plane, and it touches corner-first -- the near
+# corner grazing the near side, the far corner reaching under the far side.
+# Each (corner, plane) pair is one distance along the push axis.
+square = [Vector((0.0, 0.0, 0.0)), Vector((2.0, 0.0, 0.0)),
+          Vector((2.0, 2.0, 0.0)), Vector((0.0, 2.0, 0.0))]
+roof = [(Vector((0.0, 0.0, 3.0)), Vector((0.0, 1.0, 1.0)).normalized())]
+slopes = pushpull.sorted_unique(pushpull.plane_offsets(roof, square, up))
+# The plane rises 1:1 with y from z=3, so corners at y=0 reach it at 3 and
+# corners at y=2 at 1.
+check("a sloped plane is reached corner by corner",
+      len(slopes) == 2 and abs(slopes[0] - 1.0) < 1e-6 and abs(slopes[1] - 3.0) < 1e-6,
+      f"got {slopes}")
+
+# The two families of plane that must not divide: parallel to the push axis is
+# never reached, and parallel to the face is already offered through its
+# vertices as points.
+check("a plane parallel to the push axis is not a candidate",
+      pushpull.plane_offsets([(Vector((5.0, 0.0, 0.0)), Vector((1.0, 0.0, 0.0)))], square, up) == [])
+check("a plane parallel to the face is left to the point pass",
+      pushpull.plane_offsets([(Vector((0.0, 0.0, 4.0)), Vector((0.0, 0.0, 1.0)))], square, up) == [])
+
+# The real thing again: a two-triangle roof over the scene. One plane, however
+# many faces it is tessellated into, and its touch distances join the same
+# candidate list the points feed.
+roof_mesh = bpy.data.meshes.new("roof")
+roof_bm = bmesh.new()
+rv = [roof_bm.verts.new(co) for co in
+      ((0.0, 0.0, 3.0), (4.0, 0.0, 3.0), (4.0, 4.0, 7.0), (0.0, 4.0, 7.0))]
+roof_bm.faces.new((rv[0], rv[1], rv[2]))
+roof_bm.faces.new((rv[0], rv[2], rv[3]))
+roof_bm.normal_update()
+roof_bm.to_mesh(roof_mesh)
+roof_bm.free()
+roof_obj = bpy.data.objects.new("roof", roof_mesh)
+context.scene.collection.objects.link(roof_obj)
+
+roof_normal = Vector((0.0, -1.0, 1.0)).normalized()
+gathered_planes = pushpull.inference_planes(context)
+matching = [m for _p, m in gathered_planes if abs(abs(m.dot(roof_normal)) - 1.0) < 1e-3]
+check("a tessellated plane is gathered once", len(matching) == 1,
+      f"got {len(matching)} planes along the roof normal")
+
+merged = pushpull.sorted_unique(
+    pushpull.axis_offsets(pushpull.inference_points(context), origin, up)
+    + pushpull.plane_offsets(gathered_planes, square, up)
+)
+# The roof rises 1:1 with y from z=3, so the square's corners touch its plane
+# at 3 (y=0) and 5 (y=2). 5 is reachable through the plane alone: no vertex of
+# anything sits at that height.
+check("plane touches join the candidate list", any(abs(o - 5.0) < 1e-6 for o in merged),
+      f"got {merged}")
+check("the point candidates are still there too", any(abs(o - 3.0) < 1e-6 for o in merged))
+
+bpy.data.objects.remove(roof_obj, do_unlink=True)
+bpy.data.meshes.remove(roof_mesh)
+
+# Non-uniform object scale must not distort the requested distance.
+half = Matrix.Diagonal(Vector((2.0, 1.0, 4.0))).to_3x3()
+scaled = pushpull.extruded(flat, 0, half.inverted(), up, 4.0, pushpull.EXTRUDE)
+heights = sorted({round(v.co.z, 6) for v in scaled.verts})
+check("world distance survives object scale", heights == [0.0, 1.0], f"local heights {heights}")
 
 # A horizontal sheet 4 above the drag origin. Its face's plane is parallel to
 # the push axis (world Z), so pulling up should be offered the offset 4 -- a
@@ -683,6 +737,222 @@ bpy.data.objects.remove(sheet_obj, do_unlink=True)
 bpy.data.meshes.remove(sheet_mesh)
 bpy.data.objects.remove(slope_obj, do_unlink=True)
 bpy.data.meshes.remove(slope_mesh)
+
+
+# --- CAD import --------------------------------------------------------------
+#
+# A DXF comes in as sketch geometry, one object per layer; broken outlines are
+# healed up to a gap tolerance; closed outlines become faces; a non-zero
+# extrude stands them up. The parser and healer are pure Python and get their
+# analytic checks here; the built solids get volume checks, because volumes
+# are what caught the membrane bug that topology checks slept through.
+
+section("CAD import")
+dxf = addon.dxf
+heal = addon.heal
+importer = sys.modules[ADDON + ".ops.importer"]
+
+def dxf_pairs(*items):
+    return "\n".join(str(x) for pair in items for x in pair) + "\n"
+
+# Millimetre file: a 4000x3000 square of LINEs on WALLS with one 2mm gap, a
+# closed triangle and a circle on FURNITURE, and an entity outside the subset.
+fixture = dxf_pairs(
+    (0, "SECTION"), (2, "HEADER"),
+    (9, "$INSUNITS"), (70, 4),
+    (0, "ENDSEC"),
+    (0, "SECTION"), (2, "ENTITIES"),
+    (0, "LINE"), (8, "WALLS"), (10, 0), (20, 0), (11, 4000), (21, 0),
+    (0, "LINE"), (8, "WALLS"), (10, 4000), (20, 0), (11, 4000), (21, 3000),
+    (0, "LINE"), (8, "WALLS"), (10, 4000), (20, 3000), (11, 0), (21, 3000),
+    (0, "LINE"), (8, "WALLS"), (10, 0), (20, 3000), (11, 0), (21, 2),
+    (0, "LWPOLYLINE"), (8, "FURNITURE"), (90, 3), (70, 1),
+    (10, 0), (20, 0), (10, 1000), (20, 0), (10, 500), (20, 800),
+    (0, "CIRCLE"), (8, "FURNITURE"), (10, 9000), (20, 9000), (40, 500),
+    (0, "MTEXT"), (8, "NOTES"), (10, 0), (20, 0),
+    (0, "ENDSEC"), (0, "EOF"),
+)
+
+drawing = dxf.parse(fixture)
+check("layers found", sorted(drawing.layers) == ["FURNITURE", "WALLS"],
+      str(sorted(drawing.layers)))
+check("millimetres understood and scaled", drawing.scale == 0.001
+      and drawing.layers["WALLS"][0].points[1] == (4.0, 0.0))
+check("entities outside the subset are counted, not silently dropped",
+      drawing.skipped == {"MTEXT": 1}, str(drawing.skipped))
+circle = [p for p in drawing.layers["FURNITURE"] if len(p.points) == 24][0]
+check("a circle is SketchUp's 24 chords, closed", circle.closed)
+
+# The spec's bulge sign: positive arcs counter-clockwise from start to end,
+# which for a rightward chord is the LOWER semicircle.
+bulged = dxf.parse(dxf_pairs(
+    (0, "SECTION"), (2, "ENTITIES"),
+    (0, "LWPOLYLINE"), (8, "0"), (90, 2), (70, 0),
+    (10, 0), (20, 0), (42, 1), (10, 2), (20, 0),
+    (0, "ENDSEC"), (0, "EOF"),
+)).layers["0"][0]
+check("a bulge of 1 is a counter-clockwise half circle",
+      abs(min(p[1] for p in bulged.points) + 1.0) < 1e-6
+      and bulged.points[-1] == (2.0, 0.0),
+      f"low point {min(p[1] for p in bulged.points)}")
+
+# Healing: a 2mm break closes under a 5mm gap tolerance and stays open under
+# a 1.5mm one -- a doorway is not a drafting error.
+wall_pairs = [(p.points, p.closed) for p in drawing.layers["WALLS"]]
+loops, opens, report = heal.heal(wall_pairs, weld=0.001, gap=0.005)
+check("the broken square closes as one loop", len(loops) == 1 and opens == [],
+      f"{len(loops)} loops, {len(opens)} open")
+check("healing says what it did", report.welded == 3 and report.bridged == 1,
+      report.summary())
+tight_loops, tight_opens, tight_report = heal.heal(wall_pairs, weld=0.001, gap=0.0015)
+check("a gap wider than the tolerance stays open",
+      tight_loops == [] and tight_report.left_open == 1)
+
+# The crossing test itself, both ways round: bmesh checks topology, not
+# geometry, so this test is the only thing standing between a healed figure
+# of eight and a bowtie face.
+check("a crossing loop is recognised, an honest one is not",
+      heal.self_crossing([(0.0, 0.0), (2.0, 2.0), (2.0, 0.0), (0.0, 2.0)])
+      and not heal.self_crossing([(0.0, 0.0), (2.0, 0.0), (2.0, 2.0), (0.0, 2.0)]))
+
+# The whole pipeline through the real operator, extruding 2m.
+import os
+import tempfile
+
+context.view_layer.objects.active = None
+for existing in list(bpy.data.objects):
+    existing.select_set(False)
+with tempfile.NamedTemporaryFile("w", suffix=".dxf", delete=False) as handle:
+    handle.write(fixture)
+    plan_path = handle.name
+result = bpy.ops.bonsai_sketch_mode.import_cad(
+    filepath=plan_path, weld=0.001, gap=0.005, extrude=2.0)
+check("the import operator finishes", result == {"FINISHED"}, str(result))
+
+plan_stem = os.path.splitext(os.path.basename(plan_path))[0]
+walls_obj = bpy.data.objects.get(f"{plan_stem}/WALLS")
+furniture_obj = bpy.data.objects.get(f"{plan_stem}/FURNITURE")
+check("one object per layer, named for it",
+      walls_obj is not None and furniture_obj is not None,
+      str(sorted(o.name for o in bpy.data.objects if plan_stem in o.name)))
+check("imported layers are sketch geometry",
+      sketchmesh.is_sketch_object(walls_obj) and sketchmesh.is_sketch_object(furniture_obj))
+
+walls_bm = bmesh.new()
+walls_bm.from_mesh(walls_obj.data)
+check("the healed square stood up: volume is 4x3x2",
+      abs(walls_bm.calc_volume(signed=False) - 24.0) < 1e-6,
+      f"got {walls_bm.calc_volume(signed=False)}")
+walls_bm.free()
+
+# Triangle prism 0.5*1*0.8*2 plus a 24-gon prism 0.5*24*r^2*sin(15deg)*2.
+import math as _math
+
+furniture_bm = bmesh.new()
+furniture_bm.from_mesh(furniture_obj.data)
+expected = (0.5 * 1.0 * 0.8 + 0.5 * 24 * 0.25 * _math.sin(_math.radians(15.0))) * 2.0
+check("the furniture layer's solids measure up",
+      abs(furniture_bm.calc_volume(signed=False) - expected) < 1e-6,
+      f"got {furniture_bm.calc_volume(signed=False)}, expected {expected}")
+furniture_bm.free()
+
+for gone in (walls_obj, furniture_obj):
+    data = gone.data
+    bpy.data.objects.remove(gone, do_unlink=True)
+    bpy.data.meshes.remove(data)
+os.unlink(plan_path)
+
+# A healed loop that crosses itself has no single face; it stays as edges and
+# is counted rather than guessed at.
+bow = dxf.Polyline("L", [(0.0, 0.0), (2.0, 2.0), (2.0, 0.0), (0.0, 2.0)], True)
+bow_obj, _bow_report, unfaceable = importer.build_layer(
+    context, "bowtie", [bow], weld=0.001, gap=0.005, extrude=1.0)
+check("a self-crossing loop stays as edges", unfaceable == 1
+      and len(bow_obj.data.polygons) == 0 and len(bow_obj.data.edges) == 4,
+      f"{unfaceable} unfaceable, {len(bow_obj.data.polygons)} faces")
+bow_data = bow_obj.data
+bpy.data.objects.remove(bow_obj, do_unlink=True)
+bpy.data.meshes.remove(bow_data)
+
+# Per-layer heights, after the fact: import flat with a gap tolerance too
+# tight to close anything, then Stand Up Outlines on the selected layers with
+# a working tolerance and a height of its own. This is the "each layer its
+# own height" path -- one run, one height, selection says which layers.
+with tempfile.NamedTemporaryFile("w", suffix=".dxf", delete=False) as handle:
+    handle.write(fixture)
+    flat_path = handle.name
+for existing in bpy.data.objects:
+    existing.select_set(False)
+result = bpy.ops.bonsai_sketch_mode.import_cad(
+    filepath=flat_path, weld=0.001, gap=0.0001, extrude=0.0)
+check("a flat import finishes", result == {"FINISHED"}, str(result))
+flat_stem = os.path.splitext(os.path.basename(flat_path))[0]
+flat_walls = bpy.data.objects.get(f"{flat_stem}/WALLS")
+flat_furniture = bpy.data.objects.get(f"{flat_stem}/FURNITURE")
+check("the too-tight gap left the square as wire",
+      flat_walls is not None and len(flat_walls.data.polygons) == 0
+      and len(flat_walls.data.edges) >= 3)
+
+for existing in bpy.data.objects:
+    existing.select_set(False)
+flat_walls.select_set(True)
+flat_furniture.select_set(True)
+context.view_layer.objects.active = flat_walls
+result = bpy.ops.bonsai_sketch_mode.stand_up(height=2.5, weld=0.001, gap=0.005)
+check("standing up the selection finishes", result == {"FINISHED"}, str(result))
+
+stood_bm = bmesh.new()
+stood_bm.from_mesh(flat_walls.data)
+check("the wire square healed and stood to 4x3x2.5",
+      abs(stood_bm.calc_volume(signed=False) - 30.0) < 1e-6,
+      f"got {stood_bm.calc_volume(signed=False)}")
+stood_bm.free()
+
+furn_bm = bmesh.new()
+furn_bm.from_mesh(flat_furniture.data)
+expected_furniture = (0.5 * 1.0 * 0.8 + 0.5 * 24 * 0.25 * _math.sin(_math.radians(15.0))) * 2.5
+check("already-faced layers take the same height",
+      abs(furn_bm.calc_volume(signed=False) - expected_furniture) < 1e-6,
+      f"got {furn_bm.calc_volume(signed=False)}")
+furn_bm.free()
+
+# Standing geometry is declined, not doubled: this operator exists to be
+# re-run with different numbers, and stacking would make every re-run wrong.
+for existing in bpy.data.objects:
+    existing.select_set(False)
+flat_walls.select_set(True)
+result = bpy.ops.bonsai_sketch_mode.stand_up(height=2.5)
+still_bm = bmesh.new()
+still_bm.from_mesh(flat_walls.data)
+check("a standing layer is left alone",
+      result == {"CANCELLED"} and abs(still_bm.calc_volume(signed=False) - 30.0) < 1e-6,
+      f"{result}, volume {still_bm.calc_volume(signed=False)}")
+still_bm.free()
+
+# Geometry we did not mark is not ours to rebuild.
+foreign = bpy.data.objects.new("foreign", bpy.data.meshes.new("foreign"))
+context.scene.collection.objects.link(foreign)
+for existing in bpy.data.objects:
+    existing.select_set(False)
+foreign.select_set(True)
+check("unmarked geometry is declined",
+      bpy.ops.bonsai_sketch_mode.stand_up(height=1.0) == {"CANCELLED"})
+check("stand-up operator registered", hasattr(bpy.ops.bonsai_sketch_mode, "stand_up"))
+
+foreign_data = foreign.data
+bpy.data.objects.remove(foreign, do_unlink=True)
+bpy.data.meshes.remove(foreign_data)
+for gone in (flat_walls, flat_furniture):
+    data = gone.data
+    bpy.data.objects.remove(gone, do_unlink=True)
+    bpy.data.meshes.remove(data)
+os.unlink(flat_path)
+
+# DWG without the converter refuses with directions, not silence.
+converted, why_not = importer.convert_dwg("plan.dwg", "")
+check("DWG without ODA says what to install",
+      converted is None and "opendesign.com" in why_not, why_not)
+check("import operator registered", hasattr(bpy.ops.bonsai_sketch_mode, "import_cad"))
 
 
 # --- IFC+SG requirements -----------------------------------------------------
@@ -830,6 +1100,49 @@ check("the grid comes back",
 check("an unknown workspace changes nothing", theme.set_floor_grid("Nope", False) == 0)
 
 
+# --- Inference mark ----------------------------------------------------------
+#
+# The dot that shows where a drag snapped. Whether it draws in the right place
+# needs a viewport and eyes; what can be pinned headless is the lifecycle --
+# installed with the add-on, silent without a mark, silent without a region --
+# and the arithmetic and colour plumbing under it.
+
+section("Inference mark")
+marks = addon.marks
+check("handler installed with the add-on", marks.is_drawing())
+check("installing twice is refused", marks.install() is False)
+
+check("nothing showing to begin with", not marks.is_showing())
+marks.show(Vector((1.0, 2.0, 3.0)))
+check("a shown mark is showing", marks.is_showing())
+# Headless there is no region to draw into; the callback must simply return.
+try:
+    marks.draw()
+    silent = True
+except Exception:
+    silent = False
+check("draw is silent without a viewport", silent)
+marks.hide()
+check("hidden is hidden", not marks.is_showing())
+
+corners = marks.square(Vector((10.0, 20.0)), 3.5)
+check("the dot is a square around its centre",
+      corners == [(6.5, 16.5), (13.5, 16.5), (13.5, 23.5), (6.5, 23.5)],
+      f"got {corners}")
+
+# Compared with SAME_COLOUR, not equality: section 4's byte-storage lesson
+# again, one storage down. FloatVectorProperty holds float32, so the shipped
+# default 0.878 reads back as 0.87800002... and an exact comparison fails on
+# the very default it is checking.
+mark_colour = tuple(theme.colour("inference_colour"))
+check("the mark's colour is a preference with a reset-covered default",
+      "inference_colour" in theme.COLOUR_DEFAULTS
+      and all(abs(a - b) <= theme.SAME_COLOUR for a, b in zip(mark_colour, theme.INFERENCE)),
+      f"got {mark_colour!r}")
+prefs_check = bpy.context.preferences.addons[ADDON].preferences
+check("the preference field exists", hasattr(prefs_check, "inference_colour"))
+
+
 # --- Unregister --------------------------------------------------------------
 
 section("Unregister")
@@ -842,6 +1155,7 @@ except Exception as exc:
     message = str(exc)
 check("disables cleanly", clean, message)
 check("keyconfig removed", "Sketch" not in bpy.context.window_manager.keyconfigs)
+check("mark handler removed", not marks.is_drawing())
 
 
 # --- Result ------------------------------------------------------------------

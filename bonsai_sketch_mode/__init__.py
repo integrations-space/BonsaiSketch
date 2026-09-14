@@ -34,7 +34,7 @@ import os
 
 import bpy
 
-from . import bridge, ground, keyconfig, ops, requirements, sidebar, textmodel, theme, tools, workspace
+from . import bridge, dxf, ground, heal, keyconfig, marks, ops, requirements, sidebar, textmodel, theme, tools, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
@@ -208,6 +208,19 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
     #: The theme values as they were before we touched them, as JSON. Kept in
     #: preferences rather than memory so a restore still works next session.
     saved_theme: bpy.props.StringProperty(default="")
+
+    oda_converter: bpy.props.StringProperty(
+        name="ODA File Converter",
+        description=(
+            "Path to the ODA File Converter executable (free, from "
+            "opendesign.com). DWG is a proprietary format with no reliable "
+            "free reader, so File > Import reads DWG by converting it to DXF "
+            "through this tool first. Leave empty and DWG import explains "
+            "itself instead of failing quietly"
+        ),
+        default="",
+        subtype="FILE_PATH",
+    )
     theme_applied: bpy.props.BoolProperty(default=False)
 
     show_ground: bpy.props.BoolProperty(
@@ -287,6 +300,11 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
     axis_x_colour: _colour_prop("Red Axis", theme.AXIS_X, "The X axis")
     axis_y_colour: _colour_prop("Green Axis", theme.AXIS_Y, "The Y axis")
     axis_z_colour: _colour_prop("Blue Axis", theme.AXIS_Z, "The Z axis")
+    inference_colour: _colour_prop(
+        "Inference",
+        theme.INFERENCE,
+        "The mark drawn where a drag has snapped level with existing geometry",
+    )
 
     anthropic_api_key: bpy.props.StringProperty(
         name="Anthropic API key",
@@ -462,7 +480,16 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
         col.prop(self, "axis_x_colour")
         col.prop(self, "axis_y_colour")
         col.prop(self, "axis_z_colour")
+
+        col = box.column(align=True)
+        col.label(text="Modelling colours")
+        col.prop(self, "inference_colour")
         box.operator(BONSAI_SKETCH_MODE_OT_reset_colours.bl_idname, icon="LOOP_BACK")
+
+        box = layout.box()
+        box.label(text="Import", icon="IMPORT")
+        box.label(text="File > Import > CAD Drawing reads DXF natively.")
+        box.prop(self, "oda_converter")
 
         ok, message = _tools_status
         box = layout.box()
@@ -536,11 +563,16 @@ def register() -> None:
     # tab, so installing it globally costs nothing elsewhere.
     ground.install()
 
+    # The inference mark likewise: one comparison per redraw while no tool is
+    # showing one, and no per-modal lifecycle to leak.
+    marks.install()
+
 
 def unregister() -> None:
     # First: it is the only thing here holding an OS resource and a thread.
     textmodel.unregister()
     textmodel.unregister_ui()
+    marks.uninstall()
     ground.uninstall()
     sidebar.unregister()
     workspace.unregister_handlers()
