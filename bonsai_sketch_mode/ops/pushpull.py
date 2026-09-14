@@ -706,8 +706,13 @@ class BONSAI_SKETCH_MODE_OT_push_pull(bpy.types.Operator):
         if self.typed:
             value = bridge.parse_length(self.typed)
             if value is not None:
-                sign = -1.0 if self.distance < 0 else 1.0
-                self.distance = abs(value) * sign
+                # An explicitly signed value chooses its own direction. A
+                # positive value keeps the direction established by dragging.
+                if value < 0:
+                    self.distance = value
+                else:
+                    sign = -1.0 if self.distance < 0 else 1.0
+                    self.distance = value * sign
                 self.apply(self.distance)
         self.report_state(context)
         bridge.update_viewport()
