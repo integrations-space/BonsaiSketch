@@ -24,6 +24,28 @@ top of it and calls into it.
 
 ## Quick start
 
+### Windows: automatic add-on installation
+
+Install Blender **5.0 or 5.2**, save your work and close it, then download
+[Install-Bonsai-Sketch.cmd](https://github.com/integrations-space/BonsaiSketch/releases/latest/download/Install-Bonsai-Sketch.cmd)
+and double-click it. The installer downloads,
+installs and enables **Bonsai and Bonsai Sketch Mode**. Open Blender and select
+the **Sketch** tab when it finishes. No ZIP extraction or folder moving is needed.
+
+The installer uses the newest supported Blender it finds in the standard Windows
+installation folders or on PATH. For portable Blender, set `BLENDER_EXE` to its
+`blender.exe` path. Internet access is required. Windows may ask you to allow the
+downloaded script to run. Blender itself is installed separately.
+
+When run from a source checkout, the same button builds and installs that
+checkout. Otherwise it installs the latest published release. If you have the
+old **BonsaiBIM Sketch Mode** enabled, remove it first in Blender Preferences.
+Development links must also be removed before replacing them with an installation.
+Errors and completed steps are kept in the temporary folder printed by the
+installer; rerun it after fixing an error.
+
+The manual steps below also work on macOS and Linux.
+
 Nothing here assumes you have used Blender before. Roughly fifteen minutes,
 most of it downloading.
 
@@ -324,6 +346,12 @@ change — but do give it a different `id` and `name` in
 installed side by side, since Blender keys extensions by `id`.
 
 ## Development
+
+The Windows installer is generated from `tools/windows_installer.ps1`. After
+editing it, run `python tools/build_windows_installer.py`, then
+`powershell -NoProfile -File tools/windows_installer_check.ps1`. CI checks the
+generated launcher and uploads it as a separate installer artifact. Include
+`Install-Bonsai-Sketch.cmd` alongside the extension ZIP when publishing a release.
 
 Junction the add-on directory into Blender's user extension repository so edits
 are picked up in place:

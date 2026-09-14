@@ -92,3 +92,24 @@ jobs:
           name: bonsai-sketch-mode-zip
           path: dist/*.zip
           if-no-files-found: warn
+
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Verify standalone installer
+        shell: pwsh
+        run: |
+          python tools/build_windows_installer.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git diff --exit-code -- Install-Bonsai-Sketch.cmd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          powershell -NoProfile -File tools/windows_installer_check.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bonsai-sketch-windows-installer
+          path: Install-Bonsai-Sketch.cmd

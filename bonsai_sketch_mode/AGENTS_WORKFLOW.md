@@ -2,6 +2,11 @@
 
 ## Setup and use
 
+On Windows, install Blender 5.0 or 5.2 and close it, then double-click
+[`Install-Bonsai-Sketch.cmd`](../Install-Bonsai-Sketch.cmd). It installs and enables
+Bonsai and Sketch Mode automatically; no folder copying or separate agent
+dependencies are needed. See the [installation guide](../README.md#quick-start).
+
 1. Enable Bonsai and Bonsai Sketch Mode. Open Sketch, press N, select Sketch.
 2. Set the project stage in **IFC+SG Requirements**. Select IFC elements to see
    candidate missing fields. **Check Selected IFC+SG** saves a complete report
