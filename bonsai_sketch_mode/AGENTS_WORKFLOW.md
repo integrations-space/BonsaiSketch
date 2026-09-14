@@ -114,3 +114,12 @@ QA/questions, validation, stale/replayed plans, references and partial failures.
 The isolated Blender test exercises registration and real sketch extrusion without
 enabling installed extensions. The GUI test exercises proposal then explicit
 approval using a local stub HTTP server; it does not spend API credits.
+
+
+## Version 0.4.0 release validation
+
+The merged release was verified on Blender 5.2 with 208/208 smoke checks,
+13 offline agent tests, the isolated Blender agent/IFC evidence checks, and
+19/19 GUI proposal-and-approval checks using a stub provider. The GUI test
+confirmed that planning creates no project and approval creates four parametric
+walls with the requested dimensions. Live Anthropic requests were not exercised.
