@@ -1590,6 +1590,7 @@ plan_fixture = dxf_pairs(
     (0, "LINE"), (8, "WALLS"), (10, 3800), (20, 200), (11, 3800), (21, 2800),
     (0, "LINE"), (8, "WALLS"), (10, 3800), (20, 2800), (11, 200), (21, 2800),
     (0, "LINE"), (8, "WALLS"), (10, 200), (20, 2800), (11, 200), (21, 200),
+    (0, "TEXT"), (8, "ROOMS"), (10, 2000), (20, 1500), (1, "BEDROOM 2"),
     (0, "LINE"), (8, "MYSTERY"), (10, 0), (20, 5000), (11, 1000), (21, 5000),
     (0, "ENDSEC"), (0, "EOF"),
 )
@@ -1603,9 +1604,9 @@ auto_report = commands.run(
     "auto_model", {"path": auto_path, "height": 3.0, "weld": 0.001, "gap": 0.005})
 
 ran = [entry["stage"] for entry in auto_report["stages"]]
-check("all nine stages ran",
+check("all ten stages ran",
       ran == ["READ", "HEAL", "CLASSIFY", "WALLS", "STAND",
-              "ASSIGN", "MCR", "FILL", "CHECK"],
+              "ASSIGN", "SPACES", "MCR", "FILL", "CHECK"],
       str(ran))
 check("every stage that ran succeeded",
       all(entry["ok"] for entry in auto_report["stages"]),
@@ -1640,12 +1641,41 @@ check("four IfcWall objects with four stable GUIDs",
 auto_ops = [r["op"] for r in auto_report["source_map"]]
 check("the source map records the whole compilation",
       auto_ops.count("PAIR") == 4 and auto_ops.count("JUNCTION") == 4
-      and auto_ops.count("EXTEND") == 8 and auto_ops.count("EMIT") == 4,
+      and auto_ops.count("EXTEND") == 8 and auto_ops.count("EMIT") == 5
+      and auto_ops.count("ENCLOSE") == 1 and auto_ops.count("LABEL") == 1,
       str({op: auto_ops.count(op) for op in set(auto_ops)}))
-check("four elements came out the far side, all walls",
-      len(auto_report["objects"]) == 4
-      and all(o["ifc_class"] == "IfcWall" and o["wall"] for o in auto_report["objects"]),
-      str([(o["object"], o["wall"]) for o in auto_report["objects"]]))
+check("five elements came out the far side: four walls and a space",
+      len(auto_report["objects"]) == 5
+      and [o["ifc_class"] for o in auto_report["objects"]].count("IfcWall") == 4
+      and auto_report["objects"][-1]["ifc_class"] == "IfcSpace",
+      str([(o["object"], o["ifc_class"]) for o in auto_report["objects"]]))
+
+# The room the walls enclose, named by the drawing's own words, its area
+# the floor you can stand on -- 3.6 x 2.6 behind 200mm walls, not 4 x 3.
+auto_spaces = auto_report["spaces"]
+check("one space, bounded by all four walls",
+      len(auto_spaces) == 1 and sorted(auto_spaces[0]["walls"]) == ["W001", "W002", "W003", "W004"],
+      str(auto_spaces))
+check("its area is the room you can stand in",
+      abs(auto_spaces[0]["area"] - 3.6 * 2.6) < 1e-6, str(auto_spaces[0]["area"]))
+check("the drawing's label names it, with its source on record",
+      auto_spaces[0]["label"] == "BEDROOM 2"
+      and str(auto_spaces[0]["label_source"]).startswith("TEXT:"),
+      str((auto_spaces[0]["label"], auto_spaces[0]["label_source"])))
+check("the space became a real IfcSpace", bool(auto_spaces[0]["ifc_guid"]),
+      str(auto_spaces[0]["diagnostics"]))
+space_entity = bridge.Ifc.get().by_guid(auto_spaces[0]["ifc_guid"])
+check("carrying the room's name", space_entity.is_a("IfcSpace")
+      and space_entity.Name == "BEDROOM 2",
+      f"{space_entity.is_a()} named {space_entity.Name!r}")
+space_sg = ifcopenshell.util.element.get_pset(
+    space_entity, psets.PSET_NAME, should_inherit=False) or {}
+check("Space Name answered from the drawing's label",
+      space_sg.get("Space Name") == "BEDROOM 2", repr(space_sg.get("Space Name")))
+space_filled = auto_report["objects"][-1]["filled"].get(psets.PSET_NAME, {})
+check("its geometry answers the area, height and internal dimensions",
+      {"Area", "Height", "Volume", "Internal Length", "Internal Width"}
+      <= set(space_filled), str(sorted(space_filled)))
 
 # The element itself, not just the report: W001 traced by its GUID into
 # the IFC, both requirement sets attached, the geometric questions

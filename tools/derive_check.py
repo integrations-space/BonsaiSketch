@@ -107,6 +107,10 @@ check("and gives up its plan dimensions -- b and h are the section's to say",
       not {"LENGTH", "WIDTH", "BREADTH", "AREA"} & set(column))
 check("an unknown class keeps only what no reading can change",
       set(derive.measures("IfcChimney", (1.0, 1.0, 8.0), volume=8.0)) == {"HEIGHT", "VOLUME"})
+space = derive.measures("IfcSpace", (3.6, 2.6, 3.0), volume=28.08, base_area=9.36)
+check("a space's extents are its internal dimensions",
+      close(space.get("INTERNALLENGTH"), 3.6) and close(space.get("INTERNALWIDTH"), 2.6)
+      and close(space.get("AREA"), 9.36), str(space))
 
 
 section("The panel reading")

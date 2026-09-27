@@ -187,7 +187,15 @@ PROFILES: dict[str, dict[str, _Rule]] = {
     "IfcSlab": _PLATE,
     "IfcCovering": _PLATE,
     "IfcFooting": dict(_PRISM, BREADTH=_short_horizontal),
-    "IfcSpace": {"HEIGHT": _vertical, "AREA": _footprint, "VOLUME": _shell_volume},
+    # A space's geometry is its inner boundary, so its horizontal extents
+    # *are* the internal dimensions the standard asks for by that name.
+    "IfcSpace": {
+        "HEIGHT": _vertical,
+        "AREA": _footprint,
+        "VOLUME": _shell_volume,
+        "INTERNALLENGTH": _long_horizontal,
+        "INTERNALWIDTH": _short_horizontal,
+    },
     # A column's b and h depend on which way the section faces; a beam's
     # depth and width on which way it spans. The box cannot testify to
     # either, so they keep only what no orientation can change.

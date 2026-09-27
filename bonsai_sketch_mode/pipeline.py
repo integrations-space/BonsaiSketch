@@ -45,7 +45,7 @@ from typing import Optional
 
 import bpy
 
-from . import bridge, classify, derive, dxf, ir, walls
+from . import bridge, classify, derive, dxf, ir, spaces, walls
 
 #: Where the human-readable report lands, findable in Blender's Text editor.
 TEXT_NAME = "AutoModel Report"
@@ -53,7 +53,8 @@ TEXT_NAME = "AutoModel Report"
 #: The stages in running order. CLASSIFY moved ahead of STAND when WALLS
 #: arrived: which layers are wall layers decides which route their
 #: geometry takes, so the naming has to happen before the standing.
-STAGES = ("READ", "HEAL", "CLASSIFY", "WALLS", "STAND", "ASSIGN", "MCR", "FILL", "CHECK")
+STAGES = ("READ", "HEAL", "CLASSIFY", "WALLS", "STAND", "ASSIGN", "SPACES",
+          "MCR", "FILL", "CHECK")
 
 
 def _as_dxf(path: str, context) -> tuple[Optional[str], str]:
@@ -67,6 +68,31 @@ def _as_dxf(path: str, context) -> tuple[Optional[str], str]:
     return importer.convert_dwg(path, converter)
 
 
+def _prism_object(context, name: str, polygon, height: float):
+    """A standing solid over a stated polygon: the one shape this pipeline
+    ever builds, because everything it believes is a footprint and a
+    height, and both are on the record."""
+    import bmesh
+
+    from .ops import importer
+
+    obj = importer.layer_object(context, name)
+    solid = bmesh.new()
+    try:
+        face = solid.faces.new(solid.verts.new((x, y, 0.0)) for x, y in polygon)
+        if height > 0.0:
+            grown = bmesh.ops.extrude_face_region(solid, geom=[face])
+            raised = [g for g in grown["geom"] if isinstance(g, bmesh.types.BMVert)]
+            bmesh.ops.translate(solid, verts=raised, vec=(0.0, 0.0, height))
+            bmesh.ops.recalc_face_normals(solid, faces=list(solid.faces))
+        solid.normal_update()
+        solid.to_mesh(obj.data)
+    finally:
+        solid.free()
+    obj.data.update()
+    return obj
+
+
 def _wall_object(context, name: str, wall, height: float):
     """One standing solid from one semantic wall.
 
@@ -77,10 +103,6 @@ def _wall_object(context, name: str, wall, height: float):
     reading, accepted rather than mitred, and written into the wall's
     diagnostics as the decision it is.
     """
-    import bmesh
-
-    from .ops import importer
-
     dx, dy = wall.end[0] - wall.start[0], wall.end[1] - wall.start[1]
     length = (dx * dx + dy * dy) ** 0.5
     ux, uy = dx / length, dy / length
@@ -92,24 +114,79 @@ def _wall_object(context, name: str, wall, height: float):
         (wall.end[0] + nx, wall.end[1] + ny),
         (wall.start[0] + nx, wall.start[1] + ny),
     ]
-    obj = importer.layer_object(context, name)
-    solid = bmesh.new()
-    try:
-        face = solid.faces.new(solid.verts.new((x, y, 0.0)) for x, y in corners)
-        if height > 0.0:
-            grown = bmesh.ops.extrude_face_region(solid, geom=[face])
-            raised = [g for g in grown["geom"] if isinstance(g, bmesh.types.BMVert)]
-            bmesh.ops.translate(solid, verts=raised, vec=(0.0, 0.0, height))
-            bmesh.ops.recalc_face_normals(solid, faces=list(solid.faces))
-        solid.normal_update()
-        solid.to_mesh(obj.data)
-    finally:
-        solid.free()
-    obj.data.update()
+    obj = _prism_object(context, name, corners, height)
     wall.diagnostics.append(
         f"built as a butt-ended prism at {height:g} m; corner overlaps accepted"
     )
     return obj
+
+
+def _assign_space(context, obj, space):
+    """Make the space object an IfcSpace, or record exactly why not.
+
+    Spaces are spatial elements, not building elements, so this cannot go
+    through the ``assign_class`` verb, which pins the product to
+    occurrences on purpose. A refusal is written into the candidate's
+    diagnostics rather than raised: the enclosure and its label are
+    findings worth keeping whether or not this Bonsai will make the
+    element headless.
+    """
+    props = bridge.root_props()
+    if props is None:
+        space.diagnostics.append("IfcSpace assignment refused: Bonsai's class properties unavailable")
+        return None
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    context.view_layer.objects.active = obj
+    try:
+        props.ifc_product = "IfcSpatialElement"
+        props.ifc_class = "IfcSpace"
+        bpy.ops.bim.assign_class()
+    except Exception as exc:
+        space.diagnostics.append(f"IfcSpace assignment refused: {exc}")
+        return None
+    entity = bridge.get_entity(obj)
+    if entity is None:
+        space.diagnostics.append("IfcSpace assignment refused: no element came back")
+        return None
+    if space.label:
+        try:
+            entity.Name = space.label
+            entity.LongName = space.label
+        except Exception:
+            pass
+    space.ifc_guid = getattr(entity, "GlobalId", None)
+    return space.ifc_guid
+
+
+def _fill_space_name(ifc_file, entity, space) -> bool:
+    """Answer a null 'Space Name' with the drawing's own label.
+
+    Not geometry, but stated evidence all the same: the drawing wrote the
+    name, the label's source handle is on the record, and the fill is
+    written down as coming from it. Only a null is ever written to, the
+    same contract derive.py keeps.
+    """
+    if not space.label:
+        return False
+    import ifcopenshell.api.pset
+
+    for pset in derive._own_psets(entity):
+        for prop in pset.HasProperties or ():
+            if (
+                prop.is_a("IfcPropertySingleValue")
+                and prop.Name == "Space Name"
+                and prop.NominalValue is None
+            ):
+                ifcopenshell.api.pset.edit_pset(
+                    ifc_file, pset=pset,
+                    properties={"Space Name": space.label}, should_purge=False,
+                )
+                space.diagnostics.append(
+                    f"Space Name filled from drawing label {space.label_source or '?'}"
+                )
+                return True
+    return False
 
 
 def run(
@@ -139,7 +216,7 @@ def run(
     heights = heights or {}
     report: dict = {
         "path": path, "stages": [], "objects": [], "unresolved": [],
-        "walls": [], "junctions": [], "source_map": [],
+        "walls": [], "junctions": [], "spaces": [], "source_map": [],
     }
 
     def stage(name: str, ok: bool, note: str, **extra) -> bool:
@@ -306,6 +383,35 @@ def run(
     if not assigned:
         return finish()
 
+    # SPACES -- what the walls enclose, named by the drawing's own words.
+    # Enclosure and label are findings worth reporting even where the
+    # IfcSpace element cannot be made; the diagnostics say which happened.
+    space_candidates = []
+    emitted_spaces = 0
+    if per_wall:
+        semantic_walls = [wall for _obj, _proposal, wall in per_wall]
+        space_candidates = spaces.detect(
+            semantic_walls, all_junctions, drawing.texts, source_map
+        )
+        for space in space_candidates:
+            space_obj = _prism_object(context, f"{stem}/{space.id}", space.boundary, height)
+            guid = _assign_space(context, space_obj, space)
+            if guid:
+                emitted_spaces += 1
+                source_map.record("EMIT", [space.id], guid, f"IfcSpace {space_obj.name}")
+                entity = bridge.get_entity(space_obj)
+                if entity is not None:
+                    _fill_space_name(bridge.ifc_file(), entity, space)
+                assigned.append((space_obj, classify.Proposal(space.id, "IfcSpace"), None))
+    report["spaces"] = [space.as_dict() for space in space_candidates]
+    report["source_map"] = source_map.as_list()
+    named = sum(1 for space in space_candidates if space.label)
+    stage(
+        "SPACES", True,
+        f"{len(space_candidates)} space(s) enclosed, {named} named by the drawing, "
+        f"{emitted_spaces} became IfcSpace",
+    )
+
     # MCR -- the creation listener attached the parameters during ASSIGN; this
     # stage only counts what arrived, because a count of zero here is the
     # signal that attachment is switched off or the stage asks nothing.
@@ -386,6 +492,14 @@ def write_report(report: dict) -> str:
             lines.append(
                 f"  {item['id']}: {item['length']:.3f} m x {item['thickness']:.3f} m"
                 f", from {', '.join(str(s) for s in item['sources'])}"
+                + (f"  [{item['ifc_guid']}]" if item.get("ifc_guid") else "")
+            )
+    if report.get("spaces"):
+        lines += ["", "Spaces, as the walls enclose them:"]
+        for item in report["spaces"]:
+            lines.append(
+                f"  {item['id']} {item['label'] or '(unnamed)'}: {item['area']:.3f} m2, "
+                f"bounded by {', '.join(item['walls'])}"
                 + (f"  [{item['ifc_guid']}]" if item.get("ifc_guid") else "")
             )
     if report["objects"]:
