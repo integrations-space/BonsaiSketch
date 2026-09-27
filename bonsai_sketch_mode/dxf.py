@@ -16,9 +16,10 @@
 
 """Reading the drafting subset of DXF, without a dependency.
 
-A floor plan is lines, polylines, arcs and circles on named layers. That is
-the whole subset this reads, and it is read with a parser this add-on owns
-rather than a shipped library, on purpose:
+A floor plan is lines, polylines, arcs and circles on named layers, plus the
+words written on it -- room names, level marks. That is the whole subset this
+reads, and it is read with a parser this add-on owns rather than a shipped
+library, on purpose:
 
 - ezdxf would have to travel as a wheel in the extension and keep step with
   Blender's Python. The group-code format underneath is line pairs from 1982;
@@ -73,12 +74,32 @@ class Polyline:
         self.closed = closed
 
 
+class Label:
+    """A piece of drawn text and where it sits: a room name, a level mark.
+
+    Text is evidence, not geometry -- a label inside an enclosure is how a
+    plan says what the room is, and reading it is what will let a detected
+    space call itself BEDROOM 2 instead of Space_005. MTEXT's inline
+    formatting codes are left as written, except the paragraph break, which
+    becomes a space so a two-line name reads as one.
+    """
+
+    __slots__ = ("layer", "text", "position")
+
+    def __init__(self, layer: str, text: str, position: tuple) -> None:
+        self.layer = layer
+        self.text = text
+        self.position = position
+
+
 class Drawing:
     """What a DXF file said, reduced to what a sketch can use."""
 
     def __init__(self) -> None:
         #: Layer name -> polylines on it, in file order.
         self.layers: dict[str, list[Polyline]] = {}
+        #: The drawing's words -- TEXT and MTEXT -- in file order.
+        self.texts: list[Label] = []
         #: Entity types read past because this subset does not cover them,
         #: with counts. Reported, never silently dropped.
         self.skipped: dict[str, int] = {}
@@ -95,12 +116,19 @@ class Drawing:
 
 
 def _pairs(text: str) -> Iterator[tuple[int, str]]:
-    """DXF's one structure: a group code line, then a value line."""
+    """DXF's one structure: a group code line, then a value line.
+
+    The value comes through as written: a text chunk's trailing space is
+    the space between two words that a chunk boundary happened to split,
+    and stripping it here would eat it. Consumers that compare identities
+    -- entity names, section names, layers -- strip for themselves, and
+    the number parsers never minded whitespace.
+    """
     lines = text.splitlines()
     for index in range(0, len(lines) - 1, 2):
         code = lines[index].strip()
         try:
-            yield int(code), lines[index + 1].strip()
+            yield int(code), lines[index + 1]
         except ValueError:
             # A malformed code line. The pair walk stays in step by skipping
             # the pair, which is the recoverable reading of a broken file.
@@ -155,7 +183,8 @@ def _bulge_points(start: tuple, end: tuple, bulge: float) -> list:
 
 
 #: Entity types this reader understands. Everything else is counted, not read.
-_HANDLED = {"LINE", "LWPOLYLINE", "POLYLINE", "ARC", "CIRCLE", "VERTEX", "SEQEND"}
+_HANDLED = {"LINE", "LWPOLYLINE", "POLYLINE", "ARC", "CIRCLE", "VERTEX", "SEQEND",
+            "TEXT", "MTEXT"}
 
 
 def parse(text: str) -> Drawing:
@@ -179,7 +208,7 @@ def parse(text: str) -> Drawing:
         nonlocal in_polyline, poly_layer, poly_closed, poly_points
         if entity is None or section != "ENTITIES":
             return
-        layer = fields.get(8, ["0"])[0]
+        layer = fields.get(8, ["0"])[0].strip()
         try:
             if entity == "LINE":
                 start = (float(fields[10][0]), float(fields[20][0]))
@@ -236,6 +265,15 @@ def parse(text: str) -> Drawing:
                 # The walk returns to its start; a closed polyline stores
                 # that point once.
                 drawing.add(Polyline(layer, points[:-1], closed=True))
+            elif entity in ("TEXT", "MTEXT"):
+                # MTEXT longer than a group's 250 characters arrives as code-3
+                # chunks with the tail in code 1; TEXT is code 1 alone. Either
+                # way the words come out in drawing order.
+                value = "".join(fields.get(3, [])) + fields.get(1, [""])[0]
+                value = value.replace("\\P", " ").strip()
+                if value:
+                    position = (float(fields[10][0]), float(fields[20][0]))
+                    drawing.texts.append(Label(layer, value, position))
             elif entity not in _HANDLED:
                 drawing.skip(entity)
         except (KeyError, IndexError, ValueError):
@@ -247,26 +285,27 @@ def parse(text: str) -> Drawing:
     for code, value in _pairs(text):
         if code == 0:
             flush()
-            if value == "SECTION":
+            token = value.strip()
+            if token == "SECTION":
                 entity = None
                 fields = {}
                 section = "PENDING"
                 continue
-            if value == "ENDSEC":
+            if token == "ENDSEC":
                 section = None
                 entity = None
                 continue
-            if value == "EOF":
+            if token == "EOF":
                 break
-            entity = value
+            entity = token
             fields = {}
             continue
         if section == "PENDING" and code == 2:
-            section = value
+            section = value.strip()
             continue
         if section == "HEADER":
             if code == 9:
-                pending_header = value
+                pending_header = value.strip()
             elif pending_header == "$INSUNITS" and code == 70:
                 try:
                     insunits = int(value)
@@ -286,4 +325,9 @@ def parse(text: str) -> Drawing:
                     polyline.points = [
                         (x * drawing.scale, y * drawing.scale) for x, y in polyline.points
                     ]
+            for label in drawing.texts:
+                label.position = (
+                    label.position[0] * drawing.scale,
+                    label.position[1] * drawing.scale,
+                )
     return drawing

@@ -468,6 +468,42 @@ def _derive_values(params: dict) -> dict:
     return report
 
 
+@verb("detect_walls")
+def _detect_walls(params: dict) -> dict:
+    """Read the parallel-line walls out of a flat plan layer.
+
+    Candidates, not walls: each carries its centreline, measured thickness
+    and length, the indices of the two drawn lines that state it, and the
+    evidence in sentences. What does not pair comes back counted -- unread
+    rather than misread -- for an agent or a person to judge.
+    """
+    from .. import walls
+
+    obj = _object(params)
+    if not sketchmesh.is_sketch_object(obj):
+        raise CommandError("%r is not sketch geometry" % obj.name)
+
+    matrix = obj.matrix_world
+    zs = [(matrix @ v.co).z for v in obj.data.vertices]
+    if zs and max(zs) - min(zs) > 1e-5:
+        raise CommandError(
+            "%r is not a flat plan -- detect walls before standing anything up" % obj.name
+        )
+    segs = []
+    for edge in obj.data.edges:
+        a = matrix @ obj.data.vertices[edge.vertices[0]].co
+        b = matrix @ obj.data.vertices[edge.vertices[1]].co
+        segs.append(((a.x, a.y), (b.x, b.y)))
+
+    candidates, unpaired = walls.detect(segs)
+    return {
+        "object": obj.name,
+        "walls": [c.as_dict() for c in candidates],
+        "unpaired": len(unpaired),
+        "segments": len(segs),
+    }
+
+
 @verb("classify_layers")
 def _classify_layers(params: dict) -> dict:
     """Read layer names against the drafting conventions. Never guesses.

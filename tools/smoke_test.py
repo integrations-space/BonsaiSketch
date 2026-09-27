@@ -797,7 +797,8 @@ fixture = dxf_pairs(
     (0, "LWPOLYLINE"), (8, "FURNITURE"), (90, 3), (70, 1),
     (10, 0), (20, 0), (10, 1000), (20, 0), (10, 500), (20, 800),
     (0, "CIRCLE"), (8, "FURNITURE"), (10, 9000), (20, 9000), (40, 500),
-    (0, "MTEXT"), (8, "NOTES"), (10, 0), (20, 0),
+    (0, "TEXT"), (8, "NOTES"), (10, 2000), (20, 1500), (1, "BEDROOM 2"),
+    (0, "DIMENSION"), (8, "DIMS"), (10, 0), (20, 0),
     (0, "ENDSEC"), (0, "EOF"),
 )
 
@@ -807,7 +808,11 @@ check("layers found", sorted(drawing.layers) == ["FURNITURE", "WALLS"],
 check("millimetres understood and scaled", drawing.scale == 0.001
       and drawing.layers["WALLS"][0].points[1] == (4.0, 0.0))
 check("entities outside the subset are counted, not silently dropped",
-      drawing.skipped == {"MTEXT": 1}, str(drawing.skipped))
+      drawing.skipped == {"DIMENSION": 1}, str(drawing.skipped))
+check("the drawing's words are read with scaled positions",
+      [t.text for t in drawing.texts] == ["BEDROOM 2"]
+      and abs(drawing.texts[0].position[0] - 2.0) < 1e-9,
+      str([(t.text, t.position) for t in drawing.texts]))
 circle = [p for p in drawing.layers["FURNITURE"] if len(p.points) == 24][0]
 check("a circle is SketchUp's 24 chords, closed", circle.closed)
 
@@ -1504,6 +1509,52 @@ derive_bm.free()
 open_extents, open_volume, _open_base = derive.measure_object(derive_obj)
 check("an opened shell refuses a volume", open_volume is None, f"got {open_volume}")
 check("but its extents still speak", abs(open_extents[2] - 3.0) < 1e-6)
+
+
+# --- Wall pairing --------------------------------------------------------
+#
+# A drafter draws a wall as its two faces, not as a closed loop per wall.
+# The detector's readings and refusals are checked analytically in
+# tools/walls_check.py; what only this environment covers is the verb's
+# path from a real object's edges, through its world transform, to
+# candidates an agent can act on.
+
+section("Wall pairing")
+check("detect_walls is in the vocabulary",
+      "detect_walls" in addon.textmodel.commands.names())
+
+pair_mesh = bpy.data.meshes.new("wall_pair")
+pair_bm = bmesh.new()
+for (x1, y1), (x2, y2) in (
+    ((0.0, 0.0), (4.0, 0.0)), ((4.0, 0.0), (4.0, 3.0)),
+    ((4.0, 3.0), (0.0, 3.0)), ((0.0, 3.0), (0.0, 0.0)),
+    ((0.2, 0.2), (3.8, 0.2)), ((3.8, 0.2), (3.8, 2.8)),
+    ((3.8, 2.8), (0.2, 2.8)), ((0.2, 2.8), (0.2, 0.2)),
+):
+    pair_bm.edges.new((pair_bm.verts.new((x1, y1, 0.0)), pair_bm.verts.new((x2, y2, 0.0))))
+pair_bm.to_mesh(pair_mesh)
+pair_bm.free()
+pair_obj = bpy.data.objects.new("wall_pair", pair_mesh)
+pair_obj[sketchmesh.MARKER] = True
+# The verb must read through the world transform, so the plan is shoved
+# sideways: the walls must come out where the object sits, not at origin.
+pair_obj.location = (10.0, 0.0, 0.0)
+bpy.context.scene.collection.objects.link(pair_obj)
+bpy.context.view_layer.update()
+
+pair_result = addon.textmodel.commands.run("detect_walls", {"object": "wall_pair"})
+check("a drawn room reads as four walls",
+      len(pair_result["walls"]) == 4 and pair_result["unpaired"] == 0,
+      str(pair_result))
+check("thickness is measured, in world space",
+      all(abs(w["thickness"] - 0.2) < 1e-6 for w in pair_result["walls"])
+      and min(w["start"][0] for w in pair_result["walls"]) > 9.0,
+      str([(w["thickness"], w["start"]) for w in pair_result["walls"]]))
+check("every candidate names its stating lines and its evidence",
+      all(len(w["sources"]) == 2 and w["evidence"] for w in pair_result["walls"]))
+
+bpy.data.objects.remove(pair_obj, do_unlink=True)
+bpy.data.meshes.remove(pair_mesh)
 
 
 # --- AutoModel pipeline --------------------------------------------------

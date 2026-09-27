@@ -81,6 +81,61 @@ storey, listed in the original plan, are deferred to the same standard:
 computable, but not yet stated by the geometry alone in a way every case
 survives.
 
+## Method review — the 2D→Semantic BIM compiler proposal (2026-09-27)
+
+A detailed external methods document (an agentic "2D→Semantic BIM→IFC+SG
+compiler": ~15 modular tools, a building knowledge graph as the
+intermediate product, provenance on every decision, three-state values,
+staged validation gates, agents that orchestrate deterministic tools
+rather than generate) was reviewed against this pipeline. The verdict,
+recorded here so it is a decision and not a vibe:
+
+**Already satisfied** — the document's core discipline is this pipeline's
+existing constitution: modular deterministic tools composed by verbs;
+agents that call tools and never invent geometry or regulatory values
+(the propose/QA/approve flow); IFC+SG as a separate enrichment engine
+over external, versioned data (`data/*.json` from the workbook, mappings
+hand-maintained as judgement); DXF as the internal standard with DWG
+converted at the door; geometry cleaning before semantics (`heal.py`);
+layer classification that refuses rather than guesses; deterministic 3D;
+KNOWN/REQUIRED value states (`derive.py` fills only what geometry states,
+everything else stays a named null); validation as its own stage
+(`sg.py`); the report as the deliverable.
+
+**Adopted now** —
+- *Wall pairing* (its T07, §8): the document is right that a drafter
+  draws a wall as two parallel lines, not a closed loop per wall, and
+  that extruding loops gives one solid per enclosure. `walls.py` reads
+  the convention: parallel pairs within the drawn-wall thickness range
+  become candidates with measured centreline, thickness and length.
+- *Provenance* (§12): every candidate names the two source segments that
+  state it, plus the evidence in sentences — the professional answer to
+  "why does this wall exist".
+- *Text as evidence* (T05, §10): `dxf.py` now reads TEXT/MTEXT labels
+  with positions, the raw material for space naming.
+
+**Adopted with a correction** — the document attaches confidence scores
+(0.98, 0.79) to classifications. A number nothing calibrates is
+decoration; this pipeline records the *evidence itself* (the measured
+gap, the overlap, the matched token) and keeps its established refusal
+semantics: below the evidence bar, a candidate is not emitted at a lower
+confidence, it is refused with the reason. That is the same information,
+honestly labelled.
+
+**Deferred, in order** — per-wall geometry from candidates (replacing the
+loop-blob stand-up for wall layers, junction resolution marked as its own
+decision); space detection from wall topology + labels → IfcSpace;
+opening detection (blocks/arcs/wall gaps); multi-storey reconstruction
+with the document's evidence hierarchy (dimension > annotation >
+section > configuration > human); sections/elevations as height
+evidence; measured precision/recall once a ground-truth plan set exists.
+
+**Declined** — a separate knowledge-graph store: inside Blender+Bonsai
+the IFC file *is* the semantic model and the scene is its geometry; a
+parallel graph would be a second source of truth to keep honest. The
+report carries the relationships the stages discovered. Bidirectional
+DXF regeneration: out of scope for a sketch-first modeller.
+
 ## Progress log
 
 - **2026-09-27** — Research done: pipeline composes the verb registry;
@@ -114,3 +169,11 @@ survives.
   units, Area and Load Bearing still visibly open. CI-green (1d8c813) —
   the first headless create-project-and-assign in the suite held. **All
   nine stages verified. The road is open end to end.**
+- **2026-09-27** — Method review (see the section above): the external
+  2D→Semantic BIM compiler proposal assessed against this pipeline;
+  wall pairing, provenance and text-as-evidence adopted. `walls.py`
+  reads parallel-line walls with measured centreline/thickness/length,
+  source-segment provenance and evidence in sentences; `detect_walls`
+  joins the vocabulary; `dxf.py` reads TEXT/MTEXT labels. 28 analytic
+  checks in `tools/walls_check.py`. Next: per-wall geometry from
+  candidates, then spaces from wall topology + labels.
