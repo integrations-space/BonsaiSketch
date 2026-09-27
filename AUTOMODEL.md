@@ -79,10 +79,10 @@ question is safer than a beautifully modelled but unsupported claim.
 | # | Item | Status | Needs |
 | --- | --- | --- | --- |
 | 01 | Golden test package (permanent, in-repo, stated truth) | ✓ | — |
-| 02 | Real untouched hold-outs (3–5 architecturally different projects, truth established by hand, compiler runs blind, results per project) | ○ | real drawings from the project's owner |
+| 02 | Real untouched hold-outs — **one project first**: truth frozen in `holdouts/holdout-001/truth/` before any run, one blind run preserved as `results/baseline.json` (defects included, never rerun-until-pretty), scored per project by `tools/holdout_score.py`. A hold-out used to diagnose and improve the compiler **retires to the regression pool**; holdout-002 stays unseen until the next evaluation | ○ scaffold ✓, drawings ○ | real drawings from the project's owner |
 | 03 | Visual/viewport QA | ○ | a human at a viewport |
 | 04 | External IFC+SG validation | ○ | a real submission environment |
-| 05 | Failure taxonomy F01–F13, every intervention mapped | ✓ instrumented (F03/F05/F12/F13 honestly uninstrumented) | — |
+| 05 | Failure taxonomy F01–F13, every intervention mapped | ✓ (F13 conditional on recorded checker results) | — |
 | 06 | Section/elevation *geometry* as evidence (beyond the assertion grammar): drawn levels, heads and sills reconciled onto plan objects by mark and position | ○ next technical build | — |
 | 07 | Vocabulary expansion (slabs, columns, stairs, roofs) | deferred | ordered by measured failure frequency from 02, not by intuition |
 
@@ -97,17 +97,17 @@ none" are different claims.
 | --- | --- | --- |
 | F01 | Unsupported CAD entity | drawing diagnostics (skipped entity counts) |
 | F02 | Unknown layer convention | unresolved layers, annotation layers excluded |
-| F03 | Geometry damaged | ○ |
+| F03 | Geometry damaged | HEAL stage self-crossing loop counts |
 | F04 | Wall pairing ambiguous | WALLS stage unpaired-segment counts |
-| F05 | Junction ambiguous | ○ |
+| F05 | Junction ambiguous | AMBIGUOUS ledger ops (an end within reach of competing junctions; nearest-wins is recorded as the decision it is) |
 | F06 | Opening ambiguous | openings not `resolved` |
 | F07 | Space not closed | walls present, no space enclosed |
 | F08 | Drawing type unknown | DrawingCandidate UNKNOWN |
 | F09 | Cross-sheet alignment unresolved | TransformCandidate UNRESOLVED |
 | F10 | Conflicting evidence | Conflict records |
 | F11 | Missing required evidence | unmatched assertions; unstated elevations |
-| F12 | IFC+SG mapping failure | ○ |
-| F13 | External-checker failure | ○ |
+| F12 | IFC+SG mapping failure | CHECK entries with status `unmapped` |
+| F13 | External-checker failure | conditional: recorded `external_checker.json` beside the drawings instruments it; until then it reports uninstrumented, because schema validation is not regulatory acceptance |
 
 After several hold-out projects, this table picks the roadmap: whatever
 code dominates is what gets built next.
@@ -166,6 +166,8 @@ Output     IFC schema PASS/FAIL; IFC+SG completeness; external checker
 | Transform residual (synthetic) | < 0.001 mm, ACCEPT gate 5 mm | `tools/building_check.py`, CI smoke |
 | Silent conflict resolutions | 0 — by construction, and measured anyway | `tools/reconcile_check.py`, CI smoke evidence metrics |
 | Human interventions (synthetic) | 1 across 15 opening drawings — the bare gap, by design | `tools/bench_openings.py` |
+| Correct BIM objects per human intervention | golden: 22 objects / 2 interventions = 11.0 (machine side; real value comes from hold-outs) | building report KPI block |
+| Human review minutes per 100 generated objects | — needs a person with a stopwatch, recorded in `config/project.json` timings | `tools/holdout_score.py` |
 | Known limits, stated not gated | block without gap; corner window | `tools/bench_openings.py` aspirational block |
 | Real hold-out set / GFA deviation / IoU | ○ needs real drawings with agreed truth | — |
 
@@ -398,3 +400,18 @@ DXF regeneration: out of scope for a sketch-first modeller.
   written down, with zero silent resolutions as a release gate. Real
   hold-outs, viewport QA and the external checker await their human
   inputs.
+- **2026-09-27** — Harness tightened before any new evidence work, per
+  review: F03 (self-crossing loops), F05 (junction ambiguity, with
+  nearest-wins now recorded as a decision) and F12 (unmapped CHECK
+  status) instrumented; F13 made conditional on a recorded
+  external_checker.json because schema validation must never stand in
+  for regulatory acceptance; the two v0.3 KPIs added (review minutes
+  per 100 objects; correct objects per intervention — golden reads
+  11.0 machine-side); and the hold-out scaffold built: lifecycle
+  (unseen → blind baseline preserved with defects included → failure
+  analysis → retirement to regression), truth schemas, blind runner
+  and per-project scorer with the zero-silent-resolutions gate wired
+  to fail the score outright. No real drawing set exists in this
+  environment and fabricating one would poison the methodology, so per
+  the decision tree the next build is section/elevation geometry as
+  evidence — holdout-001 waits on the project's owner.

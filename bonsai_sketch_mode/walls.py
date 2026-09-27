@@ -340,6 +340,7 @@ def resolve(
     # Nearest junction wins each endpoint; everything is measured against
     # the original endpoints so examination order cannot matter.
     moves: dict = {}
+    contenders: dict = {}
     for index, (point, roles, _kind) in enumerate(proposals):
         for wall_index, role, along in roles:
             if role == "interior":
@@ -348,6 +349,7 @@ def resolve(
             endpoint = wall.start if role == "start" else wall.end
             distance = math.hypot(endpoint[0] - point[0], endpoint[1] - point[1])
             key = (wall_index, role)
+            contenders.setdefault(key, []).append(index)
             if key not in moves or distance < moves[key][0]:
                 moves[key] = (distance, index, along)
 
@@ -360,6 +362,21 @@ def resolve(
             semantic[wall_index].junctions.append(junction.id)
         if source_map is not None:
             source_map.record("JUNCTION", junction.walls, junction.id, kind)
+
+    # An end within reach of several junctions is an ambiguity the
+    # nearest-wins rule resolves -- which is a decision, so it goes on
+    # the record (the failure taxonomy reads it as F05) instead of
+    # passing as the only possible reading.
+    for (wall_index, role), proposal_indices in sorted(contenders.items()):
+        if len(proposal_indices) < 2:
+            continue
+        wall = semantic[wall_index]
+        names = [junctions[i].id for i in proposal_indices]
+        note = (f"{role} within reach of {len(names)} junctions "
+                f"({', '.join(names)}); nearest chosen")
+        wall.diagnostics.append(note)
+        if source_map is not None:
+            source_map.record("AMBIGUOUS", [wall.id] + names, wall.id, note)
 
     original_length = [wall.length for wall in semantic]
     for (wall_index, role), (distance, proposal_index, along) in sorted(moves.items()):

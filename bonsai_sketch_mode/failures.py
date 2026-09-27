@@ -51,9 +51,12 @@ CODES = {
     "F13": "External-checker failure",
 }
 
-#: What tally() cannot yet see. An uninstrumented code never reads as a
-#: reassuring zero.
-UNINSTRUMENTED = ("F03", "F05", "F12", "F13")
+#: What tally() cannot see. An uninstrumented code never reads as a
+#: reassuring zero. F13 is conditional: it instruments itself the moment
+#: a real external checker's results are recorded beside the drawings,
+#: because schema validation is not regulatory acceptance and must never
+#: quietly stand in for it.
+UNINSTRUMENTED = ()
 
 
 def tally(report: dict) -> dict:
@@ -80,6 +83,9 @@ def tally(report: dict) -> dict:
             if item.get("reason") != ANNOTATION_REASON:
                 instances["F02"].append(f"{storey}: {item['layer']} -- {item['reason']}")
         for stage in compilation.get("stages", []):
+            if stage.get("unfaceable"):
+                instances["F03"].append(
+                    f"{storey}: {stage['unfaceable']} self-crossing loop(s)")
             if stage.get("unpaired"):
                 instances["F04"].append(
                     f"{storey}: {stage['unpaired']} drawn line(s) left unread")
@@ -89,6 +95,12 @@ def tally(report: dict) -> dict:
                     f"{storey}: {opening['id']} {opening['status']}")
         if compilation.get("walls") and not compilation.get("spaces"):
             instances["F07"].append(f"{storey}: walls enclose no space")
+        for entry in compilation.get("objects", []):
+            verdict = entry.get("check") or {}
+            if verdict.get("status") == "unmapped":
+                instances["F12"].append(
+                    f"{storey}: {entry.get('object') or entry.get('layer')} "
+                    f"({entry.get('ifc_class')}) has no requirement mapping")
 
     for transform in report.get("transforms", []):
         if transform.get("status") == "UNRESOLVED":
@@ -98,6 +110,10 @@ def tally(report: dict) -> dict:
         instances["F10"].append(
             f"{conflict['id']}: {conflict['object']}.{conflict['property']}")
 
+    for record in report.get("source_map", []):
+        if record.get("op") == "AMBIGUOUS":
+            instances["F05"].append(record.get("note", record.get("output", "?")))
+
     for assertion in report.get("unmatched_assertions", []):
         instances["F11"].append(
             f"{assertion['mark']}.{assertion['property']} cited, drawn nowhere")
@@ -105,10 +121,22 @@ def tally(report: dict) -> dict:
         if storey.get("elevation") is None:
             instances["F11"].append(f"{storey['id']}: elevation unstated")
 
+    external = report.get("building", {}).get("external") or {}
+    external_recorded = external.get("status") == "recorded"
+    if external_recorded:
+        for finding in external.get("failures", []):
+            instances["F13"].append(str(finding))
+
     interventions = 0
     for code, name in CODES.items():
-        if code in UNINSTRUMENTED:
-            out[code] = {"name": name, "instrumented": False}
+        if code in UNINSTRUMENTED or (code == "F13" and not external_recorded):
+            out[code] = {
+                "name": name,
+                "instrumented": False,
+                "note": ("record the external checker's results beside the "
+                         "drawings; schema validation is not acceptance")
+                if code == "F13" else None,
+            }
             continue
         out[code] = {
             "name": name,

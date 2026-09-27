@@ -305,8 +305,8 @@ def run(
     # HEAL -- flat: the standing happens per layer later, so each can have
     # its own height rather than the one the import dialog would apply to all.
     stem = os.path.splitext(os.path.basename(path))[0]
-    objects, notes = importer.build(context, drawing, stem, weld, gap, 0.0)
-    stage("HEAL", True, "; ".join(notes))
+    objects, notes, heal_stats = importer.build(context, drawing, stem, weld, gap, 0.0)
+    stage("HEAL", True, "; ".join(notes), unfaceable=heal_stats["unfaceable"])
 
     # CLASSIFY -- before any standing, because which layers are wall layers
     # decides which route their geometry takes below.
@@ -913,9 +913,44 @@ def run_set(
         "silently_resolved": 0,
         "unmatched_marks": sorted({a.mark for a in unmatched}),
     }
+    # An external checker's results, when someone has recorded them
+    # beside the drawings -- schema validation never stands in for
+    # regulatory acceptance, so the difference is an explicit state.
+    external = None
+    for sheet_path in paths:
+        candidate_path = os.path.join(os.path.dirname(sheet_path), "external_checker.json")
+        if os.path.isfile(candidate_path):
+            import json as _json
+
+            try:
+                with open(candidate_path, encoding="utf-8") as handle:
+                    external = dict(_json.load(handle), status="recorded")
+            except (OSError, ValueError) as exc:
+                external = {"status": "broken", "note": str(exc)}
+            break
+    report["building"]["external"] = external or {
+        "status": "not run",
+        "note": "schema validation is not regulatory acceptance; record the "
+                "checker's results as external_checker.json beside the drawings",
+    }
+
     # Every intervention the compiler asked for, mapped to its failure
     # code -- the table that lets measured frequency pick the roadmap.
     report["building"]["failures"] = failures.tally(report)
+    generated = sum(len(c["objects"]) for c in report["compilations"])
+    interventions = report["building"]["failures"]["interventions"]
+    report["building"]["kpi"] = {
+        "generated_objects": generated,
+        "interventions": interventions,
+        # How much correct model arrives before a person must step in --
+        # commercially, the number that matters more than raw accuracy.
+        "objects_per_intervention": (
+            round(generated / interventions, 1) if interventions else None),
+        # Only a person with a stopwatch can fill these; a synthetic run
+        # asserting them would be theatre.
+        "human_review_minutes_per_100_objects": None,
+        "corrections_per_100_objects": None,
+    }
     report["source_map"] = source_map.as_list()
     _write_building_report(report)
     return report

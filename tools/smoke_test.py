@@ -1985,13 +1985,23 @@ check("the failure tally matches the golden truth",
       all(building_failures[code]["count"] == count
           for code, count in golden_expected["failures"].items())
       and all(building_failures[code].get("count", 0) == 0
-              for code in ("F01", "F02", "F04", "F06", "F07", "F08", "F09"))
+              for code in ("F01", "F02", "F03", "F04", "F05", "F06",
+                           "F07", "F08", "F09", "F12"))
       and building_failures["interventions"]
       == sum(golden_expected["failures"].values()),
       str(building_failures))
-check("uninstrumented codes never read as reassuring zeros",
-      all(building_failures[code].get("instrumented") is False
-          for code in ("F03", "F05", "F12", "F13")))
+check("F13 stays uninstrumented until a real checker's results are recorded, "
+      "and says why",
+      building_failures["F13"].get("instrumented") is False
+      and "not acceptance" in (building_failures["F13"].get("note") or "")
+      and building_report["building"]["external"]["status"] == "not run",
+      str(building_failures["F13"]))
+building_kpi = building_report["building"]["kpi"]
+check("the machine-side KPI is on the record; the human-side waits for a stopwatch",
+      building_kpi["generated_objects"] == 22
+      and building_kpi["objects_per_intervention"] == 11.0
+      and building_kpi["human_review_minutes_per_100_objects"] is None,
+      str(building_kpi))
 check("the building report is readable in the text editor",
       pipeline.BUILDING_TEXT_NAME in bpy.data.texts
       and "Transforms" in bpy.data.texts[pipeline.BUILDING_TEXT_NAME].as_string())

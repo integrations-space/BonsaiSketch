@@ -143,8 +143,13 @@ def build(
     weld: float,
     gap: float,
     extrude: float,
-) -> tuple[list[bpy.types.Object], list[str]]:
-    """Objects for every layer of a drawing, and the sentences worth saying."""
+) -> tuple[list[bpy.types.Object], list[str], dict]:
+    """Objects for every layer, the sentences worth saying, and the counts.
+
+    The counts exist for the failure taxonomy: an unfaceable loop is
+    damaged geometry (F03) whether or not anyone reads the sentence
+    about it, so it travels as a number too.
+    """
     objects = []
     notes = []
     total = heal.Report()
@@ -169,7 +174,9 @@ def build(
     if drawing.skipped:
         skipped = ", ".join(f"{count} {kind}" for kind, count in sorted(drawing.skipped.items()))
         notes.append(f"not read (outside the drafting subset): {skipped}")
-    return objects, notes
+    stats = {"welded": total.welded, "bridged": total.bridged,
+             "left_open": total.left_open, "unfaceable": unfaceable}
+    return objects, notes, stats
 
 
 def convert_dwg(path: str, converter: str) -> tuple[Optional[str], str]:
@@ -290,7 +297,7 @@ class BONSAI_SKETCH_MODE_OT_import_cad(bpy.types.Operator, ImportHelper):
             return {"CANCELLED"}
 
         stem = os.path.splitext(os.path.basename(self.filepath))[0]
-        objects, notes = build(
+        objects, notes, _stats = build(
             context, drawing, stem, self.weld, self.gap, self.extrude
         )
         for obj in objects:
