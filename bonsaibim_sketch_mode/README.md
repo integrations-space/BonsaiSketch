@@ -35,8 +35,18 @@ mostly bare strokes and a ray only ever reports faces; it locks onto the object
 the sweep started on, restores everything on `Esc`, and removes a sketch object
 erased down to nothing.
 
-`B` is deliberately unbound. Paint does not exist yet, and an unbound key is
-honest where a wrong one teaches the wrong muscle memory.
+`B`, `A`, `C` and `G` are deliberately silent. Their tools do not
+exist yet, and an unbound key is honest where a wrong one teaches the wrong
+muscle memory — so the keyconfig *claims* each of them, which strips Blender's
+own meaning without putting anything in its place. Claiming and binding are
+separate steps on purpose: until this was fixed, `A`, `C` and `G` were bound by
+omission, running Blender's Select All, Circle Select and Grab while a SketchUp
+user pressing them meant Arc, Circle and Make Component.
+
+Stripping `A` takes Blender's Select All shortcut with it; Select All stays on
+the 3D View's Select menu. SketchUp puts it on `Ctrl+A`, which Blender gives to
+the Apply menu, so that rebinding is left as its own decision rather than
+smuggled in behind an unbuilt Arc tool.
 
 ## Sketch geometry is not IFC
 
