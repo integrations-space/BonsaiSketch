@@ -1786,6 +1786,144 @@ context.scene.bonsai_sketch_sg_typology = "none"
 os.unlink(auto_path)
 
 
+# --- Building compilation ------------------------------------------------
+#
+# Two sheets, one building. The second sheet is drawn 12.5 m east and
+# 8.2 m south of the first in its own local coordinates -- the everyday
+# mess cross-sheet alignment exists for -- and shares the first's named
+# grids, which is the evidence that earns its transform. The building
+# compiler must put both storeys in one coordinate system, at their
+# stated elevations, with every element contained in its own storey and
+# ids unique across the whole building.
+
+section("Building compilation")
+check("auto_building is in the vocabulary",
+      "auto_building" in commands.names())
+
+
+def storey_sheet(title, level, dx, dy, room_label):
+    def line(layer, x1, y1, x2, y2):
+        return ((0, "LINE"), (8, layer),
+                (10, x1 + dx), (20, y1 + dy), (11, x2 + dx), (21, y2 + dy))
+
+    def word(layer, x, y, words):
+        return ((0, "TEXT"), (8, layer), (10, x + dx), (20, y + dy), (1, words))
+
+    entities = []
+    entities += line("WALLS", 0, 0, 4000, 0)
+    entities += line("WALLS", 4000, 0, 4000, 3000)
+    entities += line("WALLS", 4000, 3000, 0, 3000)
+    entities += line("WALLS", 0, 3000, 0, 0)
+    entities += line("WALLS", 200, 200, 3800, 200)
+    entities += line("WALLS", 3800, 200, 3800, 2800)
+    entities += line("WALLS", 3800, 2800, 200, 2800)
+    entities += line("WALLS", 200, 2800, 200, 200)
+    entities += line("GRID", 0, -1000, 0, 4000) + word("GRID", 0, -1500, "A")
+    entities += line("GRID", 4000, -1000, 4000, 4000) + word("GRID", 4000, -1500, "B")
+    entities += line("GRID", -1000, 0, 5000, 0) + word("GRID", -1500, 0, "1")
+    entities += word("NOTES", 4500, 4500, title)
+    entities += word("NOTES", 4500, 4000, level)
+    entities += word("ROOMS", 2000, 1500, room_label)
+    return dxf_pairs(
+        (0, "SECTION"), (2, "HEADER"), (9, "$INSUNITS"), (70, 4), (0, "ENDSEC"),
+        (0, "SECTION"), (2, "ENTITIES"), *entities, (0, "ENDSEC"), (0, "EOF"),
+    )
+
+
+building_paths = []
+for stem_name, sheet_text in (
+    ("01_PLAN_GF", storey_sheet("GROUND FLOOR PLAN", "FFL +0.000", 0, 0, "HALL")),
+    ("02_PLAN_L2", storey_sheet("SECOND STOREY PLAN", "FFL +3.600",
+                                12500, -8200, "STUDY")),
+):
+    sheet_path = os.path.join(tempfile.gettempdir(), stem_name + ".dxf")
+    with open(sheet_path, "w") as handle:
+        handle.write(sheet_text)
+    building_paths.append(sheet_path)
+
+building_report = commands.run("auto_building", {"paths": building_paths, "height": 3.0})
+
+check("both sheets read as titled plans",
+      all(d["view_type"] == "PLAN" for d in building_report["drawings"])
+      and all(any("titled" in e for e in d["evidence"])
+              for d in building_report["drawings"]),
+      str(building_report["drawings"]))
+building_transforms = {t["id"]: t for t in building_report["transforms"]}
+check("the reference sheet holds the datum",
+      building_transforms["T01"]["status"] == "ACCEPTED"
+      and building_transforms["T01"]["translation"] == [0.0, 0.0])
+check("the offset sheet's transform is earned from the shared grids",
+      building_transforms["T02"]["status"] == "ACCEPTED"
+      and abs(building_transforms["T02"]["translation"][0] + 12.5) < 1e-6
+      and abs(building_transforms["T02"]["translation"][1] - 8.2) < 1e-6
+      and building_transforms["T02"]["residual"] < 1e-6,
+      str(building_transforms["T02"]))
+
+building_storeys = building_report["storeys"]
+check("two storeys at their stated elevations",
+      [s["elevation"] for s in building_storeys] == [0.0, 3.6]
+      and all(s["ifc_guid"] for s in building_storeys),
+      str(building_storeys))
+check("floor-to-floor derived between the known elevations",
+      building_storeys[0]["floor_to_floor"] == 3.6
+      and any("derived" in e for e in building_storeys[0]["evidence"]))
+check("both storeys compiled",
+      building_report["building"]["compiled_storeys"] == 2)
+
+building_wall_ids = [w["id"] for c in building_report["compilations"]
+                     for w in c["walls"]]
+check("wall ids stay unique across the whole building",
+      len(building_wall_ids) == 8 and len(set(building_wall_ids)) == 8,
+      str(building_wall_ids))
+building_spaces = [s for c in building_report["compilations"] for s in c["spaces"]]
+check("each storey's room keeps its own name",
+      sorted(s["label"] for s in building_spaces) == ["HALL", "STUDY"],
+      str([(s["id"], s["label"]) for s in building_spaces]))
+
+qa = building_report["building"]
+check("elevations ascend and the upper walls sit on the lower",
+      qa["elevations_ascending"] is True
+      and qa["wall_alignment"]["compared"] == 4
+      and qa["wall_alignment"]["unmatched_above"] == 0
+      and qa["wall_alignment"]["max_deviation"] < 1e-6,
+      str(qa))
+check("the upper room stacks on the lower",
+      qa["space_stacking"] == {"stacked": 1, "upper_spaces": 1}, str(qa))
+check("the building's extents are one room's, not two sheets'",
+      qa["extents"]["x"] == [0.0, 4.0] and qa["extents"]["y"] == [0.0, 3.0],
+      str(qa["extents"]))
+
+# Containment: the upper storey's wall and space belong to the upper
+# IfcBuildingStorey, and the storey knows its elevation in project units.
+upper_storey = bridge.Ifc.get().by_guid(building_storeys[1]["ifc_guid"])
+upper_wall = bridge.Ifc.get().by_guid(
+    building_report["compilations"][1]["walls"][0]["ifc_guid"])
+check("the upper wall is contained in the upper storey",
+      ifcopenshell.util.element.get_container(upper_wall) == upper_storey,
+      str(ifcopenshell.util.element.get_container(upper_wall)))
+upper_space = bridge.Ifc.get().by_guid(
+    next(s["ifc_guid"] for s in building_report["compilations"][1]["spaces"]))
+check("the upper space aggregates into the upper storey",
+      ifcopenshell.util.element.get_aggregate(upper_space) == upper_storey,
+      str(ifcopenshell.util.element.get_aggregate(upper_space)))
+building_scale = derive._unit_scale(bridge.Ifc.get())
+check("the storey states its elevation in project units",
+      abs(upper_storey.Elevation - 3.6 / building_scale) < 1e-3,
+      repr(upper_storey.Elevation))
+
+building_ops = [r["op"] for r in building_report["source_map"]]
+check("the building ledger holds the alignment and the storeys",
+      building_ops.count("ALIGN") == 2
+      and building_ops.count("EMIT") >= 12,
+      str({op: building_ops.count(op) for op in set(building_ops)}))
+check("the building report is readable in the text editor",
+      pipeline.BUILDING_TEXT_NAME in bpy.data.texts
+      and "Transforms" in bpy.data.texts[pipeline.BUILDING_TEXT_NAME].as_string())
+
+for sheet_path in building_paths:
+    os.unlink(sheet_path)
+
+
 # --- Theme -------------------------------------------------------------------
 #
 # The one thing this add-on changes outside its own tab, so the promise that it

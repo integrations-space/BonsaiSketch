@@ -68,10 +68,10 @@ def _as_dxf(path: str, context) -> tuple[Optional[str], str]:
     return importer.convert_dwg(path, converter)
 
 
-def _prism_object(context, name: str, polygon, height: float):
+def _prism_object(context, name: str, polygon, height: float, z0: float = 0.0):
     """A standing solid over a stated polygon: the one shape this pipeline
     ever builds, because everything it believes is a footprint and a
-    height, and both are on the record."""
+    height, and both are on the record. ``z0`` is the storey's floor."""
     import bmesh
 
     from .ops import importer
@@ -79,7 +79,7 @@ def _prism_object(context, name: str, polygon, height: float):
     obj = importer.layer_object(context, name)
     solid = bmesh.new()
     try:
-        face = solid.faces.new(solid.verts.new((x, y, 0.0)) for x, y in polygon)
+        face = solid.faces.new(solid.verts.new((x, y, z0)) for x, y in polygon)
         if height > 0.0:
             grown = bmesh.ops.extrude_face_region(solid, geom=[face])
             raised = [g for g in grown["geom"] if isinstance(g, bmesh.types.BMVert)]
@@ -93,7 +93,7 @@ def _prism_object(context, name: str, polygon, height: float):
     return obj
 
 
-def _wall_object(context, name: str, wall, height: float):
+def _wall_object(context, name: str, wall, height: float, z0: float = 0.0):
     """One standing solid from one semantic wall.
 
     The prism is the wall's resolved centreline widened by half its
@@ -114,7 +114,7 @@ def _wall_object(context, name: str, wall, height: float):
         (wall.end[0] + nx, wall.end[1] + ny),
         (wall.start[0] + nx, wall.start[1] + ny),
     ]
-    obj = _prism_object(context, name, corners, height)
+    obj = _prism_object(context, name, corners, height, z0)
     wall.diagnostics.append(
         f"built as a butt-ended prism at {height:g} m; corner overlaps accepted"
     )
@@ -196,6 +196,12 @@ def run(
     gap: float = 0.01,
     height: float = 3.0,
     heights: Optional[dict] = None,
+    drawing=None,
+    elevation: float = 0.0,
+    container=None,
+    source_map: Optional[ir.SourceMap] = None,
+    shared: Optional[dict] = None,
+    text_name: Optional[str] = TEXT_NAME,
 ) -> dict:
     """The whole pipeline over one drawing. Returns the report.
 
@@ -209,11 +215,23 @@ def run(
     the pipeline stops rather than papering over it -- except CLASSIFY's
     unresolved layers, which are not a failure but the agents' seam, reported
     and left as sketch geometry every tool still works on.
+
+    The building compiler drives this same function once per storey:
+    ``drawing`` supplies an already-parsed (and already-transformed) sheet,
+    ``elevation`` is the storey's floor, ``container`` the IfcBuildingStorey
+    everything emitted belongs to, ``source_map`` and ``shared`` keep one
+    ledger and one id sequence across the whole building -- a name that
+    means two things is worse than no name -- and ``text_name=None`` leaves
+    the combined report to the caller.
     """
     from .ops import importer
     from .textmodel import commands
 
     heights = heights or {}
+    shared = shared if shared is not None else {
+        "wall": 0, "junction": 0, "opening": 0, "merge": 0, "space": 0}
+    if source_map is None:
+        source_map = ir.SourceMap()
     report: dict = {
         "path": path, "stages": [], "objects": [], "unresolved": [],
         "walls": [], "junctions": [], "openings": [], "merges": [],
@@ -225,20 +243,22 @@ def run(
         return ok
 
     def finish() -> dict:
-        write_report(report)
+        if text_name:
+            write_report(report, text_name)
         return report
 
     # READ ------------------------------------------------------------------
-    dxf_path, why_not = _as_dxf(path, context)
-    if dxf_path is None:
-        stage("READ", False, why_not)
-        return finish()
-    try:
-        with open(dxf_path, encoding="utf-8", errors="replace") as handle:
-            drawing = dxf.parse(handle.read())
-    except OSError as exc:
-        stage("READ", False, f"could not read {dxf_path}: {exc}")
-        return finish()
+    if drawing is None:
+        dxf_path, why_not = _as_dxf(path, context)
+        if dxf_path is None:
+            stage("READ", False, why_not)
+            return finish()
+        try:
+            with open(dxf_path, encoding="utf-8", errors="replace") as handle:
+                drawing = dxf.parse(handle.read())
+        except OSError as exc:
+            stage("READ", False, f"could not read {dxf_path}: {exc}")
+            return finish()
     if not drawing.layers:
         skipped = ", ".join(sorted(drawing.skipped)) or "nothing at all"
         stage("READ", False, f"no drafting linework found -- the file holds {skipped}")
@@ -278,7 +298,6 @@ def run(
     # host first. The layer's flat linework stays as drawn evidence, and a
     # wall layer where nothing pairs falls through to the blob route below,
     # which remains the honest fallback for single-line plans.
-    source_map = ir.SourceMap()
     by_name = {obj.name: obj for obj in objects}
     wall_layers: list = []    # (proposal, semantic walls, glazing segs/handles)
     all_junctions: list = []
@@ -299,10 +318,12 @@ def run(
             continue
         semantic, junctions = walls.resolve(
             candidates, source_map,
-            first_wall=paired + 1,
-            first_junction=len(all_junctions) + 1,
+            first_wall=shared["wall"] + 1,
+            first_junction=shared["junction"] + 1,
         )
         paired += len(candidates)
+        shared["wall"] += len(candidates)
+        shared["junction"] += len(junctions)
         walled_layers.add(proposal.layer)
         leftover_segments += len(unpaired)
         all_junctions.extend(junctions)
@@ -334,9 +355,10 @@ def run(
             glazing_segments=glazing_segs,
             glazing_sources=glazing_srcs,
             source_map=source_map,
-            first=len(all_openings) + 1,
+            first=shared["opening"] + 1,
         )
         all_openings.extend(found)
+        shared["opening"] += len(found)
         # Continuation after openings: doorway gaps are already
         # explained, so what remains is drafting fragmentation, judged
         # predicate by predicate and recorded either way.
@@ -345,12 +367,14 @@ def run(
             junctions=all_junctions,
             openings=all_openings,
             source_map=source_map,
-            first=len(all_merges) + 1,
+            first=shared["merge"] + 1,
         )
         all_merges.extend(merges)
+        shared["merge"] += len(merges)
         target = float(heights.get(proposal.layer.rsplit("/", 1)[-1], height))
         for wall in semantic:
-            wall_obj = _wall_object(context, f"{proposal.layer}/{wall.id}", wall, target)
+            wall_obj = _wall_object(
+                context, f"{proposal.layer}/{wall.id}", wall, target, z0=elevation)
             per_wall.append((wall_obj, proposal, wall))
     report["walls"] = [wall.as_dict() for _o, _p, wall in per_wall]
     report["openings"] = [o.as_dict() for o in all_openings]
@@ -377,6 +401,8 @@ def run(
         result = importer.stand_up_object(obj, weld, gap, target)
         if result is None:
             continue
+        if elevation:
+            obj.location.z = elevation
         stood += 1
         extents, volume, _base = derive.measure_object(obj)
         if volume is not None:
@@ -503,10 +529,13 @@ def run(
     if per_wall:
         semantic_walls = [wall for _obj, _proposal, wall in per_wall]
         space_candidates = spaces.detect(
-            semantic_walls, all_junctions, drawing.texts, source_map
+            semantic_walls, all_junctions, drawing.texts, source_map,
+            first=shared["space"] + 1,
         )
+        shared["space"] += len(space_candidates)
         for space in space_candidates:
-            space_obj = _prism_object(context, f"{stem}/{space.id}", space.boundary, height)
+            space_obj = _prism_object(
+                context, f"{stem}/{space.id}", space.boundary, height, z0=elevation)
             guid = _assign_space(context, space_obj, space)
             if guid:
                 emitted_spaces += 1
@@ -527,6 +556,24 @@ def run(
         connections += len(opening.connects)
         for space_id in opening.connects:
             source_map.record("CONNECT", [opening.id], space_id, "opens into it")
+    # The building compiler says which storey owns what was emitted;
+    # standalone runs leave Bonsai's default containment alone.
+    if container is not None:
+        import ifcopenshell.api.aggregate
+        import ifcopenshell.api.spatial
+
+        contained = list(wall_entities.values())
+        held = [bridge.ifc_file().by_guid(o.element_guid)
+                for o in all_openings if o.element_guid]
+        if contained or held:
+            ifcopenshell.api.spatial.assign_container(
+                bridge.ifc_file(), products=contained + held,
+                relating_structure=container)
+        housed = [bridge.ifc_file().by_guid(s.ifc_guid)
+                  for s in space_candidates if s.ifc_guid]
+        if housed:
+            ifcopenshell.api.aggregate.assign_object(
+                bridge.ifc_file(), products=housed, relating_object=container)
     report["openings"] = [o.as_dict() for o in all_openings]
     report["spaces"] = [space.as_dict() for space in space_candidates]
     report["source_map"] = source_map.as_list()
@@ -604,9 +651,9 @@ def run(
     return finish()
 
 
-def write_report(report: dict) -> str:
+def write_report(report: dict, text_name: str = TEXT_NAME) -> str:
     """The report as prose in a Text datablock, replaced on every run."""
-    text = bpy.data.texts.get(TEXT_NAME) or bpy.data.texts.new(TEXT_NAME)
+    text = bpy.data.texts.get(text_name) or bpy.data.texts.new(text_name)
     text.clear()
     lines = [f"AutoModel -- {os.path.basename(report.get('path', ''))}", "=" * 40, ""]
     for entry in report["stages"]:
@@ -653,7 +700,257 @@ def write_report(report: dict) -> str:
                 + f": {answered} value(s) from geometry, {owed} still owed"
             )
     text.write("\n".join(lines) + "\n")
-    return TEXT_NAME
+    return text_name
+
+
+#: Where the building-level report lands.
+BUILDING_TEXT_NAME = "AutoModel Building Report"
+
+
+def run_set(
+    context,
+    paths,
+    weld: float = 0.001,
+    gap: float = 0.01,
+    height: float = 3.0,
+    heights: Optional[dict] = None,
+) -> dict:
+    """A drawing set compiled into one building. Returns the report.
+
+    The plan compiler above runs once per storey; this pass does what no
+    single sheet can: establish each drawing's identity, earn the
+    transforms that put the sheets in one coordinate system, assemble
+    the storeys from level evidence, hold one ledger and one id sequence
+    across the whole building, and ask the cross-storey questions at the
+    end. A sheet whose transform is UNRESOLVED or whose elevation nobody
+    stated is reported and skipped, never guessed into place.
+    """
+    from . import drawings as drawings_module
+    from . import align, storeys as storeys_module
+    from .textmodel import commands
+
+    report: dict = {
+        "paths": list(paths), "drawings": [], "transforms": [],
+        "storeys": [], "compilations": [], "building": {}, "source_map": [],
+    }
+    source_map = ir.SourceMap()
+
+    parsed = {}
+    candidates = []
+    for index, path in enumerate(paths, 1):
+        drawing_id = "D%02d" % index
+        dxf_path, why_not = _as_dxf(path, context)
+        if dxf_path is None:
+            broken = ir.DrawingCandidate(drawing_id, os.path.basename(path))
+            broken.diagnostics.append(why_not)
+            candidates.append(broken)
+            continue
+        try:
+            with open(dxf_path, encoding="utf-8", errors="replace") as handle:
+                sheet = dxf.parse(handle.read())
+        except OSError as exc:
+            broken = ir.DrawingCandidate(drawing_id, os.path.basename(path))
+            broken.diagnostics.append(f"could not read: {exc}")
+            candidates.append(broken)
+            continue
+        stem = os.path.splitext(os.path.basename(path))[0]
+        candidate = drawings_module.classify(drawing_id, stem, sheet)
+        parsed[drawing_id] = (path, sheet)
+        candidates.append(candidate)
+
+    plans = [c for c in candidates if c.view_type == "PLAN"]
+    transforms = {}
+    if plans:
+        reference = plans[0]
+        for number, candidate in enumerate(plans, 1):
+            transform = align.to_reference(candidate, reference, "T%02d" % number)
+            transforms[transform.id] = transform
+            source_map.record(
+                "ALIGN", [candidate.id, reference.id], transform.id,
+                f"{transform.status}"
+                + (f", residual {transform.residual * 1000:.1f} mm"
+                   if transform.residual is not None else ""),
+            )
+
+    storey_candidates = storeys_module.build(plans)
+    shared = {"wall": 0, "junction": 0, "opening": 0, "merge": 0, "space": 0}
+    compiled = 0
+    if storey_candidates:
+        commands.run("create_project", {})
+        ifc = bridge.ifc_file()
+        buildings = ifc.by_type("IfcBuilding")
+        scale = derive._unit_scale(ifc)
+        import ifcopenshell.api.aggregate
+        import ifcopenshell.api.root
+
+        for storey in storey_candidates:
+            plan_candidate = next(c for c in plans if c.id == storey.plans[0])
+            transform = transforms.get(plan_candidate.transform or "")
+            if storey.elevation is None:
+                storey.diagnostics.append("not compiled: elevation unknown")
+                continue
+            if transform is None or transform.status == "UNRESOLVED":
+                storey.diagnostics.append(
+                    "not compiled: no earned transform places this sheet")
+                continue
+            path, sheet = parsed[plan_candidate.id]
+            _transform_drawing(sheet, transform)
+            storey_entity = ifcopenshell.api.root.create_entity(
+                ifc, ifc_class="IfcBuildingStorey", name=storey.name)
+            if buildings:
+                ifcopenshell.api.aggregate.assign_object(
+                    ifc, products=[storey_entity], relating_object=buildings[0])
+            try:
+                storey_entity.Elevation = storey.elevation / scale
+            except Exception:
+                pass
+            storey.ifc_guid = storey_entity.GlobalId
+            source_map.record("EMIT", [storey.id], storey.ifc_guid,
+                              f"IfcBuildingStorey at {storey.elevation:g} m")
+            sub_report = run(
+                context, path, weld=weld, gap=gap, height=height, heights=heights,
+                drawing=sheet, elevation=storey.elevation, container=storey_entity,
+                source_map=source_map, shared=shared, text_name=None,
+            )
+            compiled += 1
+            report["compilations"].append({
+                "storey": storey.id,
+                "stages": sub_report["stages"],
+                "walls": sub_report["walls"],
+                "openings": sub_report["openings"],
+                "merges": sub_report["merges"],
+                "spaces": sub_report["spaces"],
+                "objects": sub_report["objects"],
+                "unresolved": sub_report["unresolved"],
+            })
+
+    report["drawings"] = [c.as_dict() for c in candidates]
+    report["transforms"] = [t.as_dict() for t in transforms.values()]
+    report["storeys"] = [s.as_dict() for s in storey_candidates]
+    report["building"] = _cross_storey_qa(report["compilations"], storey_candidates)
+    report["building"]["compiled_storeys"] = compiled
+    report["source_map"] = source_map.as_list()
+    _write_building_report(report)
+    return report
+
+
+def _transform_drawing(sheet, transform) -> None:
+    """The whole sheet into building coordinates, geometry and words alike."""
+    for polylines in sheet.layers.values():
+        for polyline in polylines:
+            polyline.points = [transform.apply(p) for p in polyline.points]
+    for label in sheet.texts:
+        label.position = transform.apply(label.position)
+    for arc in sheet.arcs:
+        arc.center = transform.apply(arc.center)
+    for insert in sheet.inserts:
+        insert.position = transform.apply(insert.position)
+
+
+def _cross_storey_qa(compilations, storey_candidates) -> dict:
+    """The questions only a whole building can be asked.
+
+    Reports, never judges: an upper wall with no wall below is a setback
+    or a mistake, and which one is the architect's knowledge, not this
+    function's. The numbers make the question precise.
+    """
+    import math
+
+    qa: dict = {}
+    elevations = [s.elevation for s in storey_candidates if s.elevation is not None]
+    qa["elevations_ascending"] = elevations == sorted(elevations)
+
+    walls_by_storey = [c["walls"] for c in compilations]
+    deviations = []
+    unmatched = 0
+    for below, above in zip(walls_by_storey, walls_by_storey[1:]):
+        for wall in above:
+            best = None
+            wx = (wall["start"][0] + wall["end"][0]) / 2.0
+            wy = (wall["start"][1] + wall["end"][1]) / 2.0
+            wdx = wall["end"][0] - wall["start"][0]
+            wdy = wall["end"][1] - wall["start"][1]
+            wlen = math.hypot(wdx, wdy) or 1.0
+            for under in below:
+                udx = under["end"][0] - under["start"][0]
+                udy = under["end"][1] - under["start"][1]
+                ulen = math.hypot(udx, udy) or 1.0
+                if abs(wdx * udy - wdy * udx) > 0.03 * wlen * ulen:
+                    continue
+                lateral = abs(
+                    (wx - under["start"][0]) * udy / ulen
+                    - (wy - under["start"][1]) * udx / ulen)
+                if best is None or lateral < best:
+                    best = lateral
+            if best is None or best > 0.5:
+                unmatched += 1
+            else:
+                deviations.append(best)
+    qa["wall_alignment"] = {
+        "compared": len(deviations),
+        "max_deviation": round(max(deviations), 6) if deviations else None,
+        "unmatched_above": unmatched,
+    }
+
+    spaces_by_storey = [c["spaces"] for c in compilations]
+    stacked = 0
+    upper_total = 0
+    for below, above in zip(spaces_by_storey, spaces_by_storey[1:]):
+        for space in above:
+            upper_total += 1
+            cx = sum(p[0] for p in space["boundary"]) / len(space["boundary"])
+            cy = sum(p[1] for p in space["boundary"]) / len(space["boundary"])
+            from .spaces import contains
+
+            if any(contains([tuple(p) for p in under["boundary"]], (cx, cy))
+                   for under in below):
+                stacked += 1
+    qa["space_stacking"] = {"stacked": stacked, "upper_spaces": upper_total}
+
+    xs = []
+    ys = []
+    for walls_list in walls_by_storey:
+        for wall in walls_list:
+            xs += [wall["start"][0], wall["end"][0]]
+            ys += [wall["start"][1], wall["end"][1]]
+    qa["extents"] = (
+        {"x": [round(min(xs), 3), round(max(xs), 3)],
+         "y": [round(min(ys), 3), round(max(ys), 3)]}
+        if xs else None)
+    return qa
+
+
+def _write_building_report(report: dict) -> str:
+    text = bpy.data.texts.get(BUILDING_TEXT_NAME) or bpy.data.texts.new(BUILDING_TEXT_NAME)
+    text.clear()
+    lines = ["AutoModel -- building compilation", "=" * 40, "", "Drawings:"]
+    for item in report["drawings"]:
+        lines.append(
+            f"  {item['id']} {item['source_file']}: {item['view_type']}"
+            + (f", storey hint {item['storey_hint']}" if item["storey_hint"] else ""))
+        for note in item["diagnostics"]:
+            lines.append(f"      ! {note}")
+    lines += ["", "Transforms:"]
+    for item in report["transforms"]:
+        lines.append(
+            f"  {item['id']} {item['drawing']}: {item['status']}, "
+            f"rotation {item['rotation_degrees']:g} deg, "
+            f"translation {item['translation']}"
+            + (f", residual {item['residual'] * 1000:.1f} mm"
+               if item["residual"] is not None else ""))
+    lines += ["", "Storeys:"]
+    for item in report["storeys"]:
+        lines.append(
+            f"  {item['id']} {item['name']}: elevation "
+            + (f"{item['elevation']:g} m" if item["elevation"] is not None else "unknown")
+            + (f", floor-to-floor {item['floor_to_floor']:g} m"
+               if item["floor_to_floor"] is not None else ""))
+        for note in item["diagnostics"]:
+            lines.append(f"      ! {note}")
+    qa = report.get("building", {})
+    lines += ["", "Cross-storey QA:", f"  {qa}"]
+    text.write("\n".join(lines) + "\n")
+    return BUILDING_TEXT_NAME
 
 
 class BONSAI_SKETCH_MODE_OT_auto_model(bpy.types.Operator):

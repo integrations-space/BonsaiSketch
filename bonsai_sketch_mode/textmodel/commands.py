@@ -562,3 +562,39 @@ def _auto_model(params: dict) -> dict:
         height=_number(params, "height", 3.0),
         heights=heights,
     )
+
+
+@verb("auto_building")
+def _auto_building(params: dict) -> dict:
+    """A whole drawing set compiled into one building.
+
+    Each sheet earns its identity, its transform into the shared
+    coordinates and its storey before any geometry is made; sheets that
+    earn none of those are reported and skipped, never guessed into
+    place. The report carries the drawings, transforms, storeys, the
+    per-storey compilations and the cross-storey QA in one piece.
+    """
+    from .. import pipeline
+
+    raw_paths = params.get("paths")
+    if not isinstance(raw_paths, (list, tuple)) or not raw_paths:
+        raise CommandError("'paths' is required: the DXF/DWG sheets to compile")
+    paths = []
+    for raw in raw_paths:
+        if not isinstance(raw, str):
+            raise CommandError("'paths' must be a list of file paths")
+        resolved = bpy.path.abspath(raw)
+        if not os.path.isfile(resolved):
+            raise CommandError("no file at %r" % raw)
+        paths.append(resolved)
+    heights = params.get("heights") or {}
+    if not isinstance(heights, dict):
+        raise CommandError("'heights' must map layer names to heights")
+    return pipeline.run_set(
+        bpy.context,
+        paths,
+        weld=_number(params, "weld", 0.001),
+        gap=_number(params, "gap", 0.01),
+        height=_number(params, "height", 3.0),
+        heights={str(k): float(v) for k, v in heights.items()},
+    )
