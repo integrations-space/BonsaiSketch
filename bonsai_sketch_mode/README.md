@@ -261,6 +261,7 @@ drawings.py       what a sheet is: view identity, level labels, grid axes
 align.py          placing sheets in one building, on grid evidence
 storeys.py        storeys assembled from drawings; unknown is valid state
 reconcile.py      several views, one object; disagreement stays a Conflict
+failures.py       the failure taxonomy: what breaks, counted by kind
 ir.py             the compiler's state: semantic objects and the source map
 classify.py       layer names read against the drafting conventions
 requirements.py   what the standard asks of an element (queries data/)

@@ -48,6 +48,87 @@ come from the named check suite, benchmark lines from
 `python3 tools/bench_walls.py`, and a `○` is work that does not exist
 yet, not work assumed.
 
+## v0.2 — COMPILER BASELINE, FROZEN
+
+Commit `9cc9589` is the v0.2 baseline: DXF source mapping, semantic
+walls and junctions, doors, windows and spaces, DrawingCandidate and
+StoreyCandidate, cross-sheet transforms, multi-view reconciliation with
+conflict escalation, multi-storey IFC, configurable georeferencing and
+schema validation — every capability CI-verified. (An annotated tag
+`automodel-v0.2` exists for that commit; this environment's push
+credentials cover the branch only, so minting the tag on origin is one
+command for the repository's owner: `git tag -a automodel-v0.2 9cc9589
+&& git push origin automodel-v0.2`.)
+
+**The methodological change at this freeze:** the synthetic benchmarks
+stop being targets. Their 1.000 results stay as permanent regression
+locks — a run below floor still fails — but no future work is justified
+by improving against drawings the compiler was designed around. The
+measure from here on is drawings it was not.
+
+## v0.3 — REAL-WORLD VALIDATION & EVIDENCE EXPANSION
+
+The release gate, in one sentence: **v0.3 succeeds when an untouched
+real architectural drawing set compiles blind into a source-traceable
+multi-storey IFC/IFC+SG model, with measured geometric and semantic
+accuracy, zero silently resolved evidence conflicts, documented human
+interventions, visual QA, and external acceptance results.** Zero
+silent wrong assertions is a hard release gate: a visible unresolved
+question is safer than a beautifully modelled but unsupported claim.
+
+| # | Item | Status | Needs |
+| --- | --- | --- | --- |
+| 01 | Golden test package (permanent, in-repo, stated truth) | ✓ | — |
+| 02 | Real untouched hold-outs (3–5 architecturally different projects, truth established by hand, compiler runs blind, results per project) | ○ | real drawings from the project's owner |
+| 03 | Visual/viewport QA | ○ | a human at a viewport |
+| 04 | External IFC+SG validation | ○ | a real submission environment |
+| 05 | Failure taxonomy F01–F13, every intervention mapped | ✓ instrumented (F03/F05/F12/F13 honestly uninstrumented) | — |
+| 06 | Section/elevation *geometry* as evidence (beyond the assertion grammar): drawn levels, heads and sills reconciled onto plan objects by mark and position | ○ next technical build | — |
+| 07 | Vocabulary expansion (slabs, columns, stairs, roofs) | deferred | ordered by measured failure frequency from 02, not by intuition |
+
+### Failure taxonomy
+
+Counted by `failures.tally()` from the building report's structured
+fields, never from prose; codes the compiler cannot yet detect report
+as uninstrumented, because "we did not look" and "we looked and found
+none" are different claims.
+
+| Code | Meaning | Instrumented from |
+| --- | --- | --- |
+| F01 | Unsupported CAD entity | drawing diagnostics (skipped entity counts) |
+| F02 | Unknown layer convention | unresolved layers, annotation layers excluded |
+| F03 | Geometry damaged | ○ |
+| F04 | Wall pairing ambiguous | WALLS stage unpaired-segment counts |
+| F05 | Junction ambiguous | ○ |
+| F06 | Opening ambiguous | openings not `resolved` |
+| F07 | Space not closed | walls present, no space enclosed |
+| F08 | Drawing type unknown | DrawingCandidate UNKNOWN |
+| F09 | Cross-sheet alignment unresolved | TransformCandidate UNRESOLVED |
+| F10 | Conflicting evidence | Conflict records |
+| F11 | Missing required evidence | unmatched assertions; unstated elevations |
+| F12 | IFC+SG mapping failure | ○ |
+| F13 | External-checker failure | ○ |
+
+After several hold-out projects, this table picks the roadmap: whatever
+code dominates is what gets built next.
+
+### Per-project hold-out report (template)
+
+Recorded per drawing set, blind, before anyone corrects anything —
+never only aggregated:
+
+```
+REAL HOLD-OUT — PROJECT NN
+Walls      TP/FP/FN, precision/recall
+Openings   opening P/R; door class P/R; window class P/R;
+           host-wall accuracy; width MAE (mm)
+Spaces     detected; boundary IoU; area deviation (%); label accuracy
+Building   storeys correct; cross-sheet residual (mm); elevation errors (mm)
+Evidence   conflicts detected; human interventions (by F-code);
+           corrections / 100 objects; silent wrong assertions (gate: 0)
+Output     IFC schema PASS/FAIL; IFC+SG completeness; external checker
+```
+
 ## COMPILER — one plan into semantics
 
 | Capability | Status | Evidence |
@@ -304,3 +385,16 @@ DXF regeneration: out of scope for a sketch-first modeller.
   deliberately missing value caught, and the delivered file clean under
   ifcopenshell schema validation. Dashboard matured to
   COMPILER / BUILDING / QUALITY / ACCEPTANCE.
+- **2026-09-27** — v0.2 frozen at 9cc9589 (tag minting left to the
+  repository's owner; this environment pushes the branch only). v0.3
+  opens with what needs no human inputs: the golden acceptance package
+  (committed drawings regenerable by tools/gen_golden.py, truth stated
+  by hand in golden/expected.json, compiled blind by
+  tools/golden_check.py locally and by CI in Blender — a knife-edge in
+  the fixture found and fixed on the first blind run); the failure
+  taxonomy F01–F13 instrumented from structured report fields with
+  uninstrumented codes saying so; annotation layers recognised as
+  drawing apparatus rather than unknown conventions; and the v0.3 gate
+  written down, with zero silent resolutions as a release gate. Real
+  hold-outs, viewport QA and the external checker await their human
+  inputs.

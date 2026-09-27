@@ -103,6 +103,19 @@ _NOISE = {
     "0", "00", "1", "2", "3",
 }
 
+#: Layers that are drawing apparatus rather than building fabric: known
+#: conventions with nothing to build. Refusing them as "no convention
+#: matches" would make every annotated sheet look like a failure of
+#: layer reading, when the reading is exactly right.
+_ANNOTATION = {
+    "NOTES", "NOTE", "ROOMS", "ROOM", "MARKS", "MARK", "TITLE", "TITLES",
+    "SYMB", "SYMBOL", "SYMBOLS", "HATCH", "XREF", "DEFPOINTS", "LEGEND",
+}
+
+#: The reason string annotation refusals carry, matched exactly by the
+#: failure taxonomy to keep them out of the unknown-convention count.
+ANNOTATION_REASON = "an annotation layer; nothing here builds"
+
 
 class Proposal:
     """One layer's reading: a class to assign, or the reason there is none."""
@@ -152,6 +165,8 @@ def classify(layer: str) -> Proposal:
             found.append((token, CONVENTIONS[token]))
 
     if not found:
+        if any(token in _ANNOTATION or token in _NOISE for token in tokens(name)):
+            return Proposal(layer, reason=ANNOTATION_REASON)
         return Proposal(layer, reason="no convention matches this name")
 
     classes = {target for _t, target in found}

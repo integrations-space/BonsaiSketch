@@ -1801,95 +1801,17 @@ check("auto_building is in the vocabulary",
       "auto_building" in commands.names())
 
 
-def storey_sheet(title, level, dx, dy, rooms, door_mark, window_mark):
-    """One acceptance-grade storey: three rooms behind mixed-thickness
-    walls, a marked door in one divider, a marked window in the top wall."""
-
-    def line(layer, x1, y1, x2, y2):
-        return ((0, "LINE"), (8, layer),
-                (10, x1 + dx), (20, y1 + dy), (11, x2 + dx), (21, y2 + dy))
-
-    def word(layer, x, y, words):
-        return ((0, "TEXT"), (8, layer), (10, x + dx), (20, y + dy), (1, words))
-
-    entities = []
-    entities += line("WALLS", 0, 0, 4000, 0)
-    entities += line("WALLS", 4000, 0, 4000, 3000)
-    entities += line("WALLS", 0, 3000, 0, 0)
-    entities += line("WALLS", 200, 200, 3800, 200)
-    entities += line("WALLS", 3800, 200, 3800, 2800)
-    entities += line("WALLS", 200, 2800, 200, 200)
-    # the top wall's two faces, broken by the 600mm window
-    entities += line("WALLS", 0, 3000, 2900, 3000)
-    entities += line("WALLS", 3500, 3000, 4000, 3000)
-    entities += line("WALLS", 200, 2800, 2900, 2800)
-    entities += line("WALLS", 3500, 2800, 3800, 2800)
-    entities += line("WALLS", 2900, 2900, 3500, 2900)  # glazing across the gap
-    entities += word("MARKS", 3200, 3100, window_mark)
-    # divider one, 200mm, broken by the 900mm doorway
-    entities += line("WALLS", 1400, 200, 1400, 1200)
-    entities += line("WALLS", 1600, 200, 1600, 1200)
-    entities += line("WALLS", 1400, 2100, 1400, 2800)
-    entities += line("WALLS", 1600, 2100, 1600, 2800)
-    entities += ((0, "ARC"), (8, "DOORS"), (10, 1500 + dx), (20, 1200 + dy),
-                 (40, 900), (50, 0), (51, 90))
-    entities += word("MARKS", 1500, 1650, door_mark)
-    # divider two, 100mm, solid
-    entities += line("WALLS", 2550, 200, 2550, 2800)
-    entities += line("WALLS", 2650, 200, 2650, 2800)
-    entities += line("GRID", 0, -1000, 0, 4000) + word("GRID", 0, -1500, "A")
-    entities += line("GRID", 4000, -1000, 4000, 4000) + word("GRID", 4000, -1500, "B")
-    entities += line("GRID", -1000, 0, 5000, 0) + word("GRID", -1500, 0, "1")
-    entities += word("NOTES", 4500, 4500, title)
-    entities += word("NOTES", 4500, 4000, level)
-    for x, y, room_label in rooms:
-        entities += word("ROOMS", x, y, room_label)
-    return dxf_pairs(
-        (0, "SECTION"), (2, "HEADER"), (9, "$INSUNITS"), (70, 4), (0, "ENDSEC"),
-        (0, "SECTION"), (2, "ENTITIES"), *entities, (0, "ENDSEC"), (0, "EOF"),
-    )
-
-
-section_sheet = dxf_pairs(
-    (0, "SECTION"), (2, "HEADER"), (9, "$INSUNITS"), (70, 4), (0, "ENDSEC"),
-    (0, "SECTION"), (2, "ENTITIES"),
-    (0, "TEXT"), (8, "NOTES"), (10, 0), (20, 9000), (1, "SECTION A-A"),
-    (0, "TEXT"), (8, "NOTES"), (10, 1000), (20, 5000), (1, "D1 H=2100"),
-    (0, "TEXT"), (8, "NOTES"), (10, 1000), (20, 4500), (1, "D2 H=2100"),
-    (0, "TEXT"), (8, "NOTES"), (10, 1000), (20, 4000), (1, "D1 W=1000"),
-    (0, "TEXT"), (8, "NOTES"), (10, 1000), (20, 3000), (1, "D9 H=2000"),
-    (0, "ENDSEC"), (0, "EOF"),
-)
-
-building_paths = []
-for stem_name, sheet_text in (
-    ("01_PLAN_GF", storey_sheet("GROUND FLOOR PLAN", "FFL +0.000", 0, 0,
-                                [(700, 1500, "HALL"), (2000, 1500, "DEN"),
-                                 (3200, 1500, "SNUG")], "D1", "W1")),
-    ("02_PLAN_L2", storey_sheet("SECOND STOREY PLAN", "FFL +3.600", 12500, -8200,
-                                [(700, 1500, "BED 1"), (2000, 1500, "BED 2"),
-                                 (3200, 1500, "BED 3")], "D2", "W2")),
-    ("03_SEC_A", section_sheet),
-):
-    sheet_path = os.path.join(tempfile.gettempdir(), stem_name + ".dxf")
-    with open(sheet_path, "w") as handle:
-        handle.write(sheet_text)
-    building_paths.append(sheet_path)
-
-# The coordinate reference is configuration beside the drawings, never a
-# value frozen into code -- the fixture states a deliberately fictional
-# one; a real submission verifies the required CRS against current
-# authoritative guidance.
+# The golden acceptance project: committed drawings, hand-stated truth.
+# Every future capability must compile golden/ unchanged; a deliberate
+# fixture change lands in tools/gen_golden.py and golden/expected.json
+# together, reviewed as one decision.
 import json as _json
 
-georef_path = os.path.join(tempfile.gettempdir(), "georeference.json")
-with open(georef_path, "w") as handle:
-    _json.dump({
-        "projected_crs": {"Name": "FIXTURE:0001",
-                          "Description": "stated by the acceptance fixture"},
-        "coordinate_operation": {"Eastings": 28001.0, "Northings": 38001.0,
-                                 "OrthogonalHeight": 5.0, "Scale": 1.0},
-    }, handle)
+GOLDEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "golden")
+building_paths = [os.path.join(GOLDEN, name)
+                  for name in ("01_PLAN_GF.dxf", "02_PLAN_L2.dxf", "03_SEC_A.dxf")]
+with open(os.path.join(GOLDEN, "expected.json"), encoding="utf-8") as handle:
+    golden_expected = _json.load(handle)
 
 context.scene.bonsai_sketch_sg_typology = "public_residential"
 building_report = commands.run("auto_building", {"paths": building_paths, "height": 3.0})
@@ -2018,7 +1940,6 @@ _validation_errors = [s for s in _validation_log.statements]
 check("the delivered file holds up under schema validation",
       len(_validation_errors) == 0,
       str(_validation_errors[:5]))
-os.unlink(georef_path)
 check("the building's extents are one room's, not two sheets'",
       qa["extents"]["x"] == [0.0, 4.0] and qa["extents"]["y"] == [0.0, 3.0],
       str(qa["extents"]))
@@ -2042,20 +1963,39 @@ check("the storey states its elevation in project units",
       repr(upper_storey.Elevation))
 
 building_ops = [r["op"] for r in building_report["source_map"]]
-check("the building ledger holds alignment, storeys, assertions, the conflict "
-      "and the coordinate reference",
-      building_ops.count("ALIGN") == 2
-      and building_ops.count("EMIT") == 28
-      and building_ops.count("ASSERT") == 4
-      and building_ops.count("CONFLICT") == 1
-      and building_ops.count("GEOREF") == 1,
+check("the ledger matches the golden truth, operation by operation",
+      {op: building_ops.count(op) for op in golden_expected["ledger"]}
+      == golden_expected["ledger"],
       str({op: building_ops.count(op) for op in set(building_ops)}))
+for compilation in building_report["compilations"]:
+    check(f"{compilation['storey']}: wall lengths as the golden truth states",
+          sorted(round(w["length"], 6) for w in compilation["walls"])
+          == golden_expected["per_storey"]["wall_lengths"],
+          str([w["length"] for w in compilation["walls"]]))
+    check(f"{compilation['storey']}: room areas as the golden truth states",
+          sorted(round(s["area"], 2) for s in compilation["spaces"])
+          == golden_expected["per_storey"]["space_areas"],
+          str([s["area"] for s in compilation["spaces"]]))
+
+# Every intervention the compiler asked for maps to a failure code, and
+# the golden project's honest total is exactly its two deliberate
+# imperfections: the width conflict and the unmatched D9.
+building_failures = building_report["building"]["failures"]
+check("the failure tally matches the golden truth",
+      all(building_failures[code]["count"] == count
+          for code, count in golden_expected["failures"].items())
+      and all(building_failures[code].get("count", 0) == 0
+              for code in ("F01", "F02", "F04", "F06", "F07", "F08", "F09"))
+      and building_failures["interventions"]
+      == sum(golden_expected["failures"].values()),
+      str(building_failures))
+check("uninstrumented codes never read as reassuring zeros",
+      all(building_failures[code].get("instrumented") is False
+          for code in ("F03", "F05", "F12", "F13")))
 check("the building report is readable in the text editor",
       pipeline.BUILDING_TEXT_NAME in bpy.data.texts
       and "Transforms" in bpy.data.texts[pipeline.BUILDING_TEXT_NAME].as_string())
 
-for sheet_path in building_paths:
-    os.unlink(sheet_path)
 
 
 # --- Theme -------------------------------------------------------------------

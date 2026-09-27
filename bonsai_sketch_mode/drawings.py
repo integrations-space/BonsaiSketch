@@ -193,6 +193,9 @@ def classify(id: str, source_file: str, drawing) -> ir.DrawingCandidate:
     named = sum(1 for g in candidate.grid_axes if g["name"])
     if named:
         candidate.evidence.append(f"{named} named grid axis/axes for alignment")
+    for kind, count in sorted(drawing.skipped.items()):
+        candidate.diagnostics.append(
+            f"not read (outside the drafting subset): {count} {kind}")
     return candidate
 
 

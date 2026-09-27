@@ -45,7 +45,7 @@ from typing import Optional
 
 import bpy
 
-from . import bridge, classify, derive, dxf, ir, openings, requirements, sg, spaces, walls
+from . import bridge, classify, derive, dxf, failures, ir, openings, requirements, sg, spaces, walls
 
 #: Where the human-readable report lands, findable in Blender's Text editor.
 TEXT_NAME = "AutoModel Report"
@@ -365,6 +365,7 @@ def run(
         f"{paired} wall(s) from parallel pairs across {len(walled_layers)} "
         f"layer(s), {len(all_junctions)} junction(s) resolved"
         + (f"; {leftover_segments} drawn line(s) left unread" if leftover_segments else ""),
+        unpaired=leftover_segments,
     )
 
     # OPENINGS -- where independent evidence converges. Wall gaps anchor the
@@ -912,6 +913,9 @@ def run_set(
         "silently_resolved": 0,
         "unmatched_marks": sorted({a.mark for a in unmatched}),
     }
+    # Every intervention the compiler asked for, mapped to its failure
+    # code -- the table that lets measured frequency pick the roadmap.
+    report["building"]["failures"] = failures.tally(report)
     report["source_map"] = source_map.as_list()
     _write_building_report(report)
     return report

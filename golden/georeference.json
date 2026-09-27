@@ -1,0 +1,17 @@
+{
+ "_comment": [
+  "The golden project's coordinate reference. Deliberately fictional:",
+  "a real submission states its own CRS here, verified against current",
+  "authoritative guidance (for Singapore, CORENET-X's)."
+ ],
+ "projected_crs": {
+  "Name": "FIXTURE:0001",
+  "Description": "stated by the acceptance fixture"
+ },
+ "coordinate_operation": {
+  "Eastings": 28001.0,
+  "Northings": 38001.0,
+  "OrthogonalHeight": 5.0,
+  "Scale": 1.0
+ }
+}
