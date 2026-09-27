@@ -40,6 +40,46 @@ propose → review → approve flow — never silently.
 | 8 | CHECK | `sg.py` (exists) | The checker's report closes the loop: what is present, what is still owed | CI-green (v0.4.0) |
 | 9 | PIPELINE | `pipeline.py` + `auto_model` verb/operator | One command runs 1–8 with a stage-by-stage report; any stage can run alone | CI-green (1d8c813) |
 
+Pipeline completeness and modelling accuracy are different achievements,
+so the dashboard below separates them: the table above says the road
+exists; the blocks below say how well the vehicle drives it. Every mark
+is sourced from an automated run, never entered by hand — `✓ n/n` lines
+come from the named check suite, benchmark lines from
+`python3 tools/bench_walls.py`, and a `○` is work that does not exist
+yet, not work assumed.
+
+## Semantic reconstruction
+
+| Capability | Status | Evidence |
+| --- | --- | --- |
+| Wall pairing (parallel faces → candidate) | ✓ | `tools/walls_check.py`, CI smoke |
+| Source mapping (DXF handle → … → GlobalId) | ✓ | `tools/walls_check.py`, CI smoke source-map counts |
+| Wall junctions (L, T, X, acute, mixed t) | ✓ | `tools/walls_check.py` |
+| One IfcWall per semantic wall | ✓ | CI smoke: 8 lines → 4 walls → 4 GUIDs |
+| Space polygonisation (inner-face boundary) | ✓ | `tools/spaces_check.py` |
+| Space labelling (TEXT/MTEXT, point-in-polygon) | ✓ | `tools/spaces_check.py`, CI smoke (IfcSpace "BEDROOM 2") |
+| Openings (door/window ← wall gaps, arcs, blocks) | ○ | — |
+| Continuation merging (collinear wall runs) | ○ | — |
+| Multi-storey reconstruction | ○ | — |
+| Sections/elevations as height evidence | ○ | — |
+
+## Benchmarking
+
+| Measure | Result | Source |
+| --- | --- | --- |
+| Synthetic ground truth (11 drawings: units, rotation, jitter, L/T/X, mixed t) | 41/41 walls | `tools/bench_walls.py` |
+| Wall precision / recall (synthetic) | 1.000 / 1.000, floors 0.95 | `tools/bench_walls.py` (fails below floor) |
+| Real hold-out set | ○ needs real drawings with agreed truth | — |
+| Space boundary IoU | ○ | — |
+| Area/GFA deviation | ○ (space areas exact on synthetic fixtures) | `tools/spaces_check.py` |
+| IFC+SG completeness on hold-outs | ○ | — |
+| External acceptance (CORENET-X model checker) | ○ | — |
+
+Synthetic perfection is expected, not impressive: these plans are clean
+by construction. The honest numbers arrive when a hold-out set of real
+drawings with agreed truth exists — that needs drawings only the
+project's owner can supply, and the harness is built to take them.
+
 ## Prerequisite: the merge train (NEXT.md §1, §7)
 
 Stage 6 lives in PR #1 (`psets.py`, the write side of IFC+SG) under the old
@@ -175,5 +215,30 @@ DXF regeneration: out of scope for a sketch-first modeller.
   reads parallel-line walls with measured centreline/thickness/length,
   source-segment provenance and evidence in sentences; `detect_walls`
   joins the vocabulary; `dxf.py` reads TEXT/MTEXT labels. 28 analytic
-  checks in `tools/walls_check.py`. Next: per-wall geometry from
-  candidates, then spaces from wall topology + labels.
+  checks in `tools/walls_check.py`. CI-green (cfabeb0).
+- **2026-09-27** — Compiler discipline installed before wall solids, per
+  the follow-up review (which also reversed this document's IR decline:
+  a lightweight in-process compilation state, not a database — IFC
+  stays the delivered model). `ir.py`: SemanticWall/Junction/
+  SpaceCandidate + the SourceMap ledger; DXF entities named by their
+  own handles; junction resolver (L/T/X, acute, mixed thickness) with
+  every TRIM/EXTEND recorded as the decision it is. CI-green (b21b496).
+- **2026-09-27** — The per-wall route: pipeline gains a WALLS stage,
+  CLASSIFY moves ahead of STAND, one butt-ended prism per semantic wall
+  with the enclosure blob kept as fallback. Acceptance shape held in
+  CI: 8 drawn lines → 4 candidates → 4 semantic walls → 4 IfcWall → 4
+  stable GUIDs, source map running LINE:#n → PAIR → JUNCTION → EXTEND →
+  EMIT. CI-green (0d4cec3).
+- **2026-09-27** — SPACES: `spaces.py` traces wall-graph cycles, offsets
+  boundaries to the walls' inner faces (a 4×3 room behind 200mm walls
+  measures 9.36 m², the floor you can stand on), names rooms from the
+  drawing's TEXT/MTEXT by point-in-polygon, and the pipeline makes real
+  IfcSpace elements headless — 'Space Name' answered from the drawn
+  label with its source on record. CI-green (aa197c7).
+- **2026-09-27** — Benchmark harness v0: `tools/bench_walls.py`
+  generates synthetic plans from stated truth (units, rotation, jitter,
+  L/T/X, mixed thickness) and scores the detector+resolver blind —
+  41/41, precision/recall 1.000 against 0.95 floors, run fails below
+  floor. Dashboard above restructured into capability + quality +
+  evidence so pipeline completeness is not mistaken for modelling
+  accuracy. Real hold-outs await real drawings.
