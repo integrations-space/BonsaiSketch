@@ -48,40 +48,54 @@ come from the named check suite, benchmark lines from
 `python3 tools/bench_walls.py`, and a `○` is work that does not exist
 yet, not work assumed.
 
-## Semantic reconstruction
+## COMPILER — one plan into semantics
 
 | Capability | Status | Evidence |
 | --- | --- | --- |
-| Wall pairing (parallel faces → candidate) | ✓ | `tools/walls_check.py`, CI smoke |
-| Source mapping (DXF handle → … → GlobalId) | ✓ | `tools/walls_check.py`, CI smoke source-map counts |
-| Wall junctions (L, T, X, acute, mixed t) | ✓ | `tools/walls_check.py` |
-| One IfcWall per semantic wall | ✓ | CI smoke: 8 lines → 4 walls → 4 GUIDs |
-| Space polygonisation (inner-face boundary) | ✓ | `tools/spaces_check.py` |
-| Space labelling (TEXT/MTEXT, point-in-polygon) | ✓ | `tools/spaces_check.py`, CI smoke (IfcSpace "BEDROOM 2") |
-| Openings (gap-anchored, arc/block/glazing evidence converging) | ✓ | `tools/openings_check.py`, CI smoke |
-| Proper IFC chain (IfcRelVoidsElement → IfcRelFillsElement) | ✓ | `tools/openings_check.py` vs real ifcopenshell, CI smoke |
-| Opening → space connectivity (door joins two rooms) | ✓ | CI smoke CONNECT records |
-| Continuation merging (opening-justified only; general case) | ◐ | MERGE ops in `tools/openings_check.py`; evidence-based general merge ○ |
-| Multi-storey reconstruction | ○ | — |
-| Sections/elevations as height evidence | ○ | — |
+| Source map (DXF handle → PAIR/JUNCTION/MERGE/OPEN/EMIT → GlobalId) | ✓ | `tools/walls_check.py`, CI smoke ledger counts |
+| Wall reconstruction (parallel faces → SemanticWall) | ✓ | `tools/walls_check.py`, CI smoke |
+| Junction resolution (L, T, X, acute, mixed t) | ✓ | `tools/walls_check.py` |
+| Opening reconstruction (gap-anchored; arc/block/glazing/mark converging; IfcRelVoids → IfcRelFills) | ✓ | `tools/openings_check.py`, CI smoke |
+| Space reconstruction (inner-face boundary, drawn-label naming, door connectivity) | ✓ | `tools/spaces_check.py`, CI smoke |
+| Continuation merge (predicates on the record; MERGE_GEOMETRY ≠ semantic identity) | ✓ | `tools/walls_check.py`, CI smoke |
+| Multi-view reconciliation (marks join views; agreement fills, disagreement → Conflict) | ✓ | `tools/reconcile_check.py`, CI smoke |
 
-## Benchmarking
+## BUILDING — a drawing set into one model
+
+| Capability | Status | Evidence |
+| --- | --- | --- |
+| Drawing classification (view identity; UNKNOWN is an answer) | ✓ | `tools/building_check.py` |
+| Cross-sheet alignment (grid-evidenced rigid fit, residual-gated status) | ✓ | `tools/building_check.py` (90° + offset recovered), CI smoke |
+| Storey reconstruction (level evidence; unknown elevation is valid state) | ✓ | `tools/building_check.py`, CI smoke |
+| Multi-storey IFC (per-storey containment, building-wide unique ids) | ✓ | CI smoke: two sheets → one building |
+| Cross-storey QA (wall alignment, space stacking, elevations, extents) | ✓ | CI smoke |
+| Georeferencing (configuration applied; the CRS is never frozen in code) | ✓ mechanism | CI smoke; the CRS itself is the project's, verified against current authoritative guidance |
+| Sections/elevations as full geometric evidence providers | ◐ | assertion grammar only; drawn section geometry ○ |
+
+## QUALITY — measured, never entered by hand
 
 | Measure | Result | Source |
 | --- | --- | --- |
-| Synthetic ground truth (11 drawings: units, rotation, jitter, L/T/X, mixed t) | 41/41 walls | `tools/bench_walls.py` |
-| Wall precision / recall (synthetic) | 1.000 / 1.000, floors 0.95 | `tools/bench_walls.py` (fails below floor) |
-| Opening detection P/R (15 hostile drawings) | 1.000 / 1.000, floors 0.95 | `tools/bench_openings.py` (fails below floor) |
+| Wall synthetic P/R (11 drawings: units, rotation, jitter, L/T/X, mixed t) | 1.000 / 1.000, floors 0.95 | `tools/bench_walls.py` (fails below floor) |
+| Opening detection P/R (15 hostile drawings) | 1.000 / 1.000, floors 0.95 | `tools/bench_openings.py` |
 | Door / window classification P/R (kept separate) | 1.000 / 1.000 each, floors 0.90 | `tools/bench_openings.py` |
 | Opening width / position error | 0.0 mm mean (floors 20 / 50 mm) | `tools/bench_openings.py` |
 | Falsely classified openings on negatives | 0, floor 0 | `tools/bench_openings.py` |
-| Human interventions (synthetic) | 1 across 15 drawings — the bare gap, by design | `tools/bench_openings.py` (informational) |
+| Space boundary accuracy | exact on analytic fixtures (9.36 m² behind 200 mm walls) | `tools/spaces_check.py` |
+| Transform residual (synthetic) | < 0.001 mm, ACCEPT gate 5 mm | `tools/building_check.py`, CI smoke |
+| Silent conflict resolutions | 0 — by construction, and measured anyway | `tools/reconcile_check.py`, CI smoke evidence metrics |
+| Human interventions (synthetic) | 1 across 15 opening drawings — the bare gap, by design | `tools/bench_openings.py` |
 | Known limits, stated not gated | block without gap; corner window | `tools/bench_openings.py` aspirational block |
-| Real hold-out set | ○ needs real drawings with agreed truth | — |
-| Space boundary IoU | ○ | — |
-| Area/GFA deviation | ○ (space areas exact on synthetic fixtures) | `tools/spaces_check.py` |
-| IFC+SG completeness on hold-outs | ○ | — |
-| External acceptance (CORENET-X model checker) | ○ | — |
+| Real hold-out set / GFA deviation / IoU | ○ needs real drawings with agreed truth | — |
+
+## ACCEPTANCE — the delivered file, judged from outside
+
+| Check | Result | Source |
+| --- | --- | --- |
+| IFC schema validation | ✓ 0 messages on the two-storey acceptance building | `ifcopenshell.validate` in CI smoke |
+| Intentional missing value caught | ✓ W1's OverallHeight stays a named null in CHECK | CI smoke |
+| IFC+SG completeness | measured per run (CHECK counts what is still owed) | pipeline CHECK stage |
+| External checker (CORENET-X) | ○ needs a real submission environment | — |
 
 Synthetic perfection is expected, not impressive: these plans are clean
 by construction. The honest numbers arrive when a hold-out set of real
@@ -274,3 +288,19 @@ DXF regeneration: out of scope for a sketch-first modeller.
   two doors orphaned its first opening at the second merge; openings
   now re-anchor onto the merged host. Human-intervention rate joins
   the dashboard as its own measure.
+- **2026-09-27** — Multi-view Building IR v0.2, the whole arc:
+  continuation merging with predicates on the record and MERGE_GEOMETRY
+  kept distinct from semantic identity (13b39f8); DrawingCandidate,
+  grid-evidenced cross-sheet transforms and evidence-based
+  StoreyCandidates, with a 90°-rotated offset sheet recovered to the
+  millimetre (be4b2d1); the multi-storey compiler — one ledger, one id
+  sequence, per-storey containment, cross-storey QA (e8edb4d);
+  multi-view reconciliation joining sections to the plans' openings by
+  their drawn marks, agreement filling with sources on record and
+  disagreement escalating as Conflicts with zero silent resolutions
+  (10f72ff); and the acceptance pass: configuration-driven
+  georeferencing, a two-storey six-room mixed-thickness fixture with
+  doors, windows, section evidence, one deliberate conflict, one
+  deliberately missing value caught, and the delivered file clean under
+  ifcopenshell schema validation. Dashboard matured to
+  COMPILER / BUILDING / QUALITY / ACCEPTANCE.

@@ -744,6 +744,7 @@ def run_set(
     gap: float = 0.01,
     height: float = 3.0,
     heights: Optional[dict] = None,
+    georeference: Optional[dict] = None,
 ) -> dict:
     """A drawing set compiled into one building. Returns the report.
 
@@ -901,6 +902,8 @@ def run_set(
             o.as_dict() for o in all_ir_openings if o.id in ids]
     report["building"] = _cross_storey_qa(report["compilations"], storey_candidates)
     report["building"]["compiled_storeys"] = compiled
+    report["building"]["georeference"] = _georeference(
+        paths, georeference, source_map)
     report["building"]["evidence"] = {
         "assertions": len(assertions),
         "values_filled": filled_count,
@@ -912,6 +915,58 @@ def run_set(
     report["source_map"] = source_map.as_list()
     _write_building_report(report)
     return report
+
+
+def _georeference(paths, config, source_map) -> dict:
+    """Apply the configured coordinate reference, or say plainly that none is.
+
+    The CRS is data, never code: it comes from an explicit ``georeference``
+    parameter or a ``georeference.json`` beside the first sheet, because the
+    right reference system -- CORENET-X's included -- is the project's to
+    state against current authoritative guidance, not this module's to
+    freeze in. Absent configuration is a visible state, not a default.
+    """
+    if config is None:
+        for path in paths:
+            candidate_path = os.path.join(os.path.dirname(path), "georeference.json")
+            if os.path.isfile(candidate_path):
+                import json
+
+                try:
+                    with open(candidate_path, encoding="utf-8") as handle:
+                        config = json.load(handle)
+                except (OSError, ValueError) as exc:
+                    return {"status": "broken",
+                            "note": f"georeference.json unreadable: {exc}"}
+                break
+    if not config:
+        return {
+            "status": "absent",
+            "note": (
+                "no coordinate reference configured; supply georeference.json "
+                "beside the drawings (projected_crs + coordinate_operation), "
+                "verifying the required CRS against current authoritative "
+                "guidance -- for Singapore submissions, CORENET-X's own"
+            ),
+        }
+    if not bridge.has_project():
+        return {"status": "absent", "note": "no project to georeference"}
+    projected = dict(config.get("projected_crs") or {})
+    operation = dict(config.get("coordinate_operation") or {})
+    if not projected.get("Name"):
+        return {"status": "broken", "note": "projected_crs.Name is required"}
+    import ifcopenshell.api.georeference
+
+    ifc = bridge.ifc_file()
+    if not ifc.by_type("IfcProjectedCRS"):
+        ifcopenshell.api.georeference.add_georeferencing(ifc, name=projected["Name"])
+    ifcopenshell.api.georeference.edit_georeferencing(
+        ifc, projected_crs=projected, coordinate_operation=operation)
+    source_map.record(
+        "GEOREF", [projected["Name"]], ifc.by_type("IfcProjectedCRS")[0].Name,
+        "coordinate reference applied from configuration")
+    return {"status": "configured", "crs": projected["Name"],
+            "coordinate_operation": {k: v for k, v in operation.items()}}
 
 
 def _transform_drawing(sheet, transform) -> None:

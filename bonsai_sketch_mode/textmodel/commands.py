@@ -590,6 +590,9 @@ def _auto_building(params: dict) -> dict:
     heights = params.get("heights") or {}
     if not isinstance(heights, dict):
         raise CommandError("'heights' must map layer names to heights")
+    georeference = params.get("georeference")
+    if georeference is not None and not isinstance(georeference, dict):
+        raise CommandError("'georeference' must be a configuration object")
     return pipeline.run_set(
         bpy.context,
         paths,
@@ -597,4 +600,5 @@ def _auto_building(params: dict) -> dict:
         gap=_number(params, "gap", 0.01),
         height=_number(params, "height", 3.0),
         heights={str(k): float(v) for k, v in heights.items()},
+        georeference=georeference,
     )
