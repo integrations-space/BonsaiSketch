@@ -33,12 +33,12 @@ propose → review → approve flow — never silently.
 | 1 | READ | `dxf.py` (+ ODA for DWG) | Layers, polylines, arcs in metres; skipped entities counted | CI-green (v0.4.0) |
 | 2 | HEAL | `heal.py` | Broken outlines welded and enclosed to tolerance; crossings refused | CI-green (v0.4.0) |
 | 3 | STAND | `ops/importer.py` | Per-layer solids at per-layer heights, volumes asserted | CI-green (v0.4.0) |
-| 4 | CLASSIFY | `classify.py` | Layer names to IFC classes by drafting convention; unresolved named, never guessed — the agents' seam | built (949d982) |
-| 5 | ASSIGN | `assign_class` verb (exists) | Solids become IfcWall/IfcSlab/... in a real project, headless-capable | wired (pipeline) |
-| 6 | MCR | `psets.py` | Every element gets the IFC+SG parameters its class owes at the project stage | merged (6eacd58) |
-| 7 | FILL | `derive.py` + `derive_values` verb | Geometry-derived values filled per class-aware readings; everything else left visibly unanswered, by name | built |
+| 4 | CLASSIFY | `classify.py` | Layer names to IFC classes by drafting convention; unresolved named, never guessed — the agents' seam | CI-green (949d982) |
+| 5 | ASSIGN | `assign_class` verb (exists) | Solids become IfcWall/IfcSlab/... in a real project, headless-capable | CI-green (1d8c813) |
+| 6 | MCR | `psets.py` | Every element gets the IFC+SG parameters its class owes at the project stage | CI-green (6eacd58) |
+| 7 | FILL | `derive.py` + `derive_values` verb | Geometry-derived values filled per class-aware readings; everything else left visibly unanswered, by name | CI-green (0f4fd76) |
 | 8 | CHECK | `sg.py` (exists) | The checker's report closes the loop: what is present, what is still owed | CI-green (v0.4.0) |
-| 9 | PIPELINE | `pipeline.py` + `auto_model` verb/operator | One command runs 1–8 with a stage-by-stage report; any stage can run alone | built |
+| 9 | PIPELINE | `pipeline.py` + `auto_model` verb/operator | One command runs 1–8 with a stage-by-stage report; any stage can run alone | CI-green (1d8c813) |
 
 ## Prerequisite: the merge train (NEXT.md §1, §7)
 
@@ -111,4 +111,6 @@ survives.
   Import gains "CAD Drawing to IFC (AutoModel)". End-to-end smoke: a
   fixture DXF's wall outline comes out as an IfcWall carrying both
   requirement sets, Thickness/Height/Length/Volume derived in project
-  units, Area and Load Bearing still visibly open.
+  units, Area and Load Bearing still visibly open. CI-green (1d8c813) —
+  the first headless create-project-and-assign in the suite held. **All
+  nine stages verified. The road is open end to end.**
