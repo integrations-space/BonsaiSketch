@@ -141,6 +141,57 @@ class Junction:
         }
 
 
+class OpeningCandidate:
+    """A break in a wall that several kinds of evidence may explain.
+
+    The geometry can prove an opening exists -- two collinear wall runs,
+    one gap of a doorway's width -- long before anything says what fills
+    it. So the candidate exists first, ``classification`` arrives only
+    when evidence converges (a swing arc, a named block, glazing lines),
+    and ``status`` says where that stands: ``possible`` is a discontinuity
+    awaiting judgement, ``resolved`` has one reading, ``contested`` has
+    two and refuses to pick. A wall gap alone is never a door.
+
+    ``position`` runs along the host wall's centreline from its start;
+    ``connects`` is filled when the spaces on either side are known, which
+    is the relationship a door actually is: two rooms and a way between.
+    """
+
+    __slots__ = ("id", "host_wall", "position", "width", "sources", "evidence",
+                 "classification", "status", "connects", "diagnostics",
+                 "opening_guid", "element_guid")
+
+    def __init__(self, id, host_wall, position, width, sources, evidence):
+        self.id = id
+        self.host_wall = host_wall
+        self.position = position    #: metres along the host's centreline
+        self.width = width          #: the measured gap
+        self.sources = list(sources)
+        self.evidence = list(evidence)
+        self.classification: Optional[str] = None   #: "DOOR", "WINDOW" or None
+        self.status = "possible"    #: possible | resolved | contested
+        self.connects: list[str] = []
+        self.diagnostics: list[str] = []
+        self.opening_guid: Optional[str] = None
+        self.element_guid: Optional[str] = None
+
+    def as_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "host_wall": self.host_wall,
+            "position": round(self.position, 6),
+            "width": round(self.width, 6),
+            "sources": list(self.sources),
+            "evidence": list(self.evidence),
+            "classification": self.classification,
+            "status": self.status,
+            "connects": list(self.connects),
+            "diagnostics": list(self.diagnostics),
+            "opening_guid": self.opening_guid,
+            "element_guid": self.element_guid,
+        }
+
+
 class SpaceCandidate:
     """An enclosure the wall faces state, with the name the drawing wrote."""
 

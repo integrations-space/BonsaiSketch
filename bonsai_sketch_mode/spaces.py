@@ -85,11 +85,21 @@ def _split_walls(walls, junctions):
     a dangling piece cannot bound a room.
     """
     nodes = {j.id: tuple(j.point) for j in junctions}
-    on_wall: dict = {w.id: [] for w in walls}
-    for junction in junctions:
-        for wall_id in junction.walls:
-            if wall_id in on_wall:
-                on_wall[wall_id].append(junction)
+    # Membership reads from the wall's side, not the junction's: a wall
+    # merged across an opening carries its absorbed piece's junctions
+    # forward under its own name, while the junction's record keeps the
+    # id it historically met -- history in one place, current truth in
+    # the other.
+    by_id = {j.id: j for j in junctions}
+    on_wall: dict = {}
+    for wall in walls:
+        seen = set()
+        stations = []
+        for junction_id in wall.junctions:
+            if junction_id in by_id and junction_id not in seen:
+                seen.add(junction_id)
+                stations.append(by_id[junction_id])
+        on_wall[wall.id] = stations
 
     edges = []
     for wall in walls:

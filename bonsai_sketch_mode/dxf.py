@@ -100,6 +100,42 @@ class Label:
         self.source = source
 
 
+class Arc:
+    """An arc kept as an arc -- centre and radius -- beside its chords.
+
+    The chords in ``layers`` are what an import draws; this record is what
+    an *interpreter* needs, because a door's swing arc is evidence exactly
+    through its radius matching an opening's width, and no amount of
+    chord-walking states that as plainly as the arc itself does.
+    """
+
+    __slots__ = ("layer", "center", "radius", "source")
+
+    def __init__(self, layer: str, center: tuple, radius: float, source: str = "") -> None:
+        self.layer = layer
+        self.center = center
+        self.radius = radius
+        self.source = source
+
+
+class Insert:
+    """A block reference: a named symbol placed at a point.
+
+    The block's own geometry is deliberately not expanded -- a symbol's
+    meaning is its name and its position, which is all the evidence an
+    opening detector needs, and expanding definitions would drag half of
+    DXF's block machinery in for nothing this add-on reads.
+    """
+
+    __slots__ = ("layer", "name", "position", "source")
+
+    def __init__(self, layer: str, name: str, position: tuple, source: str = "") -> None:
+        self.layer = layer
+        self.name = name
+        self.position = position
+        self.source = source
+
+
 class Drawing:
     """What a DXF file said, reduced to what a sketch can use."""
 
@@ -108,6 +144,10 @@ class Drawing:
         self.layers: dict[str, list[Polyline]] = {}
         #: The drawing's words -- TEXT and MTEXT -- in file order.
         self.texts: list[Label] = []
+        #: Arcs as arcs, for the interpreters; their chords are in layers.
+        self.arcs: list[Arc] = []
+        #: Block references by name and position, unexpanded.
+        self.inserts: list[Insert] = []
         #: Entity types read past because this subset does not cover them,
         #: with counts. Reported, never silently dropped.
         self.skipped: dict[str, int] = {}
@@ -192,7 +232,7 @@ def _bulge_points(start: tuple, end: tuple, bulge: float) -> list:
 
 #: Entity types this reader understands. Everything else is counted, not read.
 _HANDLED = {"LINE", "LWPOLYLINE", "POLYLINE", "ARC", "CIRCLE", "VERTEX", "SEQEND",
-            "TEXT", "MTEXT"}
+            "TEXT", "MTEXT", "INSERT"}
 
 
 def parse(text: str) -> Drawing:
@@ -270,11 +310,12 @@ def parse(text: str) -> Drawing:
                 in_polyline = False
                 poly_points = []
             elif entity == "ARC":
-                points = _arc_points(
-                    float(fields[10][0]), float(fields[20][0]),
-                    float(fields[40][0]), float(fields[50][0]), float(fields[51][0]),
-                )
+                cx, cy = float(fields[10][0]), float(fields[20][0])
+                radius = float(fields[40][0])
+                points = _arc_points(cx, cy, radius,
+                                     float(fields[50][0]), float(fields[51][0]))
                 drawing.add(Polyline(layer, points, closed=False, source=source))
+                drawing.arcs.append(Arc(layer, (cx, cy), radius, source=source))
             elif entity == "CIRCLE":
                 points = _arc_points(
                     float(fields[10][0]), float(fields[20][0]),
@@ -292,6 +333,11 @@ def parse(text: str) -> Drawing:
                 if value:
                     position = (float(fields[10][0]), float(fields[20][0]))
                     drawing.texts.append(Label(layer, value, position, source=source))
+            elif entity == "INSERT":
+                name = fields.get(2, [""])[0].strip()
+                if name:
+                    position = (float(fields[10][0]), float(fields[20][0]))
+                    drawing.inserts.append(Insert(layer, name, position, source=source))
             elif entity not in _HANDLED:
                 drawing.skip(entity)
         except (KeyError, IndexError, ValueError):
@@ -347,5 +393,13 @@ def parse(text: str) -> Drawing:
                 label.position = (
                     label.position[0] * drawing.scale,
                     label.position[1] * drawing.scale,
+                )
+            for arc in drawing.arcs:
+                arc.center = (arc.center[0] * drawing.scale, arc.center[1] * drawing.scale)
+                arc.radius *= drawing.scale
+            for insert in drawing.inserts:
+                insert.position = (
+                    insert.position[0] * drawing.scale,
+                    insert.position[1] * drawing.scale,
                 )
     return drawing
