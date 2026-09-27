@@ -33,10 +33,10 @@ propose → review → approve flow — never silently.
 | 1 | READ | `dxf.py` (+ ODA for DWG) | Layers, polylines, arcs in metres; skipped entities counted | CI-green (v0.4.0) |
 | 2 | HEAL | `heal.py` | Broken outlines welded and enclosed to tolerance; crossings refused | CI-green (v0.4.0) |
 | 3 | STAND | `ops/importer.py` | Per-layer solids at per-layer heights, volumes asserted | CI-green (v0.4.0) |
-| 4 | CLASSIFY | `classify.py` (new) | Layer names to IFC classes by drafting convention; unresolved named, never guessed — the agents' seam | planned |
+| 4 | CLASSIFY | `classify.py` | Layer names to IFC classes by drafting convention; unresolved named, never guessed — the agents' seam | built (949d982) |
 | 5 | ASSIGN | `assign_class` verb (exists) | Solids become IfcWall/IfcSlab/... in a real project, headless-capable | planned (wiring) |
-| 6 | MCR | `psets.py` (PR #1) | Every element gets the IFC+SG parameters its class owes at the project stage | **gated on merge train** |
-| 7 | FILL | `derive.py` (new) | Geometry-derived values (Height, Length, Width, Area, Volume...) filled; everything else left visibly unanswered | planned |
+| 6 | MCR | `psets.py` | Every element gets the IFC+SG parameters its class owes at the project stage | merged (6eacd58) |
+| 7 | FILL | `derive.py` + `derive_values` verb | Geometry-derived values filled per class-aware readings; everything else left visibly unanswered, by name | built |
 | 8 | CHECK | `sg.py` (exists) | The checker's report closes the loop: what is present, what is still owed | CI-green (v0.4.0) |
 | 9 | PIPELINE | `pipeline.py` + `auto_model` verb/operator (new) | One command runs 1–8 with a stage-by-stage report; any stage can run alone | planned |
 
@@ -63,12 +63,23 @@ lets git's directory-rename detection carry #1's added files into
 ## Value-filling policy (stage 7)
 
 A machine fills a value only when the geometry states it: Height, Length,
-Width, Thickness, Area, Volume, Perimeter, and the storey it sits on —
-matched to IFC+SG parameter names conservatively, in project units. A null
-that a human must answer is information; a guessed fire rating is a defect.
-The agents may *propose* the judgement values through the existing
-plan/approve flow; nothing writes without the QA gate and the human Approve
-that flow already enforces.
+Width, Thickness, Area, Volume — matched to IFC+SG parameter names
+conservatively, in project units. A null that a human must answer is
+information; a guessed fire rating is a defect. The agents may *propose*
+the judgement values through the existing plan/approve flow; nothing writes
+without the QA gate and the human Approve that flow already enforces.
+
+As built, the matching turned out to need one more refusal than planned:
+**what a name means depends on the class that carries it.** The workbook
+asks a slab and a wall alike for `Area`, but a slab's is its footprint and
+a wall's its elevation — so `derive.py` reads names through per-class
+profiles, and a class gets a measurement only where the reading is
+uncontested (a wall's Area, a column's `b`/`h`, a pile's `Length` all stay
+questions). Volume is written only for a closed shell, footprint area only
+when the solid provably is a prism over it. Perimeter and the containing
+storey, listed in the original plan, are deferred to the same standard:
+computable, but not yet stated by the geometry alone in a way every case
+survives.
 
 ## Progress log
 
@@ -76,3 +87,16 @@ that flow already enforces.
   stages 1–3 and 8 already CI-green on `next-steps`; stage 6 gated on the
   merge train; read/write IFC+SG duplication confirmed (NEXT.md §7 called
   it). This document created. Merge train and stages 4–9 begin.
+- **2026-09-27** — Merge train executed per §1: PR #1 → main (8112619),
+  PR #2's three foretold conflicts resolved (e13d771), PR #2 → main
+  (d66232c), main → `next-steps` as a merge, not a rebase (6eacd58), with
+  the identifier sweep and the write/read IFC+SG reconciliation verified
+  against ifcopenshell 0.8.5 before pushing. Stage 6 unblocked.
+- **2026-09-27** — Stage 4 built: `classify.py` reads layer names against
+  the drafting conventions, refusing no-matches and disagreements with
+  reasons (949d982).
+- **2026-09-27** — Stage 7 built: `derive.py` answers the geometric
+  questions from the geometry, through per-class readings (see the
+  value-filling policy above for the refusal it added to the plan);
+  `derive_values` joins the verb vocabulary; 38 analytic checks in
+  `tools/derive_check.py`, mesh-measuring covered in the smoke test.

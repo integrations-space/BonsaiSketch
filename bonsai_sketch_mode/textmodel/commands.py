@@ -439,3 +439,29 @@ def _assign_class(params: dict) -> dict:
     if entity is None:
         raise CommandError("Bonsai did not assign a class to %r" % obj.name)
     return _describe(obj)
+
+
+@verb("derive_values")
+def _derive_values(params: dict) -> dict:
+    """Fill the geometric requirement values the element's shape states.
+
+    The complement of ``assign_class``: once an element exists and carries
+    its requirement psets, this answers the questions its geometry already
+    decides -- height, thickness, a closed shell's volume -- and reports by
+    name every question it leaves, which is the list an agent still owes the
+    model. A machine fills a value only when the geometry states it; nothing
+    here guesses.
+    """
+    from .. import derive
+
+    ifc = _require_project()
+    obj = _object(params)
+    entity = bridge.get_entity(obj)
+    if entity is None:
+        raise CommandError(
+            "%r is not an IFC element -- assign_class comes before derive_values" % obj.name
+        )
+    extents, volume, base_area = derive.measure_object(obj)
+    report = derive.fill(ifc, entity, extents, volume=volume, base_area=base_area)
+    report.update(object=obj.name, ifc_class=entity.is_a())
+    return report

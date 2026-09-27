@@ -254,8 +254,10 @@ marks.py          the inference dot a snap answers with
 ground.py         the drawn ground plane (unfinished, off by default)
 dxf.py            the drafting subset of DXF, read without a dependency
 heal.py           closing the polygons a drafted plan almost draws
+classify.py       layer names read against the drafting conventions
 requirements.py   what the standard asks of an element (queries data/)
 psets.py          writes those requirements onto elements as they are created
+derive.py         answers the geometric requirements from the geometry itself
 sg.py             the IFC+SG checklist over what psets.py wrote
 sidebar.py        the IFC and IFC+SG panels, and the write side's controls
 textmodel/        text to model: the verb registry and the Sketch agents

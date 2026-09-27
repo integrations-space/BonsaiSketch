@@ -1416,6 +1416,96 @@ check("forgetting makes it look again",
       f"got {psets.sweep(counted, settings_now)}")
 
 
+# --- Derived values ----------------------------------------------------------
+#
+# AutoModel stage 7: the geometric questions answered from the geometry
+# itself. The reading rules -- which class is entitled to which measurement --
+# are checked analytically in tools/derive_check.py, which any Python with
+# ifcopenshell can run. What only this environment can check is the measuring
+# of a real mesh, and that the measured numbers land in a real element's
+# nulls and nowhere else.
+
+section("Derived values")
+derive = addon.derive
+check("derive_values is in the vocabulary",
+      "derive_values" in addon.textmodel.commands.names())
+
+# A wall-shaped box, 4 long by 0.2 thick by 3 high with its floor at z=0:
+# every measurement below is arithmetic, not observation.
+derive_mesh = bpy.data.meshes.new("derive_wall")
+derive_bm = bmesh.new()
+bmesh.ops.create_cube(derive_bm, size=1.0)
+for vert in derive_bm.verts:
+    vert.co.x *= 4.0
+    vert.co.y *= 0.2
+    vert.co.z = vert.co.z * 3.0 + 1.5
+derive_bm.to_mesh(derive_mesh)
+derive_bm.free()
+derive_obj = bpy.data.objects.new("derive_wall", derive_mesh)
+bpy.context.scene.collection.objects.link(derive_obj)
+bpy.context.view_layer.update()
+
+derive_extents, derive_volume, derive_base = derive.measure_object(derive_obj)
+check("extents read off the world box",
+      all(abs(a - b) < 1e-6 for a, b in zip(derive_extents, (4.0, 0.2, 3.0))),
+      f"got {derive_extents}")
+check("a closed box states its volume",
+      derive_volume is not None and abs(derive_volume - 2.4) < 1e-6,
+      f"got {derive_volume}")
+check("the floor faces sum to the footprint",
+      derive_base is not None and abs(derive_base - 0.8) < 1e-6,
+      f"got {derive_base}")
+
+# The measurements answer a real element's nulls -- the wall's own Thickness
+# from the IFC+SG set the creation listener just attached, plus a delivery
+# set whose Area and b must stay questions: a wall's Area is not the box's
+# call, and b is the section's.
+derive_ifc = ifcopenshell.api.project.create_file(version="IFC4")
+ifcopenshell.api.root.create_entity(derive_ifc, ifc_class="IfcProject", name="Derive")
+measured = ifcopenshell.api.root.create_entity(derive_ifc, ifc_class="IfcWall", name="MW")
+delivery_asks = ifcopenshell.api.pset.add_pset(
+    derive_ifc, product=measured, name=psets.DELIVERY_PSET_NAME)
+ifcopenshell.api.pset.edit_pset(
+    derive_ifc, pset=delivery_asks,
+    properties={"Height": None, "Volume": None, "Area": None, "b": None},
+    should_purge=False)
+
+derive_report = derive.fill(derive_ifc, measured, derive_extents,
+                            volume=derive_volume, base_area=derive_base)
+measured_sg = ifcopenshell.util.element.get_pset(
+    measured, psets.PSET_NAME, should_inherit=False) or {}
+measured_dl = ifcopenshell.util.element.get_pset(
+    measured, psets.DELIVERY_PSET_NAME, should_inherit=False) or {}
+check("the measured thickness fills the IFC+SG null",
+      abs((measured_sg.get("Thickness") or 0) - 0.2) < 1e-6,
+      f"got {measured_sg.get('Thickness')!r}")
+check("height and volume fill the delivery set",
+      abs((measured_dl.get("Height") or 0) - 3.0) < 1e-6
+      and abs((measured_dl.get("Volume") or 0) - 2.4) < 1e-6,
+      f"got {measured_dl.get('Height')!r}, {measured_dl.get('Volume')!r}")
+check("a wall's Area stays a question",
+      measured_dl.get("Area", "sentinel") is None)
+check("so does the section's b",
+      measured_dl.get("b", "sentinel") is None)
+check("what was not answered is reported by name",
+      sorted(derive_report["left"].get(psets.DELIVERY_PSET_NAME, [])) == ["Area", "b"],
+      f"got {derive_report['left']}")
+check("a non-geometric question is never touched",
+      measured_sg.get("Load Bearing", "sentinel") is None)
+
+# Opening the shell takes the volume off the table but not the extents:
+# a number that might be right is not a number this module writes.
+derive_bm = bmesh.new()
+derive_bm.from_mesh(derive_mesh)
+derive_bm.faces.ensure_lookup_table()
+derive_bm.faces.remove(derive_bm.faces[0])
+derive_bm.to_mesh(derive_mesh)
+derive_bm.free()
+open_extents, open_volume, _open_base = derive.measure_object(derive_obj)
+check("an opened shell refuses a volume", open_volume is None, f"got {open_volume}")
+check("but its extents still speak", abs(open_extents[2] - 3.0) < 1e-6)
+
+
 # --- Theme -------------------------------------------------------------------
 #
 # The one thing this add-on changes outside its own tab, so the promise that it
