@@ -83,7 +83,7 @@ question is safer than a beautifully modelled but unsupported claim.
 | 03 | Visual/viewport QA | ○ | a human at a viewport |
 | 04 | External IFC+SG validation | ○ | a real submission environment |
 | 05 | Failure taxonomy F01–F13, every intervention mapped | ✓ (F13 conditional on recorded checker results) | — |
-| 06 | Section/elevation *geometry* as evidence (beyond the assertion grammar): drawn levels, heads and sills reconciled onto plan objects by mark and position | ○ next technical build | — |
+| 06 | Section/elevation *geometry* as evidence (beyond the assertion grammar): drawn levels, heads and sills reconciled onto plan objects by mark and position | ✓ | sections.py; sections_check 17; smoke "Drawn section evidence" |
 | 07 | Vocabulary expansion (slabs, columns, stairs, roofs) | deferred | ordered by measured failure frequency from 02, not by intuition |
 
 ### Failure taxonomy
@@ -151,7 +151,7 @@ Output     IFC schema PASS/FAIL; IFC+SG completeness; external checker
 | Multi-storey IFC (per-storey containment, building-wide unique ids) | ✓ | CI smoke: two sheets → one building |
 | Cross-storey QA (wall alignment, space stacking, elevations, extents) | ✓ | CI smoke |
 | Georeferencing (configuration applied; the CRS is never frozen in code) | ✓ mechanism | CI smoke; the CRS itself is the project's, verified against current authoritative guidance |
-| Sections/elevations as full geometric evidence providers | ◐ | assertion grammar only; drawn section geometry ○ |
+| Sections/elevations as full geometric evidence providers | ✓ | assertion grammar + drawn levels/jambs (sections.py) |
 
 ## QUALITY — measured, never entered by hand
 
@@ -415,3 +415,21 @@ DXF regeneration: out of scope for a sketch-first modeller.
   environment and fabricating one would poison the methodology, so per
   the decision tree the next build is section/elevation geometry as
   evidence — holdout-001 waits on the project's owner.
+- **2026-09-27** — Sections and elevations graduate from note-readers to
+  geometry-readers (sections.py): level lines paired with their FFL
+  labels give a sheet its vertical datum — and a sheet whose levels
+  disagree about that datum is refused whole, named as not drawn 1:1,
+  rather than read at a guessed scale; jamb pairs found beside each
+  drawn mark yield OverallHeight, OverallWidth and SillHeight as
+  measured Assertions carrying the jambs' entity handles, which flow
+  through the same reconciliation as the grammar — corroborating the
+  plan's measured gap or escalating into the same Conflicts — and ride
+  the ledger as MEASURE ops. Drawn levels also face the storeys:
+  within drafting tolerance they corroborate an elevation, a near-miss
+  contests it as a Conflict, and a level matching nothing is noted as
+  an unmodelled level, which is information, not failure.
+  tools/sections_check.py (17 checks) states every answer by hand;
+  the smoke's "Drawn section evidence" section compiles the golden GF
+  plan with a fresh drawn section and watches the height land on the
+  door while the width corroborates without conflict. The golden
+  package itself is untouched, as the freeze demands.

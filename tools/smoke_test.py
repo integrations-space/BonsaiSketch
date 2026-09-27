@@ -2008,6 +2008,78 @@ check("the building report is readable in the text editor",
 
 
 
+# --- Drawn section evidence ----------------------------------------------
+#
+# Arc 06: the section's GEOMETRY speaks, not just its notes. Levels give
+# the sheet its vertical datum, the jamb pair beside the D1 mark gives
+# head, sill and width, and the measurements reconcile onto the plan's
+# door -- same currency, same fills, same conflicts -- while the drawn
+# levels corroborate the storey. The golden plan is the input and stays
+# byte-identical; only the section sheet here is new.
+
+section("Drawn section evidence")
+drawn_section = dxf_pairs(
+    (0, "SECTION"), (2, "HEADER"), (9, "$INSUNITS"), (70, 4), (0, "ENDSEC"),
+    (0, "SECTION"), (2, "ENTITIES"),
+    (0, "TEXT"), (8, "NOTES"), (10, 0), (20, 9000), (1, "SECTION B-B"),
+    (0, "LINE"), (8, "LEVELS"), (10, 0), (20, 0), (11, 6000), (21, 0),
+    (0, "TEXT"), (8, "LEVELS"), (10, -500), (20, 0), (1, "FFL +0.000"),
+    (0, "LINE"), (8, "LEVELS"), (10, 0), (20, 3600), (11, 6000), (21, 3600),
+    (0, "TEXT"), (8, "LEVELS"), (10, -500), (20, 3600), (1, "FFL +3.600"),
+    (0, "LINE"), (8, "OPENINGS"), (10, 2000), (20, 0), (11, 2000), (21, 2100),
+    (0, "LINE"), (8, "OPENINGS"), (10, 2900), (20, 0), (11, 2900), (21, 2100),
+    (0, "TEXT"), (8, "MARKS"), (10, 2450), (20, 2300), (1, "D1"),
+    (0, "ENDSEC"), (0, "EOF"),
+)
+drawn_path = os.path.join(tempfile.gettempdir(), "10_SEC_B.dxf")
+with open(drawn_path, "w") as handle:
+    handle.write(drawn_section)
+
+context.scene.bonsai_sketch_sg_typology = "public_residential"
+drawn_report = commands.run(
+    "auto_building", {"paths": [building_paths[0], drawn_path], "height": 3.0})
+context.scene.bonsai_sketch_sg_typology = "none"
+
+check("the drawn sheet measured three assertions for D1",
+      sorted(a["property"] for a in drawn_report["assertions"])
+      == ["OverallHeight", "OverallWidth", "SillHeight"]
+      and all(a["mark"] == "D1" for a in drawn_report["assertions"])
+      and all("drawn" in a["view"] for a in drawn_report["assertions"]),
+      str(drawn_report["assertions"]))
+check("the measurements ride the ledger as MEASURE",
+      sum(1 for r in drawn_report["source_map"] if r["op"] == "MEASURE") == 3)
+drawn_door_opening = next(
+    o for c in drawn_report["compilations"] for o in c["openings"]
+    if o["mark"] == "D1")
+drawn_door = bridge.Ifc.get().by_guid(drawn_door_opening["element_guid"])
+drawn_delivery = ifcopenshell.util.element.get_pset(
+    drawn_door, psets.DELIVERY_PSET_NAME, should_inherit=False) or {}
+drawn_scale = derive._unit_scale(bridge.Ifc.get())
+check("the drawn height fills the door, measured not asserted",
+      drawn_delivery.get("OverallHeight") is not None
+      and abs(drawn_delivery["OverallHeight"] - 2.1 / drawn_scale) < 1e-3,
+      repr(drawn_delivery.get("OverallHeight")))
+drawn_evidence = drawn_report["building"]["evidence"]
+check("the drawn width corroborates the measured gap -- no conflict",
+      drawn_report["conflicts"] == []
+      and drawn_evidence["assertions"] == 3
+      and drawn_evidence["values_filled"] == 1
+      and drawn_evidence["silently_resolved"] == 0
+      and any("OverallHeight filled from view evidence" in d
+              for d in drawn_door_opening["diagnostics"]),
+      str((drawn_evidence, drawn_door_opening["diagnostics"])))
+drawn_storey = drawn_report["storeys"][0]
+check("the drawn level corroborates the storey's elevation",
+      any("corroborated by drawn level" in e for e in drawn_storey["evidence"]),
+      str(drawn_storey["evidence"]))
+drawn_sheet_entry = next(d for d in drawn_report["drawings"]
+                         if d["view_type"] == "SECTION")
+check("the level above matches no storey and is noted, not failed",
+      any("matches no storey" in n for n in drawn_sheet_entry["diagnostics"]),
+      str(drawn_sheet_entry["diagnostics"]))
+os.unlink(drawn_path)
+
+
 # --- Theme -------------------------------------------------------------------
 #
 # The one thing this add-on changes outside its own tab, so the promise that it

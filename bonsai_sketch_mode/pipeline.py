@@ -861,15 +861,36 @@ def run_set(
     # The other views speak now: sections and elevations contribute
     # evidence to the openings the plans already made -- never duplicate
     # objects -- and disagreement becomes a Conflict, never arithmetic.
+    # Two dialects of the same currency: the assertion grammar (a note a
+    # drafter writes) and the drawn geometry itself (levels for the
+    # datum, jamb pairs for the openings), reconciled identically.
     from . import reconcile as reconcile_module
+    from . import sections as sections_module
 
     assertions = []
+    storey_conflicts = []
     for candidate in candidates:
         if candidate.view_type in ("SECTION", "ELEVATION") and candidate.id in parsed:
-            assertions += reconcile_module.extract(candidate, parsed[candidate.id][1])
+            sheet_drawing = parsed[candidate.id][1]
+            assertions += reconcile_module.extract(candidate, sheet_drawing)
+            drawn, level_lines = sections_module.extract_geometry(candidate, sheet_drawing)
+            assertions += drawn
+            for assertion in drawn:
+                source_map.record(
+                    "MEASURE", [assertion.source], assertion.mark,
+                    f"{assertion.property} = {assertion.value:g} m off drawn geometry")
+            storey_conflicts += sections_module.corroborate_storeys(
+                storey_candidates, level_lines, candidate,
+                first_conflict=len(storey_conflicts) + 1)
     all_ir_openings = collected.get("openings", [])
     fills, conflicts, unmatched = reconcile_module.reconcile(
-        all_ir_openings, assertions, source_map)
+        all_ir_openings, assertions, source_map,
+        first_conflict=len(storey_conflicts) + 1)
+    conflicts = storey_conflicts + conflicts
+    for conflict in storey_conflicts:
+        source_map.record(
+            "CONFLICT", [e["source"] for e in conflict.evidence], conflict.id,
+            f"{conflict.object}.{conflict.property}: human review")
     filled_count = 0
     if fills and bridge.has_project():
         ifc = bridge.ifc_file()
