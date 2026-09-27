@@ -58,8 +58,10 @@ yet, not work assumed.
 | One IfcWall per semantic wall | ✓ | CI smoke: 8 lines → 4 walls → 4 GUIDs |
 | Space polygonisation (inner-face boundary) | ✓ | `tools/spaces_check.py` |
 | Space labelling (TEXT/MTEXT, point-in-polygon) | ✓ | `tools/spaces_check.py`, CI smoke (IfcSpace "BEDROOM 2") |
-| Openings (door/window ← wall gaps, arcs, blocks) | ○ | — |
-| Continuation merging (collinear wall runs) | ○ | — |
+| Openings (gap-anchored, arc/block/glazing evidence converging) | ✓ | `tools/openings_check.py`, CI smoke |
+| Proper IFC chain (IfcRelVoidsElement → IfcRelFillsElement) | ✓ | `tools/openings_check.py` vs real ifcopenshell, CI smoke |
+| Opening → space connectivity (door joins two rooms) | ✓ | CI smoke CONNECT records |
+| Continuation merging (opening-justified only; general case) | ◐ | MERGE ops in `tools/openings_check.py`; evidence-based general merge ○ |
 | Multi-storey reconstruction | ○ | — |
 | Sections/elevations as height evidence | ○ | — |
 
@@ -69,6 +71,12 @@ yet, not work assumed.
 | --- | --- | --- |
 | Synthetic ground truth (11 drawings: units, rotation, jitter, L/T/X, mixed t) | 41/41 walls | `tools/bench_walls.py` |
 | Wall precision / recall (synthetic) | 1.000 / 1.000, floors 0.95 | `tools/bench_walls.py` (fails below floor) |
+| Opening detection P/R (15 hostile drawings) | 1.000 / 1.000, floors 0.95 | `tools/bench_openings.py` (fails below floor) |
+| Door / window classification P/R (kept separate) | 1.000 / 1.000 each, floors 0.90 | `tools/bench_openings.py` |
+| Opening width / position error | 0.0 mm mean (floors 20 / 50 mm) | `tools/bench_openings.py` |
+| Falsely classified openings on negatives | 0, floor 0 | `tools/bench_openings.py` |
+| Human interventions (synthetic) | 1 across 15 drawings — the bare gap, by design | `tools/bench_openings.py` (informational) |
+| Known limits, stated not gated | block without gap; corner window | `tools/bench_openings.py` aspirational block |
 | Real hold-out set | ○ needs real drawings with agreed truth | — |
 | Space boundary IoU | ○ | — |
 | Area/GFA deviation | ○ (space areas exact on synthetic fixtures) | `tools/spaces_check.py` |
@@ -242,3 +250,27 @@ DXF regeneration: out of scope for a sketch-first modeller.
   floor. Dashboard above restructured into capability + quality +
   evidence so pipeline completeness is not mistaken for modelling
   accuracy. Real hold-outs await real drawings.
+- **2026-09-27** — Openings, first as candidates: `openings.py` anchors
+  an OpeningCandidate on the wall discontinuity (a gap alone is never a
+  door), converges arcs, named blocks and glazing lines onto it, and
+  merges each interrupted host across its gap with the MERGE recorded
+  against the opening's id. Emission-shape pinned against real
+  ifcopenshell. CI-green (32b890e).
+- **2026-09-27** — The doorway through the pipeline: OPENINGS stage
+  between WALLS and STAND, hosts merged before solids exist, openings
+  voiding through IfcRelVoidsElement and fillings through
+  IfcRelFillsElement — width from the measured gap, height a visible
+  question until a section speaks — and SPACES recording which two
+  rooms each door CONNECTs. Smoke ends at BEDROOM 2 and LIVING joined
+  by a 900mm door. CI-green (26297df).
+- **2026-09-27** — Hostile benchmark: `tools/bench_openings.py` runs 15
+  required drawings (block/arc/gap combinations, mirrored and rotated
+  and renamed blocks, double and sliding doors, two window widths in
+  one wall, five negatives) with metrics kept separate — detection,
+  door and window classification, width and position error, false
+  classifications, interventions — all floors held at 1.000/0 mm/0.
+  Two known limits stated, not gated: a block without a gap, a corner
+  window. It caught a real defect before shipping: a wall broken by
+  two doors orphaned its first opening at the second merge; openings
+  now re-anchor onto the merged host. Human-intervention rate joins
+  the dashboard as its own measure.

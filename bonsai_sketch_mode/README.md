@@ -255,6 +255,7 @@ ground.py         the drawn ground plane (unfinished, off by default)
 dxf.py            the drafting subset of DXF, read without a dependency
 heal.py           closing the polygons a drafted plan almost draws
 walls.py          walls read as a drafter draws them, and their junctions
+openings.py       doorways and windows, where drawing evidence converges
 spaces.py         the rooms the walls enclose, named by the drawing's words
 ir.py             the compiler's state: semantic objects and the source map
 classify.py       layer names read against the drafting conventions

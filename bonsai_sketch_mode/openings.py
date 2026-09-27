@@ -180,7 +180,26 @@ def detect(
                     ],
                 )
                 openings.append(opening)
-                # The merge is the opening's doing and says so.
+                # The merge is the opening's doing and says so. Openings
+                # already hosted by the absorbed piece move onto the
+                # merged wall first, re-anchored at the same drawn spot --
+                # a wall broken by two doors merges twice, and the first
+                # door must not be orphaned by the second merge.
+                for prior in openings:
+                    if prior.host_wall != b.id:
+                        continue
+                    b_axis = _axis(b)
+                    (pux, puy), _plen = b_axis
+                    absolute = (b.start[0] + pux * prior.position,
+                                b.start[1] + puy * prior.position)
+                    prior.position = (
+                        uxa * (absolute[0] - a.start[0])
+                        + uya * (absolute[1] - a.start[1])
+                    )
+                    prior.host_wall = a.id
+                    prior.diagnostics.append(
+                        f"host merged into {a.id}; position re-anchored"
+                    )
                 old_end = a.end
                 a.end = tuple(far_point)
                 a.sources = list(a.sources) + list(b.sources)
@@ -214,7 +233,11 @@ def detect(
         readings = set()
 
         for arc in arcs:
-            if abs(arc.radius - opening.width) > ARC_RADIUS_TOLERANCE * opening.width:
+            # A single leaf swings the whole gap; a double door's two
+            # leaves each swing half of it. Both are the same testimony.
+            full = abs(arc.radius - opening.width) <= ARC_RADIUS_TOLERANCE * opening.width
+            half = abs(2.0 * arc.radius - opening.width) <= ARC_RADIUS_TOLERANCE * opening.width
+            if not (full or half):
                 continue
             reach = opening.width + host.thickness
             if math.hypot(arc.center[0] - centre[0], arc.center[1] - centre[1]) > reach:
@@ -222,6 +245,8 @@ def detect(
             opening.sources.append(getattr(arc, "source", "") or "?")
             opening.evidence.append(
                 f"swing arc, radius {arc.radius:.3f} m matches the gap"
+                if full else
+                f"leaf arc, radius {arc.radius:.3f} m swings half the gap"
             )
             readings.add("DOOR")
 
