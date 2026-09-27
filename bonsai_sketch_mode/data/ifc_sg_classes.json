@@ -13,6 +13,13 @@
   "requirements that may be wrong -- silently applying the wrong parameter",
   "set to a real model is worse than applying none.",
   "",
+  "An entry may be qualified with a PredefinedType, as 'IfcSlab/ROOF': it",
+  "then covers only instances carrying that predefined type, and wins over",
+  "an unqualified entry for the same class. That is how one class is shared",
+  "between two element names without a collision -- a plain class name may",
+  "belong to at most one element, or an element created as that class could",
+  "not be told which parameter set it owes.",
+  "",
   "Class names are IFC4. Where a class only exists in IFC4.3 it is noted."
  ],
  "elements": {
@@ -24,7 +31,7 @@
   "Door": {"classes": ["IfcDoor"]},
   "Floor": {
    "classes": ["IfcSlab"],
-   "note": "IfcSlab with PredefinedType FLOOR. Roof slabs share the class -- see Roof."
+   "note": "Every IfcSlab the Roof qualification does not catch. PredefinedType FLOOR is the common case -- see Roof for the ROOF slabs."
   },
   "Landscape": {
    "classes": ["IfcGeographicElement"],
@@ -33,8 +40,8 @@
   "Railings / Balustrade": {"classes": ["IfcRailing"]},
   "Ramp": {"classes": ["IfcRamp", "IfcRampFlight"]},
   "Roof": {
-   "classes": ["IfcRoof", "IfcSlab"],
-   "note": "IfcRoof is the assembly; the roof plane itself is often an IfcSlab with PredefinedType ROOF."
+   "classes": ["IfcRoof", "IfcSlab/ROOF"],
+   "note": "IfcRoof is the assembly; the roof plane itself is an IfcSlab with PredefinedType ROOF, which the qualified entry catches. Other slabs stay with Floor."
   },
   "Signage": {
    "classes": [],

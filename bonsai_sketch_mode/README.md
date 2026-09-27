@@ -17,6 +17,8 @@ the IFC layer underneath.
 | `L` | Line | Connected edges; closed coplanar loops become faces |
 | `R` | Rectangle | Two opposite corners |
 | `P` | Push/Pull | Extrudes the face under the cursor along its normal; `Ctrl` stacks a new solid; double-click repeats the last distance |
+| `F` | Offset | Copies a face's boundary parallel to itself, in or out |
+| `E` | Eraser | Erases edges; faces they bounded go too |
 | `T` | Tape Measure | Bonsai's measure tool |
 | `M` `Q` `S` | Move / Rotate / Scale | Blender's transforms |
 | `O` `H` `Z` | Orbit / Pan / Zoom | `Shift+Z` for zoom extents |
@@ -27,7 +29,11 @@ without already knowing the shortcuts.
 Line, Rectangle and Tape all run on Bonsai's polyline engine, so they share its
 inference snapping, axis locks (`X`/`Y`/`Z`), plane locks (`Shift`+`X`/`Y`/`Z`)
 and measurement box — including imperial input and `=`-prefixed expressions.
-Push/Pull has its own measurement box using the same parser.
+Push/Pull and Offset have their own measurement box using the same parser. The
+Eraser finds edges in screen space rather than by raycast, because a sketch is
+mostly bare strokes and a ray only ever reports faces; it locks onto the object
+the sweep started on, restores everything on `Esc`, and removes a sketch object
+erased down to nothing.
 
 Push/Pull also infers along its own axis. As a face is dragged it stops where
 existing geometry already is — the top of the wall beside this one, the
@@ -48,8 +54,18 @@ and stretches the walls, as before.
 the original in place as the join between the two. Double-clicking a face
 repeats the last push-pull distance.
 
-`F`, `B` and `E` are deliberately unbound. Their tools do not exist yet, and an
-unbound key is honest where a wrong one teaches the wrong muscle memory.
+`B`, `A`, `C` and `G` are deliberately silent. Their tools do not
+exist yet, and an unbound key is honest where a wrong one teaches the wrong
+muscle memory — so the keyconfig *claims* each of them, which strips Blender's
+own meaning without putting anything in its place. Claiming and binding are
+separate steps on purpose: until this was fixed, `A`, `C` and `G` were bound by
+omission, running Blender's Select All, Circle Select and Grab while a SketchUp
+user pressing them meant Arc, Circle and Make Component.
+
+Stripping `A` takes Blender's Select All shortcut with it; Select All stays on
+the 3D View's Select menu. SketchUp puts it on `Ctrl+A`, which Blender gives to
+the Apply menu, so that rebinding is left as its own decision rather than
+smuggled in behind an unbuilt Arc tool.
 
 ## Sketch geometry is not IFC
 
@@ -69,6 +85,47 @@ Push/Pull declines to touch an IFC element. Its shape is generated from
 material layers or a profile, and overwriting that with a tessellated mesh
 would silently discard the parametric definition. Depth belongs to Bonsai's own
 controls until this tool can drive them directly.
+
+## Model Content Requirements attach on creation
+
+When an element does come into being — Assign IFC Class on a sketch, or any of
+Bonsai's own tools — it is given the parameters the Model Content Requirements
+ask of its class, as property sets with null values. The standard prescribes
+the questions, not the answers, and a null property is a visible unanswered
+question — in Bonsai's property panels and in the exported IFC — where an
+absent one is invisible.
+
+The published workbook carries two datasets, and each gets its own set,
+because the submissions are separate:
+
+- **IFC+SG** (CORENET-X regulatory submission) → `IFCSG_Parameters`. One set
+  for every project. Verified complete against the workbook's own
+  presentation sheet.
+- **Project Delivery** (the workbook's filter says "for DBC Submission") →
+  `MCR_ProjectDelivery`. Genuinely per building typology — eight are shipped
+  — with the workbook's "O" (optional) marks preserved and excluded unless
+  asked for. No typology is ever guessed: until the user picks one in the
+  panel, only IFC+SG attaches.
+
+The hook is one ifcopenshell post listener on `root.create_entity`, which
+every creation path passes through. The listener only ever *adds missing
+names*: filled values are never overwritten, which makes attachment idempotent
+and a whole-file sweep always safe. That sweep is exposed as **Apply to
+Existing Elements** in the 3D View sidebar (`N` > `Sketch`), next to the
+project stage and typology selectors — requirements grow as a project
+advances, and both stage and typology are the user's to set, never guessed.
+All of it lives in scene properties, so it saves with the file.
+
+`requirements.py` answers what the standard asks; `psets.py` writes it onto
+elements. The data behind it: `data/ifc_sg.json` and `data/delivery/*.json`,
+extracted out of the published workbook by `tools/extract_ifc_sg.py`, plus the
+hand-maintained class mappings `data/ifc_sg_classes.json` and
+`data/delivery_classes.json`. Element names whose mapping is uncertain are
+deliberately unmapped and get nothing — attaching the wrong parameter set
+silently would be worse than attaching none. Where one class serves two
+element names — a roof plane is an `IfcSlab` like any floor — a qualified
+`IfcSlab/ROOF` entry splits them by PredefinedType, and a class contested
+within a typology is refused outright rather than resolved by luck.
 
 ## The Sketch workspace
 
@@ -111,7 +168,11 @@ Working:
 - Add-on registration, Bonsai detection and version guard
 - The `Sketch` workspace tab: a single tuned viewport
 - A complete `Sketch` keyconfig
-- Line, Rectangle, Push/Pull and Tape Measure, in the toolbar and on keys
+- Line, Rectangle, Push/Pull, Offset, Eraser and Tape Measure, in the toolbar
+  and on keys
+- IFC+SG required parameters attached automatically as elements are created,
+  per project stage
+- Project Delivery parameters per building typology, optional marks included
 
 ### Why a keyconfig and not an addon keymap
 
@@ -181,23 +242,32 @@ blender --python tools/ui_check.py -- report.txt
 ## Architecture
 
 ```
-__init__.py     registration, preferences
-bridge.py       every reference to Bonsai
-keyconfig.py    the Sketch keyconfig
-workspace.py    the Sketch workspace tab, and the keymap that follows it
-tools.py        toolbar entries
-sketchmesh.py   the meshes the drawing tools write into
-viewport.py     cursor-to-geometry queries (pure Blender)
-marks.py        the inference dot a snap answers with
-ground.py       the drawn ground plane (unfinished, off by default)
-dxf.py          the drafting subset of DXF, read without a dependency
-heal.py         closing the polygons a drafted plan almost draws
-ops/            the modal tools and the importer
-  base.py       shared modal skeleton for the polyline tools
-  line.py       Line
-  rectangle.py  Rectangle
-  pushpull.py   Push/Pull
-  importer.py   File > Import > CAD Drawing (.dxf/.dwg)
+__init__.py       registration, preferences
+bridge.py         every reference to Bonsai
+keyconfig.py      the Sketch keyconfig
+workspace.py      the Sketch workspace tab, and the keymap that follows it
+tools.py          toolbar entries
+sketchmesh.py     the meshes the drawing tools write into
+viewport.py       cursor-to-geometry queries (pure Blender)
+theme.py          the Sketch canvas colours, snapshot and restore
+marks.py          the inference dot a snap answers with
+ground.py         the drawn ground plane (unfinished, off by default)
+dxf.py            the drafting subset of DXF, read without a dependency
+heal.py           closing the polygons a drafted plan almost draws
+requirements.py   what the standard asks of an element (queries data/)
+psets.py          writes those requirements onto elements as they are created
+sg.py             the IFC+SG checklist over what psets.py wrote
+sidebar.py        the IFC and IFC+SG panels, and the write side's controls
+textmodel/        text to model: the verb registry and the Sketch agents
+ops/              the modal tools and the importer
+  base.py         shared modal skeleton for the polyline tools
+  line.py         Line
+  rectangle.py    Rectangle
+  pushpull.py     Push/Pull
+  offset.py       Offset
+  eraser.py       Eraser
+  importer.py     File > Import > CAD Drawing (.dxf/.dwg)
+data/             shipped requirements: IFC+SG, per-typology delivery, mappings
 ```
 
 All coupling to Bonsai is confined to `bridge.py`. Bonsai is a rolling release
@@ -226,9 +296,13 @@ Bonsai already provides the machinery this add-on builds on:
 - [x] Push/Pull for sketch meshes
 - [x] Tape Measure
 - [x] Stripped-down workspace layout: a single viewport
+- [x] IFC+SG required parameters, attached on element creation per stage
+- [x] Project Delivery requirements per building typology, with optional marks
+- [x] Offset for sketch faces, inward and outward
+- [x] Eraser, with screen-space edge picking
 - [ ] Live rectangle preview while dragging the second corner
 - [ ] Push/Pull for typed IFC elements, driving Bonsai's parametric depth
-- [ ] Offset, Follow Me, Eraser, Paint
+- [ ] Follow Me, Paint
 - [ ] Theme, condensed Entity Info panel
 - [ ] Instructor panel
 

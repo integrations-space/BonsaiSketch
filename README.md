@@ -134,8 +134,13 @@ While drawing:
 | `Backspace` | Undo the last point |
 | `Esc` | Abandon the whole thing |
 
-`F`, `B` and `E` do nothing **on purpose**. Those tools are not built yet, and
-a key wired to an approximation teaches the wrong habit.
+5. Press **`F`** and drag a face toward its centre — the outline is copied
+   parallel to itself, ready to become a frame or a reveal. Press **`E`** and
+   click or sweep over edges to rub them out; a face loses its fill when an
+   edge of it goes, just like SketchUp.
+
+`B` does nothing **on purpose**. Paint is not built yet, and a key wired to an
+approximation teaches the wrong habit.
 
 ### Step 5 — Turn it into IFC
 
@@ -158,6 +163,32 @@ Push/Pull deliberately **refuses** to touch an element that is already IFC. Its
 shape is generated from material layers or a profile, and overwriting that with
 a plain mesh would silently throw the parametric definition away. Use Bonsai's
 own depth controls for those.
+
+The moment a shape becomes an element — through Assign IFC Class, or any of
+Bonsai's own creation tools — it is given the parameters the **Model Content
+Requirements** ask of that kind of element, with every value left empty. The
+standard prescribes the questions, not the answers; an empty property is a
+visible unanswered question where an absent one is invisible. Values you fill
+in are never overwritten.
+
+The workbook carries two datasets, and both are covered:
+
+- **IFC+SG** (the CORENET-X regulatory submission) — one set for every
+  project, attached as an `IFCSG_Parameters` property set.
+- **Project Delivery** (the DBC handover) — different per building typology:
+  Commercial, Healthcare, Industrial, Public/Private Residential, Retail, and
+  road/rail infrastructure. Choose the **typology** in the panel and these
+  attach as a separate `MCR_ProjectDelivery` set; leave it unset and only
+  IFC+SG attaches — what kind of project this is, is never guessed. The
+  delivery sheets also mark some parameters *optional*; those attach only if
+  you switch them on.
+
+Requirements grow as a project advances — a door is asked more at detailed
+design than at schematic — so set the **project stage** in the 3D View sidebar
+(press `N`) under `Sketch`, where the attachment can also be switched off.
+**Apply to Existing Elements** in the same panel tops up elements created
+before a stage change, before the typology was set, or before the add-on was
+installed.
 
 ### Already have a plan drawn?
 
@@ -193,7 +224,8 @@ itself instead of failing.
 | Tools greyed out, or an error in their settings bar | Bonsai is missing or failed to load — check the `BIM` tab exists |
 | Wall/Door/Window tools say `No IFC Project` | There is no project yet. `IFC` panel in the sidebar → **New IFC Project** |
 | No `IFC` panel in the sidebar | The sidebar is closed — press `N`, or re-tick **IFC sidebar** in the add-on preferences |
-| Push/Pull says "no face under the cursor" | Hover directly over a face. It will also decline objects that have modifiers |
+| Push/Pull or Offset says "no face under the cursor" | Hover directly over a face. Both also decline objects that have modifiers |
+| Eraser says "no edge under the cursor" | Aim within a few pixels of a sketch edge. IFC elements are refused — delete those through Bonsai |
 
 Still stuck: `Window > Toggle System Console` shows what Blender is complaining
 about, and that output is the single most useful thing to put in an issue.
@@ -206,6 +238,8 @@ about, and that output is the single most useful thing to put in an issue.
 | `L` | Line |
 | `R` | Rectangle |
 | `P` | Push/Pull |
+| `F` | Offset |
+| `E` | Eraser |
 | `T` | Tape Measure |
 | `M` `Q` `S` | Move / Rotate / Scale |
 | `O` `H` `Z` | Orbit / Pan / Zoom (`Shift+Z` for zoom extents) |
@@ -213,11 +247,14 @@ about, and that output is the single most useful thing to put in an issue.
 All of them are in the 3D View toolbar too. Line, Rectangle and Tape run on
 Bonsai's polyline engine, so they share its inference snapping, axis and plane
 locks, and its measurement box — imperial input and typed expressions included.
+Push/Pull and Offset have their own measurement box using the same parser.
 
-Line, Rectangle and Push/Pull produce plain Blender meshes, not IFC elements: a
+The sketching tools produce and edit plain Blender meshes, not IFC elements: a
 direct modeller's workflow is to sketch first and assign meaning second, and
-Bonsai's own **Assign IFC Class** completes it. Push/Pull declines to touch an
-IFC element rather than tessellate away its parametric definition.
+Bonsai's own **Assign IFC Class** completes it. Push/Pull and Offset decline to
+touch an IFC element rather than tessellate away its parametric definition,
+and the Eraser refuses to delete one — that is a modelled decision with data
+hanging off it, for Bonsai's own delete.
 
 ## IFC+SG and Sketch Agents
 
@@ -292,13 +329,16 @@ Early, but usable for sketching. Working:
 - Add-on registration, Bonsai detection and version guard
 - The `Sketch` workspace tab, added automatically on file load
 - A complete `Sketch` keyconfig
-- Line, Rectangle, Push/Pull and Tape Measure
+- Line, Rectangle, Push/Pull, Offset, Eraser and Tape Measure
 - DXF/DWG import by layer, with gap healing and one-step extrusion
+- IFC+SG required parameters attached automatically as elements are created,
+  per project stage
+- Project Delivery parameters per building typology, including the
+  workbook's optional marks
 
-Not yet built: Offset, Follow Me, Eraser, Paint, and Push/Pull on parametric
-IFC elements. `F`, `B` and `E` are left unbound rather than pointed at an
-approximation. See the roadmap in
-[bonsai_sketch_mode/README.md](bonsai_sketch_mode/README.md).
+Not yet built: Follow Me, Paint, and Push/Pull on parametric IFC elements.
+`B` is left unbound rather than pointed at an approximation. See the roadmap
+in [bonsai_sketch_mode/README.md](bonsai_sketch_mode/README.md).
 
 ## Testing it, and telling us what broke
 

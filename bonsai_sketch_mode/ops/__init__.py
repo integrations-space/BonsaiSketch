@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import bpy
 
+from .eraser import BONSAI_SKETCH_MODE_OT_eraser
 from .importer import (
     BONSAI_SKETCH_MODE_OT_import_cad,
     BONSAI_SKETCH_MODE_OT_stand_up,
@@ -32,18 +33,23 @@ from .importer import (
     object_menu_entry,
 )
 from .line import BONSAI_SKETCH_MODE_OT_line
+from .offset import BONSAI_SKETCH_MODE_OT_offset
 from .pushpull import BONSAI_SKETCH_MODE_OT_push_pull
 from .rectangle import BONSAI_SKETCH_MODE_OT_rectangle
 
 LINE_OP = BONSAI_SKETCH_MODE_OT_line.bl_idname
 RECTANGLE_OP = BONSAI_SKETCH_MODE_OT_rectangle.bl_idname
 PUSH_PULL_OP = BONSAI_SKETCH_MODE_OT_push_pull.bl_idname
+OFFSET_OP = BONSAI_SKETCH_MODE_OT_offset.bl_idname
+ERASER_OP = BONSAI_SKETCH_MODE_OT_eraser.bl_idname
 IMPORT_OP = BONSAI_SKETCH_MODE_OT_import_cad.bl_idname
 
 classes = (
     BONSAI_SKETCH_MODE_OT_line,
     BONSAI_SKETCH_MODE_OT_rectangle,
     BONSAI_SKETCH_MODE_OT_push_pull,
+    BONSAI_SKETCH_MODE_OT_offset,
+    BONSAI_SKETCH_MODE_OT_eraser,
     BONSAI_SKETCH_MODE_OT_import_cad,
     BONSAI_SKETCH_MODE_OT_stand_up,
 )

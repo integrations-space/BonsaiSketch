@@ -38,7 +38,7 @@ from __future__ import annotations
 
 import bpy
 
-from . import bridge, sketchmesh, theme, requirements
+from . import bridge, psets, requirements, sketchmesh, theme
 
 CATEGORY = "Sketch"
 
@@ -239,6 +239,63 @@ class BONSAI_SKETCH_MODE_OT_sg_check(bpy.types.Operator):
         return {"FINISHED"}
 
 
+def attach_settings():
+    """What the creation listener attaches, read from the scene. None for off.
+
+    The same scene stage the checker reads -- the write side and the read
+    side must never disagree about where the project stands. Typology and
+    the switches save with the file for the same reason the stage does.
+    """
+    try:
+        scene = bpy.context.scene
+        if scene is None or not scene.bonsai_sketch_sg_attach:
+            return None
+        typology = scene.bonsai_sketch_sg_typology
+        return psets.AttachSettings(
+            stage=scene.bonsai_sketch_sg_stage,
+            typology=None if typology == "none" else typology,
+            include_optional=scene.bonsai_sketch_sg_optional,
+        )
+    except Exception:
+        return None
+
+
+class BONSAI_SKETCH_MODE_OT_sg_apply(bpy.types.Operator):
+    bl_idname = "bonsai_sketch_mode.sg_apply"
+    bl_label = "Apply to Existing Elements"
+    bl_description = (
+        "Attach the parameters required at the current stage -- IFC+SG, and "
+        "Project Delivery if a typology is chosen -- to every element already "
+        "in the project. Only missing parameters are added; values already "
+        "filled in are not touched"
+    )
+
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        return psets.is_available() and bridge.has_project()
+
+    def execute(self, context: bpy.types.Context):
+        scene = context.scene
+        typology = scene.bonsai_sketch_sg_typology
+        settings = psets.AttachSettings(
+            stage=scene.bonsai_sketch_sg_stage,
+            typology=None if typology == "none" else typology,
+            include_optional=scene.bonsai_sketch_sg_optional,
+        )
+        # Forget first: this button exists for the cases where something has
+        # changed behind the listener's back, so it must not trust an
+        # earlier verdict.
+        psets.forget()
+        touched, added = psets.sweep(bridge.ifc_file(), settings)
+        for warning in requirements.delivery_warnings(settings.typology or ""):
+            self.report({"WARNING"}, warning)
+        if added:
+            self.report({"INFO"}, f"Added {added} parameters across {touched} elements")
+        else:
+            self.report({"INFO"}, "Every element already carries its required parameters")
+        return {"FINISHED"}
+
+
 class BONSAI_SKETCH_MODE_PT_sg(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -250,6 +307,19 @@ class BONSAI_SKETCH_MODE_PT_sg(bpy.types.Panel):
         from . import sg
         layout = self.layout
         layout.prop(context.scene, "bonsai_sketch_sg_stage", text="Stage")
+        layout.prop(context.scene, "bonsai_sketch_sg_typology", text="Typology")
+        col = layout.column(align=True)
+        col.prop(context.scene, "bonsai_sketch_sg_attach")
+        sub = col.row()
+        sub.enabled = context.scene.bonsai_sketch_sg_typology != "none"
+        sub.prop(context.scene, "bonsai_sketch_sg_optional")
+        if context.scene.bonsai_sketch_sg_typology != "none":
+            for warning in requirements.delivery_warnings(context.scene.bonsai_sketch_sg_typology):
+                row = layout.row()
+                row.alert = True
+                row.label(text=warning, icon="ERROR")
+        if bridge.has_project():
+            layout.operator(BONSAI_SKETCH_MODE_OT_sg_apply.bl_idname, icon="FILE_REFRESH")
         layout.label(text="Model Content Requirements V2.0")
         layout.label(text="20 Mar 2026; candidate checklist")
         if requirements.load_error():
@@ -273,7 +343,8 @@ class BONSAI_SKETCH_MODE_PT_sg(bpy.types.Panel):
 
 
 classes = (BONSAI_SKETCH_MODE_OT_assign_class, BONSAI_SKETCH_MODE_PT_ifc,
-           BONSAI_SKETCH_MODE_OT_sg_check, BONSAI_SKETCH_MODE_PT_sg)
+           BONSAI_SKETCH_MODE_OT_sg_check, BONSAI_SKETCH_MODE_OT_sg_apply,
+           BONSAI_SKETCH_MODE_PT_sg)
 
 
 def register() -> tuple[bool, str]:
@@ -283,6 +354,34 @@ def register() -> tuple[bool, str]:
         bpy.types.Scene.bonsai_sketch_sg_stage = bpy.props.EnumProperty(
             name="IFC+SG Stage", items=[(key, label, label) for key, label in requirements.stages()],
             default="conceptual")
+        bpy.types.Scene.bonsai_sketch_sg_typology = bpy.props.EnumProperty(
+            name="Typology",
+            description=(
+                "What kind of project this is. The Project Delivery "
+                "requirements differ per building typology; choosing one "
+                "attaches that typology's parameters as a "
+                f"{psets.DELIVERY_PSET_NAME!r} set beside the IFC+SG set. "
+                "Left unset, only IFC+SG attaches -- never guessed"
+            ),
+            items=[("none", "None (IFC+SG only)", "Attach only the IFC+SG parameters")]
+            + [(key, label, label) for key, label in requirements.typologies()],
+            default="none")
+        bpy.types.Scene.bonsai_sketch_sg_attach = bpy.props.BoolProperty(
+            name="Attach on Creation",
+            description=(
+                "Give every newly created element the parameters the Model "
+                "Content Requirements ask of it, as property sets with the "
+                "values left for you to fill in"
+            ),
+            default=True)
+        bpy.types.Scene.bonsai_sketch_sg_optional = bpy.props.BoolProperty(
+            name="Include Optional Parameters",
+            description=(
+                "Also attach the Project Delivery parameters the workbook "
+                "marks 'O' (optional). The IFC+SG set has none, so this only "
+                "matters once a typology is chosen"
+            ),
+            default=False)
         for cls in classes:
             bpy.utils.register_class(cls)
             added.append(cls)
@@ -293,12 +392,22 @@ def register() -> tuple[bool, str]:
             except Exception:
                 pass
         return False, f"Could not add the Sketch sidebar: {exc}"
+    # The write side of IFC+SG starts with the panel that controls it: from
+    # here on, every element created gets the parameters its class owes at
+    # the scene's stage (psets.py). install() degrades to a message when
+    # ifcopenshell or the data cannot be reached.
+    attached, note = psets.install(attach_settings)
+    if not attached:
+        print(f"[bonsai_sketch_mode] IFC+SG attachment: {note}")
     return True, f"{len(added)} Sketch sidebar panel"
 
 
 def unregister() -> None:
-    if hasattr(bpy.types.Scene, "bonsai_sketch_sg_stage"):
-        del bpy.types.Scene.bonsai_sketch_sg_stage
+    psets.remove()
+    for prop in ("bonsai_sketch_sg_stage", "bonsai_sketch_sg_typology",
+                 "bonsai_sketch_sg_attach", "bonsai_sketch_sg_optional"):
+        if hasattr(bpy.types.Scene, prop):
+            delattr(bpy.types.Scene, prop)
     for cls in reversed(classes):
         try:
             bpy.utils.unregister_class(cls)

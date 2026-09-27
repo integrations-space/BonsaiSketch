@@ -1,0 +1,102 @@
+{
+ "_comment": [
+  "Which IFC classes each Project Delivery element name covers, for element",
+  "names that appear only in the per-typology delivery sheets. Names the",
+  "delivery sheets share with the IFC+SG standard (Wall, Door, Column...)",
+  "are not repeated here -- they resolve through ifc_sg_classes.json.",
+  "",
+  "Like ifc_sg_classes.json, this is NOT extracted from the workbook: the",
+  "standard's own mechanism for recording the class is the modeller-declared",
+  "IfcExportAs parameter, so every entry is a judgement call kept as data.",
+  "Entries with an empty 'classes' list are deliberately unmapped, with the",
+  "reason given -- silently attaching the wrong parameter set is worse than",
+  "attaching none.",
+  "",
+  "One constraint has no counterpart in the base file: within any single",
+  "typology, a plain class name may belong to at most one element name, or",
+  "an element created as that class could not be told which parameter set",
+  "it owes. Qualified 'Class/PREDEFINEDTYPE' entries (see the base file's",
+  "comment) share a class where the type can tell claimants apart; several",
+  "entries here are unmapped because it cannot. requirements.py enforces",
+  "the constraint at load time and refuses both claimants rather than",
+  "guessing."
+ ],
+ "elements": {
+  "Accessories & Routing (Service Routing)": {
+   "classes": [],
+   "review": "Industrial carries this alongside plain 'Accessories & Routing', and the split is procurement scope, not anything an IFC class expresses. Mapping both to the routing classes would double-attach."
+  },
+  "Casework / Joinery": {
+   "classes": [],
+   "review": "Built-in joinery usually exports as IfcFurniture, but Industrial (the one typology using this name) claims IfcFurniture for 'Furniture' already."
+  },
+  "Equipment (Primary)": {
+   "classes": [],
+   "review": "The primary/secondary split is a procurement distinction with no IFC counterpart; mapping both to the equipment classes would attach two parameter sets to every pump."
+  },
+  "Equipment (Secondary)": {
+   "classes": [],
+   "review": "See Equipment (Primary)."
+  },
+  "Finish": {
+   "classes": ["IfcCovering/FLOORING", "IfcCovering/CLADDING"],
+   "review": "Floor and wall finishes, by PredefinedType; Industrial's plain IfcCovering stays with 'Ceiling'. Coverings typed neither way get the ceiling set, which may be wrong for an untyped finish."
+  },
+  "Finishes": {
+   "classes": ["IfcCovering"],
+   "review": "Healthcare (the one typology using this name) has no separate Ceiling element, so coverings there carry the finishes requirements. Wrong if a project models ceilings as coverings without meaning 'finish'."
+  },
+  "Fixture / Device": {
+   "classes": ["IfcLightFixture", "IfcOutlet", "IfcSwitchingDevice"],
+   "review": "Read as the electrical fixtures-and-devices categories. The typologies using this name (Retail, Private Residential) carry no 'Terminal' or 'Equipment' element, so these classes are unclaimed there -- but the reading itself is a judgement."
+  },
+  "Furniture": {"classes": ["IfcFurniture", "IfcFurnishingElement"]},
+  "Generic Model": {
+   "classes": ["IfcBuildingElementProxy"],
+   "note": "The name is authoring-tool vocabulary; a proxy is exactly what a generic model exports as."
+  },
+  "Infrastructure": {
+   "classes": [],
+   "review": "Road and rail assets are IFC4.3 alignment-domain classes (IfcRoad, IfcRailway, IfcCourse...), out of reach of an IFC4 project. Revisit when Bonsai projects here move to 4.3."
+  },
+  "Plumbing Fixture": {"classes": ["IfcSanitaryTerminal"]},
+  "Railing / Balustrade": {
+   "classes": ["IfcRailing"],
+   "note": "Industrial's singular spelling of the base 'Railings / Balustrade'."
+  },
+  "Services Routing": {
+   "classes": [
+    "IfcCableCarrierFitting",
+    "IfcCableCarrierSegment",
+    "IfcCableFitting",
+    "IfcCableSegment",
+    "IfcDuctFitting",
+    "IfcDuctSegment",
+    "IfcJunctionBox",
+    "IfcPipeFitting",
+    "IfcPipeSegment"
+   ],
+   "review": "Retail and Private Residential's name for what the base data calls 'Accessories & Routing'; same classes, same breadth caveat."
+  },
+  "Setting Up & Project Information": {
+   "classes": [],
+   "note": "Project-level metadata, not a physical element -- same as the base 'Setting up & Project Information'."
+  },
+  "Site (External Works)": {
+   "classes": [],
+   "review": "Same ground as the base 'External Works', which is deliberately unmapped: it spans drains, kerbs, road furniture and boundaries with no one class."
+  },
+  "Space Allocation": {
+   "classes": ["IfcSpace", "IfcZone"],
+   "note": "Industrial's name for the base 'Spatial Allocation'. Spatial, not physical: classified through Bonsai's spatial workflow, not the drawing tools."
+  },
+  "Specialty Equipment": {
+   "classes": [],
+   "review": "Usually exported as proxies, but Industrial claims IfcBuildingElementProxy for 'Generic Model' already."
+  },
+  "Terminal (Fixture and Device)": {
+   "classes": [],
+   "review": "Industrial carries plain 'Terminal' too; the parenthetical scope is not expressible by class."
+  }
+ }
+}
