@@ -106,9 +106,13 @@ def classify(id: str, source_file: str, drawing) -> ir.DrawingCandidate:
     # View identity: the sheet's own words outrank its filename, and two
     # different view words on one sheet mean a mixed sheet, which is
     # UNKNOWN with the reason -- splitting it is a person's decision.
+    # A title leads or ends with its view word ("SECTION A-A", "GROUND
+    # FLOOR PLAN"); a view word mid-sentence is a reference to some
+    # other sheet ("SEE DETAIL 3") and names nothing here.
     title_views = {}
     for label in drawing.texts:
-        for token in _tokens(label.text):
+        tokens = _tokens(label.text)
+        for token in (tokens[:1] + tokens[-1:]):
             if token in VIEW_TOKENS:
                 title_views.setdefault(VIEW_TOKENS[token], label.text)
     stem_views = {VIEW_TOKENS[t] for t in _tokens(source_file) if t in VIEW_TOKENS}

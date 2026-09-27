@@ -159,6 +159,32 @@ def _assign_space(context, obj, space):
     return space.ifc_guid
 
 
+def _fill_measured(ifc_file, entity, normalized_name, value_metres, note) -> int:
+    """Answer every null property spelt like this with an earned value.
+
+    The same contract as derive.fill: only nulls are written, the value
+    converts into project units, and the note lands on nothing -- the
+    caller records where the answer came from, because the caller holds
+    the evidence.
+    """
+    import ifcopenshell.api.pset
+
+    scale = derive._unit_scale(ifc_file)
+    written = 0
+    for pset in derive._own_psets(entity):
+        answers = {}
+        for prop in pset.HasProperties or ():
+            if (prop.is_a("IfcPropertySingleValue")
+                    and derive._normalise(prop.Name) == normalized_name
+                    and prop.NominalValue is None):
+                answers[prop.Name] = round(value_metres / scale, 6)
+        if answers:
+            ifcopenshell.api.pset.edit_pset(
+                ifc_file, pset=pset, properties=dict(answers), should_purge=False)
+            written += len(answers)
+    return written
+
+
 def _fill_space_name(ifc_file, entity, space) -> bool:
     """Answer a null 'Space Name' with the drawing's own label.
 
@@ -202,6 +228,7 @@ def run(
     source_map: Optional[ir.SourceMap] = None,
     shared: Optional[dict] = None,
     text_name: Optional[str] = TEXT_NAME,
+    collect: Optional[dict] = None,
 ) -> dict:
     """The whole pipeline over one drawing. Returns the report.
 
@@ -354,6 +381,7 @@ def run(
             inserts=drawing.inserts,
             glazing_segments=glazing_segs,
             glazing_sources=glazing_srcs,
+            labels=drawing.texts,
             source_map=source_map,
             first=shared["opening"] + 1,
         )
@@ -379,6 +407,8 @@ def run(
     report["walls"] = [wall.as_dict() for _o, _p, wall in per_wall]
     report["openings"] = [o.as_dict() for o in all_openings]
     report["merges"] = [m.as_dict() for m in all_merges]
+    if collect is not None:
+        collect.setdefault("openings", []).extend(all_openings)
     resolved_openings = sum(1 for o in all_openings if o.status == "resolved")
     continued = sum(1 for m in all_merges if m.decision == "MERGE_GEOMETRY")
     stage(
@@ -774,6 +804,7 @@ def run_set(
 
     storey_candidates = storeys_module.build(plans)
     shared = {"wall": 0, "junction": 0, "opening": 0, "merge": 0, "space": 0}
+    collected: dict = {}
     compiled = 0
     if storey_candidates:
         commands.run("create_project", {})
@@ -811,6 +842,7 @@ def run_set(
                 context, path, weld=weld, gap=gap, height=height, heights=heights,
                 drawing=sheet, elevation=storey.elevation, container=storey_entity,
                 source_map=source_map, shared=shared, text_name=None,
+                collect=collected,
             )
             compiled += 1
             report["compilations"].append({
@@ -824,11 +856,59 @@ def run_set(
                 "unresolved": sub_report["unresolved"],
             })
 
+    # The other views speak now: sections and elevations contribute
+    # evidence to the openings the plans already made -- never duplicate
+    # objects -- and disagreement becomes a Conflict, never arithmetic.
+    from . import reconcile as reconcile_module
+
+    assertions = []
+    for candidate in candidates:
+        if candidate.view_type in ("SECTION", "ELEVATION") and candidate.id in parsed:
+            assertions += reconcile_module.extract(candidate, parsed[candidate.id][1])
+    all_ir_openings = collected.get("openings", [])
+    fills, conflicts, unmatched = reconcile_module.reconcile(
+        all_ir_openings, assertions, source_map)
+    filled_count = 0
+    if fills and bridge.has_project():
+        ifc = bridge.ifc_file()
+        for opening, property, value, sources in fills:
+            if not opening.element_guid:
+                opening.diagnostics.append(
+                    f"{property} corroborated but no element was emitted to carry it")
+                continue
+            entity = ifc.by_guid(opening.element_guid)
+            wrote = _fill_measured(
+                ifc, entity, derive._normalise(property), value,
+                f"{property} from {', '.join(sources)}")
+            if wrote:
+                filled_count += wrote
+                opening.diagnostics.append(
+                    f"{property} filled from view evidence: {', '.join(sources)}")
+                source_map.record("ASSERT", sources, opening.element_guid,
+                                  f"{property} written to the element")
+    report["assertions"] = [a.as_dict() for a in assertions]
+    report["conflicts"] = [c.as_dict() for c in conflicts]
+    report["unmatched_assertions"] = [a.as_dict() for a in unmatched]
+
     report["drawings"] = [c.as_dict() for c in candidates]
     report["transforms"] = [t.as_dict() for t in transforms.values()]
     report["storeys"] = [s.as_dict() for s in storey_candidates]
+    # Openings re-serialise: marks, corroborations and contests arrived
+    # after the per-storey reports were cut.
+    for compilation in report["compilations"]:
+        ids = {o["id"] for o in compilation["openings"]}
+        compilation["openings"] = [
+            o.as_dict() for o in all_ir_openings if o.id in ids]
     report["building"] = _cross_storey_qa(report["compilations"], storey_candidates)
     report["building"]["compiled_storeys"] = compiled
+    report["building"]["evidence"] = {
+        "assertions": len(assertions),
+        "values_filled": filled_count,
+        "conflicts_detected": len(conflicts),
+        "conflicts_escalated": len(conflicts),
+        "silently_resolved": 0,
+        "unmatched_marks": sorted({a.mark for a in unmatched}),
+    }
     report["source_map"] = source_map.as_list()
     _write_building_report(report)
     return report
@@ -947,6 +1027,18 @@ def _write_building_report(report: dict) -> str:
                if item["floor_to_floor"] is not None else ""))
         for note in item["diagnostics"]:
             lines.append(f"      ! {note}")
+    if report.get("conflicts"):
+        lines += ["", "CONFLICTS -- human review required:"]
+        for item in report["conflicts"]:
+            lines.append(f"  {item['id']} {item['object']}.{item['property']}:")
+            for claim in item["evidence"]:
+                lines.append(
+                    f"      {claim['value']:g} m from {claim['view']} ({claim['source']})")
+    if report.get("unmatched_assertions"):
+        lines += ["", "Assertions citing marks nobody carries:"]
+        for item in report["unmatched_assertions"]:
+            lines.append(f"  {item['mark']} {item['property']} = {item['value']:g} m"
+                         f" ({item['view']})")
     qa = report.get("building", {})
     lines += ["", "Cross-storey QA:", f"  {qa}"]
     text.write("\n".join(lines) + "\n")

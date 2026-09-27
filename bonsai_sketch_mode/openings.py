@@ -107,12 +107,20 @@ def _axis(wall):
     return (dx / length, dy / length), length
 
 
+#: A drawn opening tag: D17, W3 -- the name other views cite an opening
+#: by, which is what lets a section speak about a plan's door at all.
+import re as _re
+
+MARK_PATTERN = _re.compile(r"^([DW])\d{1,3}$")
+
+
 def detect(
     walls_list,
     arcs=(),
     inserts=(),
     glazing_segments=(),
     glazing_sources=(),
+    labels=(),
     source_map: Optional[ir.SourceMap] = None,
     first: int = 1,
 ) -> tuple[list, list]:
@@ -261,6 +269,27 @@ def detect(
             opening.sources.append(getattr(insert, "source", "") or "?")
             opening.evidence.append(f"block {insert.name!r} placed in the gap")
             readings.add(reading)
+
+        # A mark tag near the gap gives the opening the name other views
+        # cite it by, and the letter is a reading of its own: a drafter
+        # writes D at doors and W at windows.
+        for label in labels:
+            matched = MARK_PATTERN.match(label.text.strip())
+            if matched is None:
+                continue
+            reach = max(opening.width, 1.0)
+            if math.hypot(label.position[0] - centre[0],
+                          label.position[1] - centre[1]) > reach:
+                continue
+            if opening.mark is None:
+                opening.mark = label.text.strip()
+                opening.sources.append(getattr(label, "source", "") or "?")
+                opening.evidence.append(f"marked {opening.mark!r} on the plan")
+                readings.add("DOOR" if matched.group(1) == "D" else "WINDOW")
+            else:
+                opening.diagnostics.append(
+                    f"a second mark {label.text.strip()!r} also sits in reach; "
+                    f"kept {opening.mark!r}")
 
         half_gap = opening.width / 2.0
         half_wall = host.thickness / 2.0 + 1e-6

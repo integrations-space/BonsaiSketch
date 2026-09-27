@@ -1801,7 +1801,7 @@ check("auto_building is in the vocabulary",
       "auto_building" in commands.names())
 
 
-def storey_sheet(title, level, dx, dy, room_label):
+def storey_sheet(title, level, dx, dy, rooms, divider=False):
     def line(layer, x1, y1, x2, y2):
         return ((0, "LINE"), (8, layer),
                 (10, x1 + dx), (20, y1 + dy), (11, x2 + dx), (21, y2 + dy))
@@ -1818,33 +1818,58 @@ def storey_sheet(title, level, dx, dy, room_label):
     entities += line("WALLS", 3800, 200, 3800, 2800)
     entities += line("WALLS", 3800, 2800, 200, 2800)
     entities += line("WALLS", 200, 2800, 200, 200)
+    if divider:
+        entities += line("WALLS", 1400, 200, 1400, 1200)
+        entities += line("WALLS", 1600, 200, 1600, 1200)
+        entities += line("WALLS", 1400, 2100, 1400, 2800)
+        entities += line("WALLS", 1600, 2100, 1600, 2800)
+        entities += ((0, "ARC"), (8, "DOORS"), (10, 1500 + dx), (20, 1200 + dy),
+                     (40, 900), (50, 0), (51, 90))
+        entities += word("MARKS", 1500, 1650, "D1")
     entities += line("GRID", 0, -1000, 0, 4000) + word("GRID", 0, -1500, "A")
     entities += line("GRID", 4000, -1000, 4000, 4000) + word("GRID", 4000, -1500, "B")
     entities += line("GRID", -1000, 0, 5000, 0) + word("GRID", -1500, 0, "1")
     entities += word("NOTES", 4500, 4500, title)
     entities += word("NOTES", 4500, 4000, level)
-    entities += word("ROOMS", 2000, 1500, room_label)
+    for x, y, room_label in rooms:
+        entities += word("ROOMS", x, y, room_label)
     return dxf_pairs(
         (0, "SECTION"), (2, "HEADER"), (9, "$INSUNITS"), (70, 4), (0, "ENDSEC"),
         (0, "SECTION"), (2, "ENTITIES"), *entities, (0, "ENDSEC"), (0, "EOF"),
     )
 
 
+section_sheet = dxf_pairs(
+    (0, "SECTION"), (2, "HEADER"), (9, "$INSUNITS"), (70, 4), (0, "ENDSEC"),
+    (0, "SECTION"), (2, "ENTITIES"),
+    (0, "TEXT"), (8, "NOTES"), (10, 0), (20, 9000), (1, "SECTION A-A"),
+    (0, "TEXT"), (8, "NOTES"), (10, 1000), (20, 5000), (1, "D1 H=2100"),
+    (0, "TEXT"), (8, "NOTES"), (10, 1000), (20, 4000), (1, "D1 W=1000"),
+    (0, "TEXT"), (8, "NOTES"), (10, 1000), (20, 3000), (1, "D9 H=2000"),
+    (0, "ENDSEC"), (0, "EOF"),
+)
+
 building_paths = []
 for stem_name, sheet_text in (
-    ("01_PLAN_GF", storey_sheet("GROUND FLOOR PLAN", "FFL +0.000", 0, 0, "HALL")),
+    ("01_PLAN_GF", storey_sheet("GROUND FLOOR PLAN", "FFL +0.000", 0, 0,
+                                [(700, 1500, "HALL"), (2600, 1500, "DEN")],
+                                divider=True)),
     ("02_PLAN_L2", storey_sheet("SECOND STOREY PLAN", "FFL +3.600",
-                                12500, -8200, "STUDY")),
+                                12500, -8200, [(2000, 1500, "STUDY")])),
+    ("03_SEC_A", section_sheet),
 ):
     sheet_path = os.path.join(tempfile.gettempdir(), stem_name + ".dxf")
     with open(sheet_path, "w") as handle:
         handle.write(sheet_text)
     building_paths.append(sheet_path)
 
+context.scene.bonsai_sketch_sg_typology = "public_residential"
 building_report = commands.run("auto_building", {"paths": building_paths, "height": 3.0})
+context.scene.bonsai_sketch_sg_typology = "none"
 
-check("both sheets read as titled plans",
-      all(d["view_type"] == "PLAN" for d in building_report["drawings"])
+check("two titled plans and one titled section",
+      [d["view_type"] for d in building_report["drawings"]]
+      == ["PLAN", "PLAN", "SECTION"]
       and all(any("titled" in e for e in d["evidence"])
               for d in building_report["drawings"]),
       str(building_report["drawings"]))
@@ -1873,11 +1898,11 @@ check("both storeys compiled",
 building_wall_ids = [w["id"] for c in building_report["compilations"]
                      for w in c["walls"]]
 check("wall ids stay unique across the whole building",
-      len(building_wall_ids) == 8 and len(set(building_wall_ids)) == 8,
+      len(building_wall_ids) == 9 and len(set(building_wall_ids)) == 9,
       str(building_wall_ids))
 building_spaces = [s for c in building_report["compilations"] for s in c["spaces"]]
-check("each storey's room keeps its own name",
-      sorted(s["label"] for s in building_spaces) == ["HALL", "STUDY"],
+check("each room keeps its own name",
+      sorted(s["label"] for s in building_spaces) == ["DEN", "HALL", "STUDY"],
       str([(s["id"], s["label"]) for s in building_spaces]))
 
 qa = building_report["building"]
@@ -1889,6 +1914,44 @@ check("elevations ascend and the upper walls sit on the lower",
       str(qa))
 check("the upper room stacks on the lower",
       qa["space_stacking"] == {"stacked": 1, "upper_spaces": 1}, str(qa))
+
+# The section spoke about the plan's door -- to the same object, never a
+# new one: D1's height fills from the section, its width dispute with
+# the measured gap escalates as a conflict, and D9 waits unmatched.
+building_openings = [o for c in building_report["compilations"] for o in c["openings"]]
+check("the plan's door carries its drawn mark",
+      len(building_openings) == 1 and building_openings[0]["mark"] == "D1"
+      and building_openings[0]["classification"] == "DOOR",
+      str(building_openings))
+building_door = bridge.Ifc.get().by_guid(building_openings[0]["element_guid"])
+door_delivery = ifcopenshell.util.element.get_pset(
+    building_door, psets.DELIVERY_PSET_NAME, should_inherit=False) or {}
+building_scale = derive._unit_scale(bridge.Ifc.get())
+check("the door's height fills from the section's evidence",
+      door_delivery.get("OverallHeight") is not None
+      and abs(door_delivery["OverallHeight"] - 2.1 / building_scale) < 1e-3,
+      repr(door_delivery.get("OverallHeight")))
+check("no second door was created for the section's claims",
+      len([e for e in bridge.Ifc.get().by_type("IfcDoor")
+           if e.GlobalId == building_openings[0]["element_guid"]]) == 1)
+building_conflicts = building_report["conflicts"]
+check("the width dispute is a conflict for human review, not arithmetic",
+      len(building_conflicts) == 1
+      and building_conflicts[0]["property"] == "OverallWidth"
+      and building_conflicts[0]["action"] == "HUMAN_REVIEW"
+      and sorted(e["value"] for e in building_conflicts[0]["evidence"]) == [0.9, 1.0],
+      str(building_conflicts))
+check("evidence about a mark nobody carries waits, visibly",
+      [a["mark"] for a in building_report["unmatched_assertions"]] == ["D9"])
+building_evidence = building_report["building"]["evidence"]
+check("the evidence metrics keep the honest count",
+      building_evidence["assertions"] == 3
+      and building_evidence["values_filled"] >= 1
+      and building_evidence["conflicts_detected"] == 1
+      and building_evidence["conflicts_escalated"] == 1
+      and building_evidence["silently_resolved"] == 0
+      and building_evidence["unmatched_marks"] == ["D9"],
+      str(building_evidence))
 check("the building's extents are one room's, not two sheets'",
       qa["extents"]["x"] == [0.0, 4.0] and qa["extents"]["y"] == [0.0, 3.0],
       str(qa["extents"]))
@@ -1912,9 +1975,11 @@ check("the storey states its elevation in project units",
       repr(upper_storey.Elevation))
 
 building_ops = [r["op"] for r in building_report["source_map"]]
-check("the building ledger holds the alignment and the storeys",
+check("the building ledger holds alignment, storeys, assertions and the conflict",
       building_ops.count("ALIGN") == 2
-      and building_ops.count("EMIT") >= 12,
+      and building_ops.count("EMIT") == 16
+      and building_ops.count("ASSERT") == 2
+      and building_ops.count("CONFLICT") == 1,
       str({op: building_ops.count(op) for op in set(building_ops)}))
 check("the building report is readable in the text editor",
       pipeline.BUILDING_TEXT_NAME in bpy.data.texts

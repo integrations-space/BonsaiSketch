@@ -324,7 +324,7 @@ class OpeningCandidate:
 
     __slots__ = ("id", "host_wall", "position", "width", "sources", "evidence",
                  "classification", "status", "connects", "diagnostics",
-                 "opening_guid", "element_guid")
+                 "mark", "opening_guid", "element_guid")
 
     def __init__(self, id, host_wall, position, width, sources, evidence):
         self.id = id
@@ -337,6 +337,7 @@ class OpeningCandidate:
         self.status = "possible"    #: possible | resolved | contested
         self.connects: list[str] = []
         self.diagnostics: list[str] = []
+        self.mark: Optional[str] = None  #: the drawn tag (D17) other views cite
         self.opening_guid: Optional[str] = None
         self.element_guid: Optional[str] = None
 
@@ -352,8 +353,40 @@ class OpeningCandidate:
             "status": self.status,
             "connects": list(self.connects),
             "diagnostics": list(self.diagnostics),
+            "mark": self.mark,
             "opening_guid": self.opening_guid,
             "element_guid": self.element_guid,
+        }
+
+
+class Conflict:
+    """Evidence that disagrees, kept disagreeing until a person decides.
+
+    Once several views contribute information, disagreement is
+    inevitable, and the one wrong answer is arithmetic: averaging,
+    weighting, or letting a confidence score pick a side buries exactly
+    the discrepancy that matters. A Conflict holds every claim with its
+    value, its source handle and the view that made it, and its action
+    is HUMAN_REVIEW -- always. The measurable target is not zero
+    conflicts; it is zero *silent resolutions*.
+    """
+
+    __slots__ = ("id", "object", "property", "evidence", "action")
+
+    def __init__(self, id, object, property, evidence):
+        self.id = id
+        self.object = object
+        self.property = property
+        self.evidence = [dict(e) for e in evidence]
+        self.action = "HUMAN_REVIEW"
+
+    def as_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "object": self.object,
+            "property": self.property,
+            "evidence": [dict(e) for e in self.evidence],
+            "action": self.action,
         }
 
 
