@@ -1116,6 +1116,30 @@ for mesh in (full, one_gone, two_gone, all_gone, strokes, half_chain, littered, 
     mesh.free()
 
 
+# --- Layer classification ------------------------------------------------
+#
+# AutoModel stage 4: a drafting layer's name read against the conventions,
+# proposing an IFC class or refusing with a reason. Deterministic and pure;
+# the agents handle what it refuses.
+
+section("Layer classification")
+classify = addon.classify
+for name, want in (("WALLS", "IfcWall"), ("A-GLAZ", "IfcWindow"),
+                   ("S-COLS", "IfcColumn"), ("plan/WALLS", "IfcWall")):
+    proposal = classify.classify(name)
+    check(f"{name} reads as {want}", proposal.ifc_class == want,
+          f"got {proposal.ifc_class} ({proposal.reason})")
+check("a ROOF layer is a slab with the ROOF type",
+      classify.classify("ROOF").predefined_type == "ROOF")
+check("an unknown name proposes nothing",
+      not classify.classify("EQUIPMENT-ROOM-3").resolved)
+check("disagreeing conventions propose nothing",
+      not classify.classify("WALL-DOOR-TRIM").resolved)
+resolved_props, unresolved_props = classify.classify_all(["WALLS", "MYSTERY"])
+check("resolved and unresolved split cleanly",
+      len(resolved_props) == 1 and len(unresolved_props) == 1)
+
+
 # --- IFC+SG requirements -----------------------------------------------------
 
 section("IFC+SG requirements")
