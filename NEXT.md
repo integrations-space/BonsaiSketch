@@ -20,6 +20,15 @@ from 192, and three of the six suites did not exist a fortnight ago.
 
 **Start at section 0.** Nothing else can be published until that is settled.
 
+## 0a. AutoModel, 2026-09-27: 2D drawings to IFC+SG, end to end
+
+The automated modelling pipeline — DWG/DXF in, IFC with IFC+SG parameters
+and values out, agent-drivable stage by stage — has its own building
+sequence, targets and progress record in [AUTOMODEL.md](AUTOMODEL.md).
+Stage 6 of it is PR #1's write side, which is why the merge train below is
+finally being executed (with one recorded deviation: merge, not rebase — no
+history rewrite under the laptop's unpushed work).
+
 ## 0. `next-steps` has diverged from itself, 2026-08-18
 
 Nothing from 08-18 has been pushed. The branch is `ahead 5, behind 2`, so a
