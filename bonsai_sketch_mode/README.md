@@ -257,6 +257,9 @@ heal.py           closing the polygons a drafted plan almost draws
 walls.py          walls read as a drafter draws them, and their junctions
 openings.py       doorways and windows, where drawing evidence converges
 spaces.py         the rooms the walls enclose, named by the drawing's words
+drawings.py       what a sheet is: view identity, level labels, grid axes
+align.py          placing sheets in one building, on grid evidence
+storeys.py        storeys assembled from drawings; unknown is valid state
 ir.py             the compiler's state: semantic objects and the source map
 classify.py       layer names read against the drafting conventions
 requirements.py   what the standard asks of an element (queries data/)

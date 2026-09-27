@@ -141,6 +141,137 @@ class Junction:
         }
 
 
+class DrawingCandidate:
+    """One drawing's identity: what kind of view it is, and what it brings.
+
+    Between a DXF file and a storey stands the drawing itself. A file is
+    not a storey -- one sheet can hold two sections and three details --
+    so the compiler first establishes what it is looking *at*: a PLAN, a
+    SECTION, an ELEVATION, a DETAIL, or UNKNOWN, which is a valid answer
+    and better than a guess. Alongside the identity travel the things a
+    drawing contributes to the building: its units, its level labels
+    (each with the reading that turned text into metres stated, or
+    honestly None), and its named grid axes, which are what cross-sheet
+    alignment will stand on. ``transform`` names the TransformCandidate
+    that places this drawing in building coordinates, once one is earned.
+    """
+
+    __slots__ = ("id", "source_file", "view_type", "units", "level_labels",
+                 "grid_axes", "storey_hint", "transform", "evidence", "diagnostics")
+
+    def __init__(self, id, source_file, units="as drawn"):
+        self.id = id
+        self.source_file = source_file
+        self.view_type = "UNKNOWN"
+        self.units = units
+        self.level_labels: list[dict] = []
+        self.grid_axes: list[dict] = []
+        self.storey_hint: Optional[str] = None
+        self.transform: Optional[str] = None
+        self.evidence: list[str] = []
+        self.diagnostics: list[str] = []
+
+    def as_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "source_file": self.source_file,
+            "view_type": self.view_type,
+            "units": self.units,
+            "level_labels": [dict(l) for l in self.level_labels],
+            "grid_axes": [dict(g) for g in self.grid_axes],
+            "storey_hint": self.storey_hint,
+            "transform": self.transform,
+            "evidence": list(self.evidence),
+            "diagnostics": list(self.diagnostics),
+        }
+
+
+class TransformCandidate:
+    """How one drawing lands in building coordinates, and on whose word.
+
+    A transform is a claim, so it carries the evidence that earned it --
+    which grid met which grid -- the residual left over, and a status:
+    ACCEPTED when the evidence agrees within tolerance, NEEDS_REVIEW when
+    it fits but loosely, UNRESOLVED when nothing shared could be found
+    and a person must state the correspondence. A fit computed from
+    geometry matching never masquerades as surveyed truth: the evidence
+    line says exactly what kind of claim this is.
+    """
+
+    __slots__ = ("id", "drawing", "rotation_degrees", "translation", "scale",
+                 "evidence", "residual", "status")
+
+    def __init__(self, id, drawing):
+        self.id = id
+        self.drawing = drawing
+        self.rotation_degrees = 0.0
+        self.translation = (0.0, 0.0)
+        self.scale = 1.0
+        self.evidence: list[str] = []
+        self.residual: Optional[float] = None
+        self.status = "UNRESOLVED"
+
+    def apply(self, point) -> tuple:
+        import math as _math
+
+        angle = _math.radians(self.rotation_degrees)
+        c, s = _math.cos(angle), _math.sin(angle)
+        x, y = point
+        return (self.scale * (x * c - y * s) + self.translation[0],
+                self.scale * (x * s + y * c) + self.translation[1])
+
+    def as_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "drawing": self.drawing,
+            "rotation_degrees": round(self.rotation_degrees, 9),
+            "translation": [round(v, 6) for v in self.translation],
+            "scale": round(self.scale, 9),
+            "evidence": list(self.evidence),
+            "residual": None if self.residual is None else round(self.residual, 6),
+            "status": self.status,
+        }
+
+
+class StoreyCandidate:
+    """One storey, assembled from the drawings that describe it.
+
+    ``elevation`` comes from level evidence or stays None; so does
+    ``floor_to_floor``, which is only ever derived between two *known*
+    elevations and says so. Unknown is valid compiler state -- the same
+    principle that leaves a door's height null until a section speaks.
+    """
+
+    __slots__ = ("id", "name", "elevation", "floor_to_floor", "plans",
+                 "sections", "transform", "evidence", "diagnostics", "ifc_guid")
+
+    def __init__(self, id, name):
+        self.id = id
+        self.name = name
+        self.elevation: Optional[float] = None
+        self.floor_to_floor: Optional[float] = None
+        self.plans: list[str] = []
+        self.sections: list[str] = []
+        self.transform: Optional[str] = None
+        self.evidence: list[str] = []
+        self.diagnostics: list[str] = []
+        self.ifc_guid: Optional[str] = None
+
+    def as_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "elevation": self.elevation,
+            "floor_to_floor": self.floor_to_floor,
+            "plans": list(self.plans),
+            "sections": list(self.sections),
+            "transform": self.transform,
+            "evidence": list(self.evidence),
+            "diagnostics": list(self.diagnostics),
+            "ifc_guid": self.ifc_guid,
+        }
+
+
 class MergeCandidate:
     """Two walls that might be one, judged by named predicates.
 
