@@ -39,6 +39,8 @@ from . import bridge, ops
 LINE_TOOL = "bonsaibim_sketch_mode.line_tool"
 RECTANGLE_TOOL = "bonsaibim_sketch_mode.rectangle_tool"
 PUSH_PULL_TOOL = "bonsaibim_sketch_mode.push_pull_tool"
+OFFSET_TOOL = "bonsaibim_sketch_mode.offset_tool"
+ERASER_TOOL = "bonsaibim_sketch_mode.eraser_tool"
 TAPE_TOOL = "bonsaibim_sketch_mode.tape_tool"
 
 #: Blender's stock select tool, which Sketch binds to Space.
@@ -116,6 +118,42 @@ class SketchPushPullTool(WorkSpaceTool):
         row.label(text="Type an exact distance to confirm", icon="EVENT_RETURN")
 
 
+class SketchOffsetTool(WorkSpaceTool):
+    bl_space_type = "VIEW_3D"
+    bl_context_mode = "OBJECT"
+    bl_idname = OFFSET_TOOL
+    bl_label = "Offset"
+    bl_description = "Copy a face's boundary parallel to itself, inward or outward"
+    bl_icon = "ops.mesh.inset"
+    bl_widget = None
+    bl_keymap = ((ops.OFFSET_OP, {"type": "LEFTMOUSE", "value": "PRESS"}, None),)
+
+    @staticmethod
+    def draw_settings(context, layout, ws_tool):
+        row = layout.row(align=True)
+        row.label(text="Drag a Face", icon="MOUSE_LMB")
+        row = layout.row(align=True)
+        row.label(text="Toward the centre is inward; type an exact distance", icon="EVENT_RETURN")
+
+
+class SketchEraserTool(WorkSpaceTool):
+    bl_space_type = "VIEW_3D"
+    bl_context_mode = "OBJECT"
+    bl_idname = ERASER_TOOL
+    bl_label = "Eraser"
+    bl_description = "Erase sketch edges; faces they bounded go with them"
+    bl_icon = "ops.gpencil.draw.eraser"
+    bl_widget = None
+    bl_keymap = ((ops.ERASER_OP, {"type": "LEFTMOUSE", "value": "PRESS"}, None),)
+
+    @staticmethod
+    def draw_settings(context, layout, ws_tool):
+        row = layout.row(align=True)
+        row.label(text="Click or Drag Over Edges", icon="MOUSE_LMB")
+        row = layout.row(align=True)
+        row.label(text="Esc undoes the sweep", icon="EVENT_ESC")
+
+
 class SketchTapeTool(WorkSpaceTool):
     """SketchUp's Tape Measure, which is Bonsai's Measure Tool already.
 
@@ -154,6 +192,8 @@ tools = (
     SketchLineTool,
     SketchRectangleTool,
     SketchPushPullTool,
+    SketchOffsetTool,
+    SketchEraserTool,
     SketchTapeTool,
 )
 

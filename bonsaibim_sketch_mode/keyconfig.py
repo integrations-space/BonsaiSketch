@@ -84,7 +84,7 @@ def _su_bindings() -> list:
 
     Only bindings with a verified target are included. Tools that still need
     building -- Arc (A), Circle (C), Make Component (G), Paint Bucket (B),
-    Offset, Follow Me -- are deliberately left unbound rather than pointed at
+    Follow Me -- are deliberately left unbound rather than pointed at
     an approximation. Their keys are still claimed in :data:`CLAIMED_KEYS`, so
     they answer with silence rather than with Blender's unrelated meaning: an
     unbound key is honest, a wrong one teaches the wrong muscle memory.
@@ -99,10 +99,12 @@ def _su_bindings() -> list:
         # Select is Space in SketchUp.
         _tool_key("SPACE", tools.SELECT_TOOL),
 
-        # Drawing.
+        # Drawing and modifying.
         _tool_key("L", tools.LINE_TOOL),
         _tool_key("R", tools.RECTANGLE_TOOL),
         _tool_key("P", tools.PUSH_PULL_TOOL),
+        _tool_key("F", tools.OFFSET_TOOL),
+        _tool_key("E", tools.ERASER_TOOL),
         _tool_key("T", tools.TAPE_TOOL),
 
         # Transforms map cleanly onto SketchUp's Move / Rotate / Scale.
