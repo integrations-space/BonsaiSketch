@@ -259,7 +259,12 @@ def detect(
 JUNCTION_MIN_ANGLE_DEGREES = 5.0
 
 
-def resolve(candidates, source_map: Optional[ir.SourceMap] = None) -> tuple[list, list]:
+def resolve(
+    candidates,
+    source_map: Optional[ir.SourceMap] = None,
+    first_wall: int = 1,
+    first_junction: int = 1,
+) -> tuple[list, list]:
     """(semantic walls, junctions) from one layer's candidates.
 
     Endpoints move to junction points computed from the *original*
@@ -268,9 +273,14 @@ def resolve(candidates, source_map: Optional[ir.SourceMap] = None) -> tuple[list
     reach of two junctions goes to the nearer one; L needs both ends, T an
     end against an interior, X two interiors. Every PAIR, JUNCTION and
     TRIM/EXTEND lands in ``source_map`` when one is given.
+
+    ``first_wall`` and ``first_junction`` continue a numbering across
+    calls, so a drawing with several wall layers still names every wall
+    once: ids are how the source map, the report and a person refer to a
+    wall, and a name that means two things is worse than no name.
     """
     semantic = []
-    for n, candidate in enumerate(candidates, 1):
+    for n, candidate in enumerate(candidates, first_wall):
         wall = ir.SemanticWall(
             "W%03d" % n,
             tuple(candidate.start),
@@ -343,7 +353,7 @@ def resolve(candidates, source_map: Optional[ir.SourceMap] = None) -> tuple[list
 
     junctions = []
     for index, (point, roles, kind) in enumerate(proposals):
-        junction = ir.Junction("J%03d" % (index + 1), kind, point,
+        junction = ir.Junction("J%03d" % (first_junction + index), kind, point,
                                [semantic[wi].id for wi, _r, _a in roles])
         junctions.append(junction)
         for wall_index, _role, _along in roles:

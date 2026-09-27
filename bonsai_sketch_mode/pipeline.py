@@ -45,13 +45,15 @@ from typing import Optional
 
 import bpy
 
-from . import classify, derive, dxf
+from . import bridge, classify, derive, dxf, ir, walls
 
 #: Where the human-readable report lands, findable in Blender's Text editor.
 TEXT_NAME = "AutoModel Report"
 
-#: The stages in running order, as AUTOMODEL.md numbers them.
-STAGES = ("READ", "HEAL", "STAND", "CLASSIFY", "ASSIGN", "MCR", "FILL", "CHECK")
+#: The stages in running order. CLASSIFY moved ahead of STAND when WALLS
+#: arrived: which layers are wall layers decides which route their
+#: geometry takes, so the naming has to happen before the standing.
+STAGES = ("READ", "HEAL", "CLASSIFY", "WALLS", "STAND", "ASSIGN", "MCR", "FILL", "CHECK")
 
 
 def _as_dxf(path: str, context) -> tuple[Optional[str], str]:
@@ -63,6 +65,51 @@ def _as_dxf(path: str, context) -> tuple[Optional[str], str]:
     prefs = context.preferences.addons.get(__package__)
     converter = getattr(prefs.preferences, "oda_converter", "") if prefs else ""
     return importer.convert_dwg(path, converter)
+
+
+def _wall_object(context, name: str, wall, height: float):
+    """One standing solid from one semantic wall.
+
+    The prism is the wall's resolved centreline widened by half its
+    measured thickness each way, stood to the layer's height -- geometry
+    with no invented number in it. Where junctions meet, neighbouring
+    prisms overlap at the corner by construction: that is the butt-join
+    reading, accepted rather than mitred, and written into the wall's
+    diagnostics as the decision it is.
+    """
+    import bmesh
+
+    from .ops import importer
+
+    dx, dy = wall.end[0] - wall.start[0], wall.end[1] - wall.start[1]
+    length = (dx * dx + dy * dy) ** 0.5
+    ux, uy = dx / length, dy / length
+    half = wall.thickness / 2.0
+    nx, ny = -uy * half, ux * half
+    corners = [
+        (wall.start[0] - nx, wall.start[1] - ny),
+        (wall.end[0] - nx, wall.end[1] - ny),
+        (wall.end[0] + nx, wall.end[1] + ny),
+        (wall.start[0] + nx, wall.start[1] + ny),
+    ]
+    obj = importer.layer_object(context, name)
+    solid = bmesh.new()
+    try:
+        face = solid.faces.new(solid.verts.new((x, y, 0.0)) for x, y in corners)
+        if height > 0.0:
+            grown = bmesh.ops.extrude_face_region(solid, geom=[face])
+            raised = [g for g in grown["geom"] if isinstance(g, bmesh.types.BMVert)]
+            bmesh.ops.translate(solid, verts=raised, vec=(0.0, 0.0, height))
+            bmesh.ops.recalc_face_normals(solid, faces=list(solid.faces))
+        solid.normal_update()
+        solid.to_mesh(obj.data)
+    finally:
+        solid.free()
+    obj.data.update()
+    wall.diagnostics.append(
+        f"built as a butt-ended prism at {height:g} m; corner overlaps accepted"
+    )
+    return obj
 
 
 def run(
@@ -90,7 +137,10 @@ def run(
     from .textmodel import commands
 
     heights = heights or {}
-    report: dict = {"path": path, "stages": [], "objects": [], "unresolved": []}
+    report: dict = {
+        "path": path, "stages": [], "objects": [], "unresolved": [],
+        "walls": [], "junctions": [], "source_map": [],
+    }
 
     def stage(name: str, ok: bool, note: str, **extra) -> bool:
         report["stages"].append(dict({"stage": name, "ok": ok, "note": note}, **extra))
@@ -127,16 +177,76 @@ def run(
         layers=sorted(drawing.layers),
     )
 
-    # HEAL -- flat: the standing happens per layer next, so each can have its
-    # own height rather than the one the import dialog would apply to all.
+    # HEAL -- flat: the standing happens per layer later, so each can have
+    # its own height rather than the one the import dialog would apply to all.
     stem = os.path.splitext(os.path.basename(path))[0]
     objects, notes = importer.build(context, drawing, stem, weld, gap, 0.0)
     stage("HEAL", True, "; ".join(notes))
 
-    # STAND -------------------------------------------------------------------
+    # CLASSIFY -- before any standing, because which layers are wall layers
+    # decides which route their geometry takes below.
+    resolved, unresolved = classify.classify_all([obj.name for obj in objects])
+    report["unresolved"] = [p.as_dict() for p in unresolved]
+    stage(
+        "CLASSIFY",
+        True,
+        f"{len(resolved)} layer(s) resolved by convention, "
+        f"{len(unresolved)} left for judgement",
+    )
+
+    # WALLS -- a wall layer's linework is read as a drafter drew it: parallel
+    # pairs become semantic walls, junctions resolve their ends, and each
+    # wall becomes its own standing solid. The layer's flat linework object
+    # is kept as drawn evidence, not stood into an enclosure blob; a wall
+    # layer where nothing pairs falls through to the blob route below,
+    # which remains the honest fallback for single-line plans.
+    source_map = ir.SourceMap()
+    proposal_by_layer = {p.layer: p for p in resolved}
+    by_name = {obj.name: obj for obj in objects}
+    per_wall: list = []       # (object, proposal, SemanticWall)
+    all_junctions: list = []
+    walled_layers: set = set()
+    leftover_segments = 0
+    for proposal in resolved:
+        if proposal.ifc_class != "IfcWall":
+            continue
+        obj = by_name.get(proposal.layer)
+        layer_name = proposal.layer.rsplit("/", 1)[-1]
+        polylines = drawing.layers.get(layer_name)
+        if obj is None or not polylines:
+            continue
+        segs, handles = walls.explode(polylines)
+        candidates, unpaired = walls.detect(segs, sources=handles)
+        if not candidates:
+            continue
+        semantic, junctions = walls.resolve(
+            candidates, source_map,
+            first_wall=len(per_wall) + 1,
+            first_junction=len(all_junctions) + 1,
+        )
+        walled_layers.add(proposal.layer)
+        leftover_segments += len(unpaired)
+        all_junctions.extend(junctions)
+        target = float(heights.get(layer_name, height))
+        for wall in semantic:
+            wall_obj = _wall_object(context, f"{proposal.layer}/{wall.id}", wall, target)
+            per_wall.append((wall_obj, proposal, wall))
+    report["walls"] = [wall.as_dict() for _o, _p, wall in per_wall]
+    report["junctions"] = [j.as_dict() for j in all_junctions]
+    stage(
+        "WALLS",
+        True,
+        f"{len(per_wall)} wall(s) from parallel pairs across {len(walled_layers)} "
+        f"layer(s), {len(all_junctions)} junction(s) resolved"
+        + (f"; {leftover_segments} drawn line(s) left unread" if leftover_segments else ""),
+    )
+
+    # STAND -- everything the wall reading did not claim.
     stood = 0
     volumes = {}
     for obj in objects:
+        if obj.name in walled_layers:
+            continue
         layer = obj.name.rsplit("/", 1)[-1]
         target = float(heights.get(layer, height))
         result = importer.stand_up_object(obj, weld, gap, target)
@@ -148,20 +258,10 @@ def run(
             volumes[obj.name] = round(volume, 6)
     stage(
         "STAND",
-        stood > 0,
-        f"{stood} of {len(objects)} layer(s) stood up; "
+        stood > 0 or bool(per_wall),
+        f"{stood} layer(s) stood up as drawn; "
         f"{len(volumes)} closed shell(s) with measurable volume",
         volumes=volumes,
-    )
-
-    # CLASSIFY ----------------------------------------------------------------
-    resolved, unresolved = classify.classify_all([obj.name for obj in objects])
-    report["unresolved"] = [p.as_dict() for p in unresolved]
-    stage(
-        "CLASSIFY",
-        True,
-        f"{len(resolved)} layer(s) resolved by convention, "
-        f"{len(unresolved)} left for judgement",
     )
 
     # ASSIGN ------------------------------------------------------------------
@@ -170,24 +270,36 @@ def run(
     except commands.CommandError as exc:
         stage("ASSIGN", False, f"no project and none could be created: {exc}")
         return finish()
-    by_name = {obj.name: obj for obj in objects}
-    assigned = []  # (object, proposal) -- the object survives Bonsai's rename
+    assigned = []  # (object, proposal, SemanticWall or None)
     refusals = []
-    for proposal in resolved:
-        obj = by_name.get(proposal.layer)
-        if obj is None:
-            continue
+    to_assign = [(obj, proposal, wall) for obj, proposal, wall in per_wall] + [
+        (by_name[p.layer], p, None)
+        for p in resolved
+        if p.layer not in walled_layers and p.layer in by_name
+    ]
+    for obj, proposal, wall in to_assign:
         params = {"object": obj.name, "ifc_class": proposal.ifc_class}
         if proposal.predefined_type:
             params["predefined_type"] = proposal.predefined_type
         try:
             commands.run("assign_class", params)
-            assigned.append((obj, proposal))
+            assigned.append((obj, proposal, wall))
         except commands.CommandError as exc:
-            refusals.append(f"{proposal.layer}: {exc}")
+            refusals.append(f"{obj.name}: {exc}")
+            continue
+        if wall is not None:
+            entity = bridge.get_entity(obj)
+            if entity is not None:
+                wall.ifc_guid = getattr(entity, "GlobalId", None)
+                if wall.ifc_guid:
+                    source_map.record("EMIT", [wall.id], wall.ifc_guid, f"IfcWall {obj.name}")
+    # Re-serialise: the walls now know their GlobalIds, and the report's
+    # copy from the WALLS stage predates the emission.
+    report["walls"] = [wall.as_dict() for _o, _p, wall in per_wall]
+    report["source_map"] = source_map.as_list()
     stage(
         "ASSIGN",
-        bool(assigned) or not resolved,
+        bool(assigned) or not to_assign,
         f"{len(assigned)} element(s) assigned"
         + (f"; refused: {'; '.join(refusals)}" if refusals else ""),
     )
@@ -199,10 +311,8 @@ def run(
     # signal that attachment is switched off or the stage asks nothing.
     import ifcopenshell.util.element
 
-    from . import bridge
-
     asked = 0
-    for obj, _proposal in assigned:
+    for obj, _proposal, _wall in assigned:
         entity = bridge.get_entity(obj)
         if entity is None:
             continue
@@ -219,7 +329,7 @@ def run(
 
     # FILL --------------------------------------------------------------------
     filled = left = 0
-    for obj, proposal in assigned:
+    for obj, proposal, wall in assigned:
         outcome = commands.run("derive_values", {"object": obj.name})
         filled += outcome["filled_count"]
         left += outcome["left_count"]
@@ -229,6 +339,8 @@ def run(
                 "layer": proposal.layer,
                 "ifc_class": proposal.ifc_class,
                 "predefined_type": proposal.predefined_type,
+                "wall": wall.id if wall is not None else None,
+                "sources": list(wall.sources) if wall is not None else None,
                 "filled": outcome["filled"],
                 "left": outcome["left"],
             }
@@ -241,7 +353,7 @@ def run(
 
     # CHECK -------------------------------------------------------------------
     still_missing = 0
-    for entry, (obj, _proposal) in zip(report["objects"], assigned):
+    for entry, (obj, _proposal, _wall) in zip(report["objects"], assigned):
         verdict = commands.run("check_ifc_sg", {"object": obj.name})
         entry["check"] = {
             "status": verdict.get("status"),
@@ -268,6 +380,14 @@ def write_report(report: dict) -> str:
         lines += ["", "Left for judgement (the agents' seam):"]
         for item in report["unresolved"]:
             lines.append(f"  {item['layer']} -- {item['reason']}")
+    if report.get("walls"):
+        lines += ["", "Walls, as the drawing states them:"]
+        for item in report["walls"]:
+            lines.append(
+                f"  {item['id']}: {item['length']:.3f} m x {item['thickness']:.3f} m"
+                f", from {', '.join(str(s) for s in item['sources'])}"
+                + (f"  [{item['ifc_guid']}]" if item.get("ifc_guid") else "")
+            )
     if report["objects"]:
         lines += ["", "Elements:"]
         for item in report["objects"]:

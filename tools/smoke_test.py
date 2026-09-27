@@ -1574,17 +1574,22 @@ check("auto_model operator registered", hasattr(bpy.ops.bonsai_sketch_mode, "aut
 check("auto_model is in the vocabulary", "auto_model" in commands.names())
 check("classify_layers is in the vocabulary", "classify_layers" in commands.names())
 
-# A millimetre plan: a 4000x200 wall outline on WALLS with a 2mm drafting
-# gap, and a layer no convention resolves.
+# A millimetre plan drawn the way a drafter draws it: a 4x3 m room's
+# walls as their two faces -- eight lines, one with a 2mm drafting gap --
+# plus a layer no convention resolves.
 plan_fixture = dxf_pairs(
     (0, "SECTION"), (2, "HEADER"),
     (9, "$INSUNITS"), (70, 4),
     (0, "ENDSEC"),
     (0, "SECTION"), (2, "ENTITIES"),
     (0, "LINE"), (8, "WALLS"), (10, 0), (20, 0), (11, 4000), (21, 0),
-    (0, "LINE"), (8, "WALLS"), (10, 4000), (20, 0), (11, 4000), (21, 200),
-    (0, "LINE"), (8, "WALLS"), (10, 4000), (20, 200), (11, 0), (21, 200),
-    (0, "LINE"), (8, "WALLS"), (10, 0), (20, 200), (11, 0), (21, 2),
+    (0, "LINE"), (8, "WALLS"), (10, 4000), (20, 0), (11, 4000), (21, 3000),
+    (0, "LINE"), (8, "WALLS"), (10, 4000), (20, 3000), (11, 0), (21, 3000),
+    (0, "LINE"), (8, "WALLS"), (10, 0), (20, 3000), (11, 0), (21, 2),
+    (0, "LINE"), (8, "WALLS"), (10, 200), (20, 200), (11, 3800), (21, 200),
+    (0, "LINE"), (8, "WALLS"), (10, 3800), (20, 200), (11, 3800), (21, 2800),
+    (0, "LINE"), (8, "WALLS"), (10, 3800), (20, 2800), (11, 200), (21, 2800),
+    (0, "LINE"), (8, "WALLS"), (10, 200), (20, 2800), (11, 200), (21, 200),
     (0, "LINE"), (8, "MYSTERY"), (10, 0), (20, 5000), (11, 1000), (21, 5000),
     (0, "ENDSEC"), (0, "EOF"),
 )
@@ -1598,34 +1603,56 @@ auto_report = commands.run(
     "auto_model", {"path": auto_path, "height": 3.0, "weld": 0.001, "gap": 0.005})
 
 ran = [entry["stage"] for entry in auto_report["stages"]]
-check("all eight stages ran",
-      ran == ["READ", "HEAL", "STAND", "CLASSIFY", "ASSIGN", "MCR", "FILL", "CHECK"],
+check("all nine stages ran",
+      ran == ["READ", "HEAL", "CLASSIFY", "WALLS", "STAND",
+              "ASSIGN", "MCR", "FILL", "CHECK"],
       str(ran))
 check("every stage that ran succeeded",
       all(entry["ok"] for entry in auto_report["stages"]),
       str([f"{e['stage']}: {e['note']}" for e in auto_report["stages"] if not e["ok"]]))
 
 auto_stem = os.path.splitext(os.path.basename(auto_path))[0]
-stand = next(e for e in auto_report["stages"] if e["stage"] == "STAND")
-check("the wall outline stood up to a measured volume",
-      abs(stand["volumes"].get(f"{auto_stem}/WALLS", 0) - 2.4) < 1e-6,
-      str(stand["volumes"]))
-
 check("the layer no convention resolves is left for judgement",
       [u["layer"] for u in auto_report["unresolved"]] == [f"{auto_stem}/MYSTERY"],
       str(auto_report["unresolved"]))
 
-check("one element came out the far side",
-      len(auto_report["objects"]) == 1
-      and auto_report["objects"][0]["ifc_class"] == "IfcWall",
-      str(auto_report["objects"]))
+# Eight source lines -> four wall candidates -> four semantic walls ->
+# four IfcWall objects -> four stable GUIDs. Dimensions stay measured
+# facts: thickness off the drawing, lengths from the junction-resolved
+# centrelines, storey height an explicit input, never an assumption.
+auto_walls = auto_report["walls"]
+check("eight drawn lines become four semantic walls",
+      len(auto_walls) == 4 and [w["id"] for w in auto_walls] == ["W001", "W002", "W003", "W004"],
+      str([w["id"] for w in auto_walls]))
+check("every thickness is the measured 200mm",
+      all(abs(w["thickness"] - 0.2) < 1e-6 for w in auto_walls))
+check("corners resolved to the centreline crossings",
+      sorted(round(w["length"], 6) for w in auto_walls) == [2.8, 2.8, 3.8, 3.8],
+      str(sorted(round(w["length"], 6) for w in auto_walls)))
+check("four L junctions", len(auto_report["junctions"]) == 4
+      and all(j["kind"] == "L" for j in auto_report["junctions"]))
+check("every wall's provenance is drawn entities",
+      all(all(str(s).startswith("LINE:") for s in w["sources"]) for w in auto_walls),
+      str([w["sources"] for w in auto_walls]))
+auto_guids = [w["ifc_guid"] for w in auto_walls]
+check("four IfcWall objects with four stable GUIDs",
+      all(auto_guids) and len(set(auto_guids)) == 4, str(auto_guids))
+auto_ops = [r["op"] for r in auto_report["source_map"]]
+check("the source map records the whole compilation",
+      auto_ops.count("PAIR") == 4 and auto_ops.count("JUNCTION") == 4
+      and auto_ops.count("EXTEND") == 8 and auto_ops.count("EMIT") == 4,
+      str({op: auto_ops.count(op) for op in set(auto_ops)}))
+check("four elements came out the far side, all walls",
+      len(auto_report["objects"]) == 4
+      and all(o["ifc_class"] == "IfcWall" and o["wall"] for o in auto_report["objects"]),
+      str([(o["object"], o["wall"]) for o in auto_report["objects"]]))
 
-# The element itself, not just the report: an IfcWall in a real project,
-# both requirement sets attached, the geometric questions answered in the
-# project's own units and the judgement ones still visibly open.
-auto_entity = [e for e in bridge.Ifc.get().by_type("IfcWall")
-               if bridge.Ifc.get_object(e) is not None][-1]
-auto_scale = derive._unit_scale(bridge.Ifc.get())
+# The element itself, not just the report: W001 traced by its GUID into
+# the IFC, both requirement sets attached, the geometric questions
+# answered in the project's own units, the judgement ones still open.
+auto_ifc = bridge.Ifc.get()
+auto_entity = auto_ifc.by_guid(auto_guids[0])
+auto_scale = derive._unit_scale(auto_ifc)
 auto_sg = ifcopenshell.util.element.get_pset(
     auto_entity, psets.PSET_NAME, should_inherit=False) or {}
 auto_dl = ifcopenshell.util.element.get_pset(
@@ -1637,13 +1664,15 @@ def about(value, metres, power=1):
     return value is not None and abs(value - expected) < 1e-4 * max(1.0, abs(expected))
 
 
+auto_len = auto_walls[0]["length"]
 check("the wall's thickness fills from its geometry",
       about(auto_sg.get("Thickness"), 0.2), f"got {auto_sg.get('Thickness')!r}")
 check("the delivery set's height and length fill in project units",
-      about(auto_dl.get("Height"), 3.0) and about(auto_dl.get("Length"), 4.0),
-      f"got {auto_dl.get('Height')!r}, {auto_dl.get('Length')!r}")
+      about(auto_dl.get("Height"), 3.0) and about(auto_dl.get("Length"), auto_len),
+      f"got {auto_dl.get('Height')!r}, {auto_dl.get('Length')!r} (length {auto_len})")
 check("the closed shell's volume fills, cubed into the units",
-      about(auto_dl.get("Volume"), 2.4, power=3), f"got {auto_dl.get('Volume')!r}")
+      about(auto_dl.get("Volume"), auto_len * 0.2 * 3.0, power=3),
+      f"got {auto_dl.get('Volume')!r}")
 check("a wall's Area stays a question end to end",
       auto_dl.get("Area", "sentinel") is None)
 check("a fire rating is still nobody's to guess",
@@ -1655,7 +1684,7 @@ check("the checker closes the loop on what is still owed",
 
 check("the report is readable in the text editor",
       pipeline.TEXT_NAME in bpy.data.texts
-      and "CLASSIFY" in bpy.data.texts[pipeline.TEXT_NAME].as_string())
+      and "W001" in bpy.data.texts[pipeline.TEXT_NAME].as_string())
 
 context.scene.bonsai_sketch_sg_typology = "none"
 os.unlink(auto_path)
