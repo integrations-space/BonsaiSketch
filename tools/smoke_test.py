@@ -1575,8 +1575,8 @@ check("auto_model is in the vocabulary", "auto_model" in commands.names())
 check("classify_layers is in the vocabulary", "classify_layers" in commands.names())
 
 # A millimetre plan drawn the way a drafter draws it: a 4x3 m room's
-# walls as their two faces -- eight lines, one with a 2mm drafting gap --
-# plus a layer no convention resolves.
+# walls as their two faces, a dividing wall broken by a 900mm doorway
+# with its swing arc, two room names, and a layer no convention resolves.
 plan_fixture = dxf_pairs(
     (0, "SECTION"), (2, "HEADER"),
     (9, "$INSUNITS"), (70, 4),
@@ -1590,7 +1590,13 @@ plan_fixture = dxf_pairs(
     (0, "LINE"), (8, "WALLS"), (10, 3800), (20, 200), (11, 3800), (21, 2800),
     (0, "LINE"), (8, "WALLS"), (10, 3800), (20, 2800), (11, 200), (21, 2800),
     (0, "LINE"), (8, "WALLS"), (10, 200), (20, 2800), (11, 200), (21, 200),
-    (0, "TEXT"), (8, "ROOMS"), (10, 2000), (20, 1500), (1, "BEDROOM 2"),
+    (0, "LINE"), (8, "WALLS"), (10, 1900), (20, 200), (11, 1900), (21, 1200),
+    (0, "LINE"), (8, "WALLS"), (10, 2100), (20, 200), (11, 2100), (21, 1200),
+    (0, "LINE"), (8, "WALLS"), (10, 1900), (20, 2100), (11, 1900), (21, 2800),
+    (0, "LINE"), (8, "WALLS"), (10, 2100), (20, 2100), (11, 2100), (21, 2800),
+    (0, "ARC"), (8, "DOORS"), (10, 2000), (20, 1200), (40, 900), (50, 0), (51, 90),
+    (0, "TEXT"), (8, "ROOMS"), (10, 1000), (20, 1500), (1, "BEDROOM 2"),
+    (0, "TEXT"), (8, "ROOMS"), (10, 3000), (20, 1500), (1, "LIVING"),
     (0, "LINE"), (8, "MYSTERY"), (10, 0), (20, 5000), (11, 1000), (21, 5000),
     (0, "ENDSEC"), (0, "EOF"),
 )
@@ -1604,8 +1610,8 @@ auto_report = commands.run(
     "auto_model", {"path": auto_path, "height": 3.0, "weld": 0.001, "gap": 0.005})
 
 ran = [entry["stage"] for entry in auto_report["stages"]]
-check("all ten stages ran",
-      ran == ["READ", "HEAL", "CLASSIFY", "WALLS", "STAND",
+check("all eleven stages ran",
+      ran == ["READ", "HEAL", "CLASSIFY", "WALLS", "OPENINGS", "STAND",
               "ASSIGN", "SPACES", "MCR", "FILL", "CHECK"],
       str(ran))
 check("every stage that ran succeeded",
@@ -1617,54 +1623,103 @@ check("the layer no convention resolves is left for judgement",
       [u["layer"] for u in auto_report["unresolved"]] == [f"{auto_stem}/MYSTERY"],
       str(auto_report["unresolved"]))
 
-# Eight source lines -> four wall candidates -> four semantic walls ->
-# four IfcWall objects -> four stable GUIDs. Dimensions stay measured
-# facts: thickness off the drawing, lengths from the junction-resolved
-# centrelines, storey height an explicit input, never an assumption.
+# Twelve source lines -> six candidates -> five semantic walls after the
+# doorway merges its host -> five IfcWall objects with stable GUIDs.
+# Dimensions stay measured facts: thickness off the drawing, lengths from
+# the junction-resolved centrelines, the merge on the record.
 auto_walls = auto_report["walls"]
-check("eight drawn lines become four semantic walls",
-      len(auto_walls) == 4 and [w["id"] for w in auto_walls] == ["W001", "W002", "W003", "W004"],
+check("twelve drawn lines become five semantic walls",
+      len(auto_walls) == 5
+      and [w["id"] for w in auto_walls] == ["W001", "W002", "W003", "W004", "W005"],
       str([w["id"] for w in auto_walls]))
 check("every thickness is the measured 200mm",
       all(abs(w["thickness"] - 0.2) < 1e-6 for w in auto_walls))
-check("corners resolved to the centreline crossings",
-      sorted(round(w["length"], 6) for w in auto_walls) == [2.8, 2.8, 3.8, 3.8],
+check("corners and the doorway merge resolve the lengths",
+      sorted(round(w["length"], 6) for w in auto_walls) == [2.8, 2.8, 2.8, 3.8, 3.8],
       str(sorted(round(w["length"], 6) for w in auto_walls)))
-check("four L junctions", len(auto_report["junctions"]) == 4
-      and all(j["kind"] == "L" for j in auto_report["junctions"]))
+check("four L corners and two T joints",
+      sorted(j["kind"] for j in auto_report["junctions"]) == ["L", "L", "L", "L", "T", "T"],
+      str([(j["id"], j["kind"]) for j in auto_report["junctions"]]))
 check("every wall's provenance is drawn entities",
       all(all(str(s).startswith("LINE:") for s in w["sources"]) for w in auto_walls),
       str([w["sources"] for w in auto_walls]))
 auto_guids = [w["ifc_guid"] for w in auto_walls]
-check("four IfcWall objects with four stable GUIDs",
-      all(auto_guids) and len(set(auto_guids)) == 4, str(auto_guids))
+check("five IfcWall objects with five stable GUIDs",
+      all(auto_guids) and len(set(auto_guids)) == 5, str(auto_guids))
 auto_ops = [r["op"] for r in auto_report["source_map"]]
 check("the source map records the whole compilation",
-      auto_ops.count("PAIR") == 4 and auto_ops.count("JUNCTION") == 4
-      and auto_ops.count("EXTEND") == 8 and auto_ops.count("EMIT") == 5
-      and auto_ops.count("ENCLOSE") == 1 and auto_ops.count("LABEL") == 1,
+      auto_ops.count("PAIR") == 6 and auto_ops.count("JUNCTION") == 6
+      and auto_ops.count("EXTEND") == 10 and auto_ops.count("MERGE") == 1
+      and auto_ops.count("OPEN") == 1 and auto_ops.count("EMIT") == 9
+      and auto_ops.count("ENCLOSE") == 2 and auto_ops.count("LABEL") == 2
+      and auto_ops.count("CONNECT") == 2,
       str({op: auto_ops.count(op) for op in set(auto_ops)}))
-check("five elements came out the far side: four walls and a space",
-      len(auto_report["objects"]) == 5
-      and [o["ifc_class"] for o in auto_report["objects"]].count("IfcWall") == 4
-      and auto_report["objects"][-1]["ifc_class"] == "IfcSpace",
+check("eight elements came out the far side: walls, spaces, and a door",
+      len(auto_report["objects"]) == 8
+      and [o["ifc_class"] for o in auto_report["objects"]].count("IfcWall") == 5
+      and [o["ifc_class"] for o in auto_report["objects"]].count("IfcSpace") == 2
+      and auto_report["objects"][-1]["ifc_class"] == "IfcDoor",
       str([(o["object"], o["ifc_class"]) for o in auto_report["objects"]]))
 
-# The room the walls enclose, named by the drawing's own words, its area
-# the floor you can stand on -- 3.6 x 2.6 behind 200mm walls, not 4 x 3.
+# The doorway: anchored on the wall gap, classified by the swing arc,
+# voiding its merged host through the proper chain and filled by a door
+# whose width is the measured gap -- and whose height is still visibly
+# nobody's to guess, because no section or elevation has spoken.
+auto_openings = auto_report["openings"]
+check("one opening, resolved as a door by its swing arc",
+      len(auto_openings) == 1 and auto_openings[0]["classification"] == "DOOR"
+      and auto_openings[0]["status"] == "resolved",
+      str(auto_openings))
+auto_door = auto_openings[0]
+check("its width is the measured 900mm gap",
+      abs(auto_door["width"] - 0.9) < 1e-6, str(auto_door["width"]))
+check("the arc's handle is on the record",
+      any(str(s).startswith("ARC:") for s in auto_door["sources"]),
+      str(auto_door["sources"]))
+host_entity = bridge.Ifc.get().by_guid(
+    next(w["ifc_guid"] for w in auto_walls if w["id"] == auto_door["host_wall"]))
+check("the host wall is voided through IfcRelVoidsElement",
+      len(host_entity.HasOpenings) == 1
+      and host_entity.HasOpenings[0].is_a("IfcRelVoidsElement"),
+      str(host_entity.HasOpenings))
+door_entity = bridge.Ifc.get().by_guid(auto_door["element_guid"])
+check("the opening is filled by a real IfcDoor",
+      door_entity.is_a("IfcDoor")
+      and door_entity.FillsVoids[0].RelatingOpeningElement.GlobalId == auto_door["opening_guid"],
+      door_entity.is_a())
+door_entry = auto_report["objects"][-1]
+door_widths = {name for pset_values in door_entry["filled"].values() for name in pset_values}
+check("the door's width fills from the measured gap",
+      any("Width" in name for name in door_widths), str(door_entry["filled"]))
+door_sg = ifcopenshell.util.element.get_pset(
+    door_entity, psets.PSET_NAME, should_inherit=False) or {}
+auto_scale_early = derive._unit_scale(bridge.Ifc.get())
+check("in the project's own units",
+      door_sg.get("Overall Width") is not None
+      and abs(door_sg["Overall Width"] - 0.9 / auto_scale_early) < 1e-3,
+      repr(door_sg.get("Overall Width")))
+door_dl = ifcopenshell.util.element.get_pset(
+    door_entity, psets.DELIVERY_PSET_NAME, should_inherit=False) or {}
+check("its height stays a question until a section speaks",
+      door_dl.get("OverallHeight", "sentinel") is None,
+      repr(door_dl.get("OverallHeight")))
+
+# Two rooms now, each named by its own label, joined by the door.
 auto_spaces = auto_report["spaces"]
-check("one space, bounded by all four walls",
-      len(auto_spaces) == 1 and sorted(auto_spaces[0]["walls"]) == ["W001", "W002", "W003", "W004"],
-      str(auto_spaces))
-check("its area is the room you can stand in",
-      abs(auto_spaces[0]["area"] - 3.6 * 2.6) < 1e-6, str(auto_spaces[0]["area"]))
-check("the drawing's label names it, with its source on record",
-      auto_spaces[0]["label"] == "BEDROOM 2"
-      and str(auto_spaces[0]["label_source"]).startswith("TEXT:"),
-      str((auto_spaces[0]["label"], auto_spaces[0]["label_source"])))
-check("the space became a real IfcSpace", bool(auto_spaces[0]["ifc_guid"]),
-      str(auto_spaces[0]["diagnostics"]))
-space_entity = bridge.Ifc.get().by_guid(auto_spaces[0]["ifc_guid"])
+check("two spaces, each the floor you can stand on",
+      len(auto_spaces) == 2
+      and all(abs(s["area"] - 1.7 * 2.6) < 1e-6 for s in auto_spaces),
+      str([(s["id"], s["area"]) for s in auto_spaces]))
+auto_names = sorted(s["label"] or "" for s in auto_spaces)
+check("each room takes its own label", auto_names == ["BEDROOM 2", "LIVING"],
+      str(auto_names))
+check("the door connects the two rooms",
+      sorted(auto_door["connects"]) == sorted(s["id"] for s in auto_spaces),
+      str(auto_door["connects"]))
+check("both became real IfcSpace elements",
+      all(s["ifc_guid"] for s in auto_spaces), str(auto_spaces))
+space_entity = bridge.Ifc.get().by_guid(
+    next(s["ifc_guid"] for s in auto_spaces if s["label"] == "BEDROOM 2"))
 check("carrying the room's name", space_entity.is_a("IfcSpace")
       and space_entity.Name == "BEDROOM 2",
       f"{space_entity.is_a()} named {space_entity.Name!r}")
@@ -1672,7 +1727,9 @@ space_sg = ifcopenshell.util.element.get_pset(
     space_entity, psets.PSET_NAME, should_inherit=False) or {}
 check("Space Name answered from the drawing's label",
       space_sg.get("Space Name") == "BEDROOM 2", repr(space_sg.get("Space Name")))
-space_filled = auto_report["objects"][-1]["filled"].get(psets.PSET_NAME, {})
+space_entry = next(o for o in auto_report["objects"]
+                   if o["ifc_class"] == "IfcSpace")
+space_filled = space_entry["filled"].get(psets.PSET_NAME, {})
 check("its geometry answers the area, height and internal dimensions",
       {"Area", "Height", "Volume", "Internal Length", "Internal Width"}
       <= set(space_filled), str(sorted(space_filled)))

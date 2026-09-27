@@ -45,7 +45,7 @@ from typing import Optional
 
 import bpy
 
-from . import bridge, classify, derive, dxf, ir, spaces, walls
+from . import bridge, classify, derive, dxf, ir, openings, requirements, sg, spaces, walls
 
 #: Where the human-readable report lands, findable in Blender's Text editor.
 TEXT_NAME = "AutoModel Report"
@@ -53,8 +53,8 @@ TEXT_NAME = "AutoModel Report"
 #: The stages in running order. CLASSIFY moved ahead of STAND when WALLS
 #: arrived: which layers are wall layers decides which route their
 #: geometry takes, so the naming has to happen before the standing.
-STAGES = ("READ", "HEAL", "CLASSIFY", "WALLS", "STAND", "ASSIGN", "SPACES",
-          "MCR", "FILL", "CHECK")
+STAGES = ("READ", "HEAL", "CLASSIFY", "WALLS", "OPENINGS", "STAND", "ASSIGN",
+          "SPACES", "MCR", "FILL", "CHECK")
 
 
 def _as_dxf(path: str, context) -> tuple[Optional[str], str]:
@@ -216,7 +216,8 @@ def run(
     heights = heights or {}
     report: dict = {
         "path": path, "stages": [], "objects": [], "unresolved": [],
-        "walls": [], "junctions": [], "spaces": [], "source_map": [],
+        "walls": [], "junctions": [], "openings": [], "spaces": [],
+        "source_map": [],
     }
 
     def stage(name: str, ok: bool, note: str, **extra) -> bool:
@@ -272,18 +273,18 @@ def run(
     )
 
     # WALLS -- a wall layer's linework is read as a drafter drew it: parallel
-    # pairs become semantic walls, junctions resolve their ends, and each
-    # wall becomes its own standing solid. The layer's flat linework object
-    # is kept as drawn evidence, not stood into an enclosure blob; a wall
-    # layer where nothing pairs falls through to the blob route below,
+    # pairs become semantic walls and junctions resolve their ends. The
+    # solids wait until OPENINGS has spoken, because a doorway merges its
+    # host first. The layer's flat linework stays as drawn evidence, and a
+    # wall layer where nothing pairs falls through to the blob route below,
     # which remains the honest fallback for single-line plans.
     source_map = ir.SourceMap()
-    proposal_by_layer = {p.layer: p for p in resolved}
     by_name = {obj.name: obj for obj in objects}
-    per_wall: list = []       # (object, proposal, SemanticWall)
+    wall_layers: list = []    # (proposal, semantic walls, glazing segs/handles)
     all_junctions: list = []
     walled_layers: set = set()
     leftover_segments = 0
+    paired = 0
     for proposal in resolved:
         if proposal.ifc_class != "IfcWall":
             continue
@@ -298,24 +299,56 @@ def run(
             continue
         semantic, junctions = walls.resolve(
             candidates, source_map,
-            first_wall=len(per_wall) + 1,
+            first_wall=paired + 1,
             first_junction=len(all_junctions) + 1,
         )
+        paired += len(candidates)
         walled_layers.add(proposal.layer)
         leftover_segments += len(unpaired)
         all_junctions.extend(junctions)
-        target = float(heights.get(layer_name, height))
-        for wall in semantic:
-            wall_obj = _wall_object(context, f"{proposal.layer}/{wall.id}", wall, target)
-            per_wall.append((wall_obj, proposal, wall))
-    report["walls"] = [wall.as_dict() for _o, _p, wall in per_wall]
+        wall_layers.append(
+            (proposal, semantic,
+             [segs[i] for i in unpaired], [handles[i] for i in unpaired])
+        )
     report["junctions"] = [j.as_dict() for j in all_junctions]
     stage(
         "WALLS",
         True,
-        f"{len(per_wall)} wall(s) from parallel pairs across {len(walled_layers)} "
+        f"{paired} wall(s) from parallel pairs across {len(walled_layers)} "
         f"layer(s), {len(all_junctions)} junction(s) resolved"
         + (f"; {leftover_segments} drawn line(s) left unread" if leftover_segments else ""),
+    )
+
+    # OPENINGS -- where independent evidence converges. Wall gaps anchor the
+    # candidates, arcs and blocks and glazing lines classify them, and each
+    # interrupted host merges across its gap with the merge on the record.
+    # Only then does every wall become its own standing solid.
+    all_openings: list = []
+    per_wall: list = []       # (object, proposal, SemanticWall)
+    for proposal, semantic, glazing_segs, glazing_srcs in wall_layers:
+        found, semantic = openings.detect(
+            semantic,
+            arcs=drawing.arcs,
+            inserts=drawing.inserts,
+            glazing_segments=glazing_segs,
+            glazing_sources=glazing_srcs,
+            source_map=source_map,
+            first=len(all_openings) + 1,
+        )
+        all_openings.extend(found)
+        target = float(heights.get(proposal.layer.rsplit("/", 1)[-1], height))
+        for wall in semantic:
+            wall_obj = _wall_object(context, f"{proposal.layer}/{wall.id}", wall, target)
+            per_wall.append((wall_obj, proposal, wall))
+    report["walls"] = [wall.as_dict() for _o, _p, wall in per_wall]
+    report["openings"] = [o.as_dict() for o in all_openings]
+    resolved_openings = sum(1 for o in all_openings if o.status == "resolved")
+    stage(
+        "OPENINGS",
+        True,
+        f"{len(all_openings)} opening(s) anchored on wall gaps; "
+        f"{resolved_openings} resolved by converging evidence, "
+        f"{len(all_openings) - resolved_openings} awaiting judgement",
     )
 
     # STAND -- everything the wall reading did not claim.
@@ -354,6 +387,7 @@ def run(
         for p in resolved
         if p.layer not in walled_layers and p.layer in by_name
     ]
+    wall_entities: dict = {}
     for obj, proposal, wall in to_assign:
         params = {"object": obj.name, "ifc_class": proposal.ifc_class}
         if proposal.predefined_type:
@@ -367,17 +401,80 @@ def run(
         if wall is not None:
             entity = bridge.get_entity(obj)
             if entity is not None:
+                wall_entities[wall.id] = entity
                 wall.ifc_guid = getattr(entity, "GlobalId", None)
                 if wall.ifc_guid:
                     source_map.record("EMIT", [wall.id], wall.ifc_guid, f"IfcWall {obj.name}")
-    # Re-serialise: the walls now know their GlobalIds, and the report's
-    # copy from the WALLS stage predates the emission.
+
+    # Openings void their hosts and, where the evidence resolved, are
+    # filled -- the proper chain, IfcRelVoidsElement then
+    # IfcRelFillsElement, never a cut in the wall's geometry. A filling's
+    # width is the measured gap; its height stays a visible question until
+    # section or elevation evidence exists to state one.
+    import ifcopenshell.api.feature
+    import ifcopenshell.api.root
+    import ifcopenshell.api.spatial
+
+    ifc = bridge.ifc_file()
+    wall_by_id = {wall.id: wall for _o, _p, wall in per_wall}
+    storeys = ifc.by_type("IfcBuildingStorey") if ifc is not None else []
+    filling_entries: list = []
+    for opening in all_openings:
+        host_entity = wall_entities.get(opening.host_wall)
+        if host_entity is None:
+            opening.diagnostics.append("host wall was not emitted; the opening stays in the report")
+            continue
+        opening_entity = ifcopenshell.api.root.create_entity(
+            ifc, ifc_class="IfcOpeningElement", name=opening.id)
+        ifcopenshell.api.feature.add_feature(ifc, feature=opening_entity, element=host_entity)
+        opening.opening_guid = opening_entity.GlobalId
+        source_map.record("EMIT", [opening.id], opening.opening_guid,
+                          f"IfcOpeningElement voids {opening.host_wall}")
+        if opening.status != "resolved" or opening.classification not in ("DOOR", "WINDOW"):
+            continue
+        filling_class = "IfcDoor" if opening.classification == "DOOR" else "IfcWindow"
+        filling = ifcopenshell.api.root.create_entity(
+            ifc, ifc_class=filling_class,
+            name=f"{opening.id} {opening.classification.title()}")
+        ifcopenshell.api.feature.add_filling(ifc, opening=opening_entity, element=filling)
+        if storeys:
+            ifcopenshell.api.spatial.assign_container(
+                ifc, products=[filling], relating_structure=storeys[0])
+        opening.element_guid = filling.GlobalId
+        source_map.record("EMIT", [opening.id], opening.element_guid,
+                          f"{filling_class} fills {opening.id}")
+        host = wall_by_id[opening.host_wall]
+        outcome = derive.fill(ifc, filling, (opening.width, host.thickness, 0.0))
+        opening.diagnostics.append(
+            "width filled from the measured gap; height awaits section/elevation evidence")
+        verdict = requirements.check_element(
+            filling_class, sg.stage(), bridge.element_properties(filling))
+        filling_entries.append(
+            {
+                "object": None,
+                "layer": opening.id,
+                "ifc_class": filling_class,
+                "predefined_type": None,
+                "wall": None,
+                "opening": opening.id,
+                "sources": list(opening.sources),
+                "filled": outcome["filled"],
+                "left": outcome["left"],
+                "check": {"status": verdict.get("status"),
+                          "missing": verdict.get("missing", [])},
+            }
+        )
+
+    # Re-serialise: walls and openings now know their GlobalIds, and the
+    # report's copies from the earlier stages predate the emission.
     report["walls"] = [wall.as_dict() for _o, _p, wall in per_wall]
+    report["openings"] = [o.as_dict() for o in all_openings]
     report["source_map"] = source_map.as_list()
     stage(
         "ASSIGN",
         bool(assigned) or not to_assign,
-        f"{len(assigned)} element(s) assigned"
+        f"{len(assigned)} element(s) assigned; {len(all_openings)} opening(s) emitted, "
+        f"{len(filling_entries)} filled as doors or windows"
         + (f"; refused: {'; '.join(refusals)}" if refusals else ""),
     )
     if not assigned:
@@ -403,13 +500,26 @@ def run(
                 if entity is not None:
                     _fill_space_name(bridge.ifc_file(), entity, space)
                 assigned.append((space_obj, classify.Proposal(space.id, "IfcSpace"), None))
+    # The openings now say which rooms they join -- the relationship a
+    # door actually is, and the reason space detection was right not to
+    # close doorway gaps itself.
+    connections = 0
+    for opening in all_openings:
+        host = wall_by_id.get(opening.host_wall)
+        if host is None:
+            continue
+        opening.connects = openings.connects(opening, host, space_candidates)
+        connections += len(opening.connects)
+        for space_id in opening.connects:
+            source_map.record("CONNECT", [opening.id], space_id, "opens into it")
+    report["openings"] = [o.as_dict() for o in all_openings]
     report["spaces"] = [space.as_dict() for space in space_candidates]
     report["source_map"] = source_map.as_list()
     named = sum(1 for space in space_candidates if space.label)
     stage(
         "SPACES", True,
         f"{len(space_candidates)} space(s) enclosed, {named} named by the drawing, "
-        f"{emitted_spaces} became IfcSpace",
+        f"{emitted_spaces} became IfcSpace; {connections} door/space connection(s)",
     )
 
     # MCR -- the creation listener attached the parameters during ASSIGN; this
@@ -466,9 +576,14 @@ def run(
             "missing": verdict.get("missing", []),
         }
         still_missing += len(verdict.get("missing", []))
+    # The fillings were checked at emission -- they have no Blender object
+    # for the checker verb to start from -- and join the ledger here.
+    still_missing += sum(len(e["check"]["missing"]) for e in filling_entries)
+    report["objects"].extend(filling_entries)
     stage(
         "CHECK", True,
-        f"{still_missing} parameter(s) still owed across {len(assigned)} element(s) "
+        f"{still_missing} parameter(s) still owed across "
+        f"{len(assigned) + len(filling_entries)} element(s) "
         "-- the checker's report closes the loop",
     )
     return finish()
@@ -493,6 +608,16 @@ def write_report(report: dict) -> str:
                 f"  {item['id']}: {item['length']:.3f} m x {item['thickness']:.3f} m"
                 f", from {', '.join(str(s) for s in item['sources'])}"
                 + (f"  [{item['ifc_guid']}]" if item.get("ifc_guid") else "")
+            )
+    if report.get("openings"):
+        lines += ["", "Openings, where the evidence converged:"]
+        for item in report["openings"]:
+            what = item["classification"] or "unclassified"
+            lines.append(
+                f"  {item['id']} {what} ({item['status']}): {item['width']:.3f} m in "
+                f"{item['host_wall']} at {item['position']:.3f} m"
+                + (f", connects {', '.join(item['connects'])}" if item["connects"] else "")
+                + (f"  [{item['element_guid']}]" if item.get("element_guid") else "")
             )
     if report.get("spaces"):
         lines += ["", "Spaces, as the walls enclose them:"]
