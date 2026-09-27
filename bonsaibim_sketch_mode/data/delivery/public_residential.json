@@ -1,0 +1,9325 @@
+{
+ "dataset": "Project Delivery (DBC Submission)",
+ "elements": {
+  "Accessories & Routing": {
+   "parameters": [
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Cable Tray & Bus Bar, Cable Trays, Cable Tray Fittings, Cable Ladder, Cable Ladder Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InsulationMaterialThickness",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Cable Tray & Bus Bar, Cable Trays, Cable Tray Fittings, Cable Ladder, Cable Ladder Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "LengthPerRun/PerSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Cable Tray & Bus Bar, Cable Trays, Cable Tray Fittings, Cable Ladder, Cable Ladder Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Cable Tray & Bus Bar, Cable Trays, Cable Tray Fittings, Cable Ladder, Cable Ladder Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Size",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender"
+     ],
+     "sub_element": "Cable Tray & Bus Bar, Cable Trays, Cable Tray Fittings, Cable Ladder, Cable Ladder Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Cable Tray & Bus Bar, Cable Trays, Cable Tray Fittings, Cable Ladder, Cable Ladder Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Cable Tray & Bus Bar, Cable Trays, Cable Tray Fittings, Cable Ladder, Cable Ladder Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Conduits, Conduit Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InsulationMaterialThickness",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Conduits, Conduit Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "LengthPerRun/PerSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Conduits, Conduit Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Conduits, Conduit Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender"
+     ],
+     "sub_element": "Conduits, Conduit Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Size",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender"
+     ],
+     "sub_element": "Conduits, Conduit Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Conduits, Conduit Fittings"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Damper"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Damper"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Damper"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Damper"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Damper"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Damper"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Damper"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Damper"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Damper"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Damper"
+    },
+    {
+     "discipline": "M&E",
+     "name": "AirFlow(DUCTS)",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender"
+     ],
+     "sub_element": "Ductworks, Ducts, Duct Fittings, Flex Duct, Duct Placeholder, Duct Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ductworks, Ducts, Duct Fittings, Flex Duct, Duct Placeholder, Duct Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InsulationMaterialThickness",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ductworks, Ducts, Duct Fittings, Flex Duct, Duct Placeholder, Duct Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "LengthPerRun/PerSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ductworks, Ducts, Duct Fittings, Flex Duct, Duct Placeholder, Duct Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ductworks, Ducts, Duct Fittings, Flex Duct, Duct Placeholder, Duct Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender"
+     ],
+     "sub_element": "Ductworks, Ducts, Duct Fittings, Flex Duct, Duct Placeholder, Duct Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Size",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender"
+     ],
+     "sub_element": "Ductworks, Ducts, Duct Fittings, Flex Duct, Duct Placeholder, Duct Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ductworks, Ducts, Duct Fittings, Flex Duct, Duct Placeholder, Duct Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ductworks, Ducts, Duct Fittings, Flex Duct, Duct Placeholder, Duct Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Electrical Submeter"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Filter"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Filter"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Filter"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Filter"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Filter"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Filter"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Filter"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Filter"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Filter"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Filter"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pipeworks, Pipes, Pipe Fittings, Flex Pipe, Pipe Placeholder, Pipe Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InsulationMaterialThickness",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pipeworks, Pipes, Pipe Fittings, Flex Pipe, Pipe Placeholder, Pipe Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "LengthPerRun/PerSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pipeworks, Pipes, Pipe Fittings, Flex Pipe, Pipe Placeholder, Pipe Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pipeworks, Pipes, Pipe Fittings, Flex Pipe, Pipe Placeholder, Pipe Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender"
+     ],
+     "sub_element": "Pipeworks, Pipes, Pipe Fittings, Flex Pipe, Pipe Placeholder, Pipe Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Size",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender"
+     ],
+     "sub_element": "Pipeworks, Pipes, Pipe Fittings, Flex Pipe, Pipe Placeholder, Pipe Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pipeworks, Pipes, Pipe Fittings, Flex Pipe, Pipe Placeholder, Pipe Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pipeworks, Pipes, Pipe Fittings, Flex Pipe, Pipe Placeholder, Pipe Insulations"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Strainer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Strainer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Strainer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Strainer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Strainer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Strainer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Strainer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Strainer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Strainer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Strainer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Valve (e.g. Balancing Valve, Double Check Valve, Flush Valve, Float Valve, Thermostatic Mixing Valve, Water Pressure Reducing Valve)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Valve (e.g. Balancing Valve, Double Check Valve, Flush Valve, Float Valve, Thermostatic Mixing Valve, Water Pressure Reducing Valve)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Valve (e.g. Balancing Valve, Double Check Valve, Flush Valve, Float Valve, Thermostatic Mixing Valve, Water Pressure Reducing Valve)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Valve (e.g. Balancing Valve, Double Check Valve, Flush Valve, Float Valve, Thermostatic Mixing Valve, Water Pressure Reducing Valve)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Valve (e.g. Balancing Valve, Double Check Valve, Flush Valve, Float Valve, Thermostatic Mixing Valve, Water Pressure Reducing Valve)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Valve (e.g. Balancing Valve, Double Check Valve, Flush Valve, Float Valve, Thermostatic Mixing Valve, Water Pressure Reducing Valve)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Valve (e.g. Balancing Valve, Double Check Valve, Flush Valve, Float Valve, Thermostatic Mixing Valve, Water Pressure Reducing Valve)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Valve (e.g. Balancing Valve, Double Check Valve, Flush Valve, Float Valve, Thermostatic Mixing Valve, Water Pressure Reducing Valve)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Valve (e.g. Balancing Valve, Double Check Valve, Flush Valve, Float Valve, Thermostatic Mixing Valve, Water Pressure Reducing Valve)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Valve (e.g. Balancing Valve, Double Check Valve, Flush Valve, Float Valve, Thermostatic Mixing Valve, Water Pressure Reducing Valve)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Variable Air Volume (VAV)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Variable Air Volume (VAV)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Variable Air Volume (VAV)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Variable Air Volume (VAV)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Variable Air Volume (VAV)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Variable Air Volume (VAV)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Variable Air Volume (VAV)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Variable Air Volume (VAV)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Variable Air Volume (VAV)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Variable Air Volume (VAV)"
+    }
+   ]
+  },
+  "Ceiling": {
+   "parameters": [
+    {
+     "discipline": "Architectural",
+     "name": "AcousticRating",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Ceiling"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Area",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ceiling"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Ceiling"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ceiling"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "FireRating",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ceiling"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Height",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ceiling"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Ceiling"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Ceiling"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "R-Value",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Ceiling"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Thickness",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ceiling"
+    }
+   ]
+  },
+  "Column": {
+   "parameters": [
+    {
+     "discipline": "C&S",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Diameter",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Firerating",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Height",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Volume",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "b",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "h",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "RC Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ConstructionMethod(PrecastOrCastinSitu)",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Diameter",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "FireRating",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "RC Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Height",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Links",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "MaterialGrade",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "VerticalReinforcement",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "b",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "h",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Steel Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Diameter",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "FireProtection/Treatment",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Steel Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Height",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "MassperLength",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Materialtrength",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "U-Value",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "b",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Column"
+    },
+    {
+     "discipline": "C&S",
+     "name": "h",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Column"
+    }
+   ]
+  },
+  "Door": {
+   "parameters": [
+    {
+     "discipline": "Architectural",
+     "name": "Brand",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ClearWidth",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "DoorPanelThickness",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ExitCapacity",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "FireRating",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "FrameFinish",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "FrameMaterial",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "FrameType",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Level",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "LocksetType",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "No.OfPanels",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "OverallHeight",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "OverallLeafHeight",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "OverallLeafWidth",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "OverallWidth",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "PanelFinish",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "PanelMaterial",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Self-Closing",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "U-Value",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "UniqueID",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Door"
+    }
+   ]
+  },
+  "Equipment": {
+   "parameters": [
+    {
+     "discipline": "M&E",
+     "name": "AssetID",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Capacity",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "AHU"
+    },
+    {
+     "discipline": "M&E",
+     "name": "AssetID",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Boiler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Boiler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Boiler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Boiler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Boiler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Boiler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Boiler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Boiler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Boiler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Boiler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Boiler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Boiler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Boiler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Boiling Water Unit (BWU)/Hot Water Unit (HWU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Boiling Water Unit (BWU)/Hot Water Unit (HWU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Boiling Water Unit (BWU)/Hot Water Unit (HWU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Boiling Water Unit (BWU)/Hot Water Unit (HWU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Boiling Water Unit (BWU)/Hot Water Unit (HWU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Boiling Water Unit (BWU)/Hot Water Unit (HWU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Boiling Water Unit (BWU)/Hot Water Unit (HWU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Boiling Water Unit (BWU)/Hot Water Unit (HWU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Boiling Water Unit (BWU)/Hot Water Unit (HWU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Boiling Water Unit (BWU)/Hot Water Unit (HWU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "AssetID",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Capacity",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Chiller"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Capacity",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Compressor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Compressor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Compressor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Compressor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Compressor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Compressor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Compressor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Compressor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Compressor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Compressor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Compressor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Control Panel (e.g. Interface Control Panel, Fire Alarm Panel, Fire Indicator Panel, Motor Control Panel)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Control Panel (e.g. Interface Control Panel, Fire Alarm Panel, Fire Indicator Panel, Motor Control Panel)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "construction"
+     ],
+     "stages": [
+      "as_built"
+     ],
+     "sub_element": "Control Panel (e.g. Interface Control Panel, Fire Alarm Panel, Fire Indicator Panel, Motor Control Panel)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "construction"
+     ],
+     "stages": [
+      "as_built"
+     ],
+     "sub_element": "Control Panel (e.g. Interface Control Panel, Fire Alarm Panel, Fire Indicator Panel, Motor Control Panel)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender"
+     ],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Control Panel (e.g. Interface Control Panel, Fire Alarm Panel, Fire Indicator Panel, Motor Control Panel)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender"
+     ],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Control Panel (e.g. Interface Control Panel, Fire Alarm Panel, Fire Indicator Panel, Motor Control Panel)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Control Panel (e.g. Interface Control Panel, Fire Alarm Panel, Fire Indicator Panel, Motor Control Panel)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Control Panel (e.g. Interface Control Panel, Fire Alarm Panel, Fire Indicator Panel, Motor Control Panel)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Control Panel (e.g. Interface Control Panel, Fire Alarm Panel, Fire Indicator Panel, Motor Control Panel)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Control Panel (e.g. Interface Control Panel, Fire Alarm Panel, Fire Indicator Panel, Motor Control Panel)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Control Panel (e.g. Interface Control Panel, Fire Alarm Panel, Fire Indicator Panel, Motor Control Panel)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Control Panel (e.g. Interface Control Panel, Fire Alarm Panel, Fire Indicator Panel, Motor Control Panel)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Capacity",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Cooling Tower"
+    },
+    {
+     "discipline": "M&E",
+     "name": "AssetID",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Distribution Board/Switchboard (e.g. Emergency Distribution Board, Emergency Main Switchboard, High Votale Switchboard, Main Switchboard)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Capacity(kg)",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Elevator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Capacity(persons)",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Elevator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Current",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Elevator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "DoorSize(HxW)",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Elevator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Frequency",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Elevator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InternalCarSize(HxWxD)",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Elevator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "MinimumShaftWidthAndDepth",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Elevator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Elevator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "PowerSystemDescription",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Elevator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Speed",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Elevator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Voltage",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Elevator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Capacity(kg)",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Escalator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Capacity(persons)",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Escalator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Current",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Escalator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Frequency",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Escalator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Escalator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "PowerSystemDescription",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Escalator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Speed",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Escalator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Voltage",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Escalator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Exhauster (For PWCS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Exhauster (For PWCS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Exhauster (For PWCS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fan"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fan"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fan"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fan"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fan"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fan"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Fan"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fan"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fan"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Fan"
+    },
+    {
+     "discipline": "M&E",
+     "name": "AssetID",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Capacity",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Fan Coil Unit (FCU)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "AssetID",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Load",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Generator"
+    },
+    {
+     "discipline": "M&E",
+     "name": "AssetID",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Capacity",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Heat Exchange"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Miniature Circuit Breaker, Residual Current Operated Circuit Breaker, Molded Case Circuit Breaker, Surface Outlet Box"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Miniature Circuit Breaker, Residual Current Operated Circuit Breaker, Molded Case Circuit Breaker, Surface Outlet Box"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Miniature Circuit Breaker, Residual Current Operated Circuit Breaker, Molded Case Circuit Breaker, Surface Outlet Box"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Mobile Network Operator Antenna"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Motor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Motor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Motor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Motor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Motor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Motor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Motor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Motor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Motor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Motor"
+    },
+    {
+     "discipline": "M&E",
+     "name": "AssetID",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Package Air Conditioning"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Package Air Conditioning"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Package Air Conditioning"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Package Air Conditioning"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Package Air Conditioning"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Package Air Conditioning"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Package Air Conditioning"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Package Air Conditioning"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Package Air Conditioning"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Package Air Conditioning"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Package Air Conditioning"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Package Air Conditioning"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Package Air Conditioning"
+    },
+    {
+     "discipline": "M&E",
+     "name": "AssetID",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Capacity",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Pump (hose reel pump, wet riser transfer pump, sprinkler pump, stormwater pump, submersible pump, transfer pump, booster pump)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Refuse Handling Equipment (RHE)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Capacity",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Refuse Handling Equipment (RHE)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Refuse Handling Equipment (RHE)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Refuse Handling Equipment (RHE)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Refuse Handling Equipment (RHE)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Refuse Handling Equipment (RHE)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Refuse Handling Equipment (RHE)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Refuse Handling Equipment (RHE)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Refuse Handling Equipment (RHE)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Refuse Handling Equipment (RHE)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Refuse Handling Equipment (RHE)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Refuse Handling Equipment (RHE)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Refuse Handling Equipment (RHE)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type(Coping/FinialRod)",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Rooftop Protection"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type(Copper/Aluminium)",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Rooftop Tape"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Rubbish Chute Flushing System"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Rubbish Chute Flushing System"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Rubbish Chute Flushing System"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Smart Distribution Board & Socket"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Capacity",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Split Air Con"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Split Air Con"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Split Air Con"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Split Air Con"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Split Air Con"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Split Air Con"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Split Air Con"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Split Air Con"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Split Air Con"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Split Air Con"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Split Air Con"
+    },
+    {
+     "discipline": "M&E",
+     "name": "AssetID",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Switchgear"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Switchgear"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Switchgear"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Switchgear"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Switchgear"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Switchgear"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Switchgear"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Switchgear"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Switchgear"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Switchgear"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Switchgear"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Switchgear"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Switchgear"
+    },
+    {
+     "discipline": "M&E",
+     "name": "No.OfRings",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Tank (e.g. Irrigation Tank)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Standards",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Telecom Equipment"
+    },
+    {
+     "discipline": "M&E",
+     "name": "AssetID",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Transformer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Transformer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Transformer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Transformer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Transformer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Transformer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Transformer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Transformer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Transformer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Transformer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Transformer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Transformer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Transformer"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Trap"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Trap"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Trap"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Trap"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Trap"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Trap"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Trap"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Trap"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Trap"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Trap"
+    },
+    {
+     "discipline": "M&E",
+     "name": "AssetID",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Uninterruptible Power Supply (UPS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Uninterruptible Power Supply (UPS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Uninterruptible Power Supply (UPS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Uninterruptible Power Supply (UPS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Uninterruptible Power Supply (UPS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Uninterruptible Power Supply (UPS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Uninterruptible Power Supply (UPS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Uninterruptible Power Supply (UPS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Uninterruptible Power Supply (UPS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Uninterruptible Power Supply (UPS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Uninterruptible Power Supply (UPS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Uninterruptible Power Supply (UPS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Uninterruptible Power Supply (UPS)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "AssetID",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Water Treatment Assembly"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Barcode/QRCode",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Water Treatment Assembly"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Water Treatment Assembly"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Water Treatment Assembly"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Water Treatment Assembly"
+    },
+    {
+     "discipline": "M&E",
+     "name": "InstallationDate",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Water Treatment Assembly"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Water Treatment Assembly"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Water Treatment Assembly"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Water Treatment Assembly"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Water Treatment Assembly"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Warrantor",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Water Treatment Assembly"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDescription",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Water Treatment Assembly"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyDuration",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Water Treatment Assembly"
+    }
+   ]
+  },
+  "External Works": {
+   "parameters": [
+    {
+     "discipline": "External Works",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Drain"
+    },
+    {
+     "discipline": "External Works",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Drain"
+    },
+    {
+     "discipline": "External Works",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Drain"
+    },
+    {
+     "discipline": "External Works",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Landscape Planting"
+    },
+    {
+     "discipline": "External Works",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Landscape Planting"
+    },
+    {
+     "discipline": "External Works",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Manhole"
+    },
+    {
+     "discipline": "External Works",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Manhole"
+    },
+    {
+     "discipline": "External Works",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Manhole"
+    },
+    {
+     "discipline": "External Works",
+     "name": "AssetID",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Parking Lot"
+    },
+    {
+     "discipline": "External Works",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Parking Lot"
+    },
+    {
+     "discipline": "External Works",
+     "name": "Length",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Parking Lot"
+    },
+    {
+     "discipline": "External Works",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Parking Lot"
+    },
+    {
+     "discipline": "External Works",
+     "name": "Width",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Parking Lot"
+    },
+    {
+     "discipline": "External Works",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Road/Driveway"
+    },
+    {
+     "discipline": "External Works",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Road/Driveway"
+    },
+    {
+     "discipline": "External Works",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Road/Driveway"
+    },
+    {
+     "discipline": "External Works",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Topographic surfaces"
+    },
+    {
+     "discipline": "External Works",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Topographic surfaces"
+    }
+   ]
+  },
+  "Floor": {
+   "parameters": [
+    {
+     "discipline": "Architectural",
+     "name": "Area",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "BottomReinforcement",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ConstructionMethod(PrecastOrCastinSitu)",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "FireRating",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Gradient",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Level",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "MaterialGrade",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "MaxImposedLoad",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Prestressed/PostTensioned",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Thickness",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "TopReinforcement",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Volume",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Floor"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "BFA",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Ramp"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Ramp"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ClearWidth",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Ramp"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ConcreteGrade",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ramp"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ConstructionMethod(PrecastOrCastinSitu)",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ramp"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Gradient",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Ramp"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Length",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Ramp"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "LevelDifference",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ramp"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Ramp"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Thickness",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Ramp"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Ramp"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Volume",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Ramp"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Area",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Structural Slab"
+    },
+    {
+     "discipline": "C&S",
+     "name": "FireRating",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Structural Slab"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Level",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Structural Slab"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Structural Slab"
+    },
+    {
+     "discipline": "C&S",
+     "name": "MaterialGrade",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Structural Slab"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Thickness",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Structural Slab"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Volume",
+     "optional_stages": [],
+     "stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Structural Slab"
+    }
+   ]
+  },
+  "Railings / Balustrade": {
+   "parameters": [
+    {
+     "discipline": "Architectural",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Balustrade"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Height",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Balustrade"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Length",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Balustrade"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Balustrade"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Railing"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "CrossSectionalSize",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Railing"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Railing"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Length",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Railing"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Railing"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "RailingHeight",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Railing"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Railing"
+    }
+   ]
+  },
+  "Roof": {
+   "parameters": [
+    {
+     "discipline": "Architectural",
+     "name": "Area",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Roof"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "BaseLevel",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Roof"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "BaseOffsetfromLevel",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Roof"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Roof"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ConcreteGrade",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Roof"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Roof"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Manufacturer(ForMetalPanelRoofing)",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Roof"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Roof"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Perimeter",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Roof"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Thickness",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Roof"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "U-Value",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Roof"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Volume",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Roof"
+    }
+   ]
+  },
+  "Spatial Allocation": {
+   "parameters": [
+    {
+     "discipline": "Architectural",
+     "name": "Area",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Space"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "AreaType/Classification",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Space"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Space"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Height",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Space"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Name",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Space"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "RoomType/Classification",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Space"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "VentilationOpening",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Space"
+    }
+   ]
+  },
+  "Staircase": {
+   "parameters": [
+    {
+     "discipline": "Architectural",
+     "name": "BaseLevel",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "BottomPrimaryReinforcement",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ClearWidth",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ConstructionMethod",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ExitCapacity",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "FireExit",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Materialgrade",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "No.OfRisers",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "RiserHeight",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "StairHeight(TopToBottomVerticalRise)",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "TopLevel",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "TopPrimaryReinforcement",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "TreadWidth",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Waist(NEW)",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Staircase"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Width",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Staircase"
+    }
+   ]
+  },
+  "Structural Foundation": {
+   "parameters": [
+    {
+     "discipline": "C&S",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Isolated Pad Footing"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ConcreteGrade",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Isolated Pad Footing"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Depth",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Isolated Pad Footing"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Loading",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Isolated Pad Footing"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Isolated Pad Footing"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Volume",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Isolated Pad Footing"
+    },
+    {
+     "discipline": "C&S",
+     "name": "b",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Isolated Pad Footing"
+    },
+    {
+     "discipline": "C&S",
+     "name": "h",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Isolated Pad Footing"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ConcreteGrade",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Diameter",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Embedment",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Length",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Links",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Loading",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "PileCutOffLevel",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "PilePenetration",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ReinforcementType",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "VerticalReinforcement",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "b",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "h",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Pile Cap"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ConcreteGrade",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile Cap"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Depth",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile Cap"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Loading",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Pile Cap"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile Cap"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Volume",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile Cap"
+    },
+    {
+     "discipline": "C&S",
+     "name": "b",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile Cap"
+    },
+    {
+     "discipline": "C&S",
+     "name": "h",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Pile Cap"
+    }
+   ]
+  },
+  "Structural Framing": {
+   "parameters": [
+    {
+     "discipline": "C&S",
+     "name": "BottomReinforcement",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Depth",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "FireRating",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Length",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Level",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ReinforcementRate",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "TopReinforcement",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Width",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "BottomReinforcement",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ConcreteGrade",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ConstructionMethod(Prestressed/PostTensioned)",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Depth",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "FireRating",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Length",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Level",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Links",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ReinforcementRate",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ReinforcementType",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "TopOffset(OffsetFromUpperStorey)",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "TopReinforcement",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Width",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "RC Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Steel Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Depth",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "FireProtection/Treatment",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Steel Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Length",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Level",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "MassPerUnitLength(ForProfiledSteel)",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Steel Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Materialtrength",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "ReinforcementType&Rate(weight/UnitAreaOrVolume)",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "TopOffset(OffsetFromUpperStorey)",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Beam"
+    },
+    {
+     "discipline": "C&S",
+     "name": "Width",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Steel Beam"
+    }
+   ]
+  },
+  "Terminal": {
+   "parameters": [
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Air Terminal"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Air Terminal"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Air Terminal"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Air Terminal"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer&Mode/Series",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Air Terminal"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Air Terminal"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Air Terminal"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Air Terminal"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Air Terminal"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Air Terminal"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Air Terminal"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Alarm Bell"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Alarm Bell"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Alarm Bell"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Basin, Bath, Shower, Sink, Urinal, WC, Floor Waste / Floor Trap, Tundish"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer/Model",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Basin, Bath, Shower, Sink, Urinal, WC, Floor Waste / Floor Trap, Tundish"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Basin, Bath, Shower, Sink, Urinal, WC, Floor Waste / Floor Trap, Tundish"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Basin, Bath, Shower, Sink, Urinal, WC, Floor Waste / Floor Trap, Tundish"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Basin, Bath, Shower, Sink, Urinal, WC, Floor Waste / Floor Trap, Tundish"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Basin, Bath, Shower, Sink, Urinal, WC, Floor Waste / Floor Trap, Tundish"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Call Point"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Call Point"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Call Point"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Device (e.g. Lighting Device, Electrical Device, Communication Device, Fire Alarm Device, Telephone Device, Security Device)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Location(Room/Space)",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Device (e.g. Lighting Device, Electrical Device, Communication Device, Fire Alarm Device, Telephone Device, Security Device)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Device (e.g. Lighting Device, Electrical Device, Communication Device, Fire Alarm Device, Telephone Device, Security Device)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Device (e.g. Lighting Device, Electrical Device, Communication Device, Fire Alarm Device, Telephone Device, Security Device)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "NominalSize",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Device (e.g. Lighting Device, Electrical Device, Communication Device, Fire Alarm Device, Telephone Device, Security Device)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fire Extinguisher"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fire Extinguisher"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fire Extinguisher"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fire Extinguisher"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fire Extinguisher"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fire Extinguisher"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Fire Extinguisher"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fire Extinguisher"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fire Extinguisher"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fire Extinguisher"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Fire Hydrant"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelCircuit",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fire Hydrant"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElectricalPanelName",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fire Hydrant"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fire Hydrant"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Fire Hydrant"
+    },
+    {
+     "discipline": "M&E",
+     "name": "OverallDimensions",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fire Hydrant"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Fire Hydrant"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fire Hydrant"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Fire Hydrant"
+    },
+    {
+     "discipline": "M&E",
+     "name": "WarrantyData",
+     "optional_stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Fire Hydrant"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Inspection Chamber"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Inspection Chamber"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Inspection Chamber"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Light Fixture"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Light Fixture"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Location",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Light Fixture"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Light Fixture"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Light Fixture"
+    },
+    {
+     "discipline": "M&E",
+     "name": "NominalSize",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Light Fixture"
+    },
+    {
+     "discipline": "M&E",
+     "name": "SerialNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Light Fixture"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Light Fixture"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Light Fixture"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Light Fixture"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type(IndoorOrOutdoor)",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Light Fixture"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Sensor & Detector (e.g. Heat Detector, Smoke Detector, Temperature Sensor, Carbon Monoxide Sensor, Carbon Dioxide Sensor, BTU Meter)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Sensor & Detector (e.g. Heat Detector, Smoke Detector, Temperature Sensor, Carbon Monoxide Sensor, Carbon Dioxide Sensor, BTU Meter)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Description",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Sensor & Detector (e.g. Heat Detector, Smoke Detector, Temperature Sensor, Carbon Monoxide Sensor, Carbon Dioxide Sensor, BTU Meter)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ElementLocation",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Sensor & Detector (e.g. Heat Detector, Smoke Detector, Temperature Sensor, Carbon Monoxide Sensor, Carbon Dioxide Sensor, BTU Meter)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Manufacturer",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Sensor & Detector (e.g. Heat Detector, Smoke Detector, Temperature Sensor, Carbon Monoxide Sensor, Carbon Dioxide Sensor, BTU Meter)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "stages": [],
+     "sub_element": "Sensor & Detector (e.g. Heat Detector, Smoke Detector, Temperature Sensor, Carbon Monoxide Sensor, Carbon Dioxide Sensor, BTU Meter)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Sensor & Detector (e.g. Heat Detector, Smoke Detector, Temperature Sensor, Carbon Monoxide Sensor, Carbon Dioxide Sensor, BTU Meter)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "System",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Sensor & Detector (e.g. Heat Detector, Smoke Detector, Temperature Sensor, Carbon Monoxide Sensor, Carbon Dioxide Sensor, BTU Meter)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Sensor & Detector (e.g. Heat Detector, Smoke Detector, Temperature Sensor, Carbon Monoxide Sensor, Carbon Dioxide Sensor, BTU Meter)"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Brand",
+     "optional_stages": [],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Sprinkler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "ModelNumber",
+     "optional_stages": [],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Sprinkler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Supplier",
+     "optional_stages": [],
+     "stages": [
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Sprinkler"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Diameter",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Sump"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Length",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Sump"
+    },
+    {
+     "discipline": "M&E",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Sump"
+    }
+   ]
+  },
+  "Wall": {
+   "parameters": [
+    {
+     "discipline": "Architectural",
+     "name": "Area",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "BaseLevel",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "CoreMaterial",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "CoreThickness",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Finish1Material",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Finish1Thickness",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Finish2Material",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Finish2Thickness",
+     "optional_stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "FireRating",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Height",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "HorizontalReinforcement",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Length",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "LoadBearing",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Thickness",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "TopLevel",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "VerticalReinforcement",
+     "optional_stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "stages": [],
+     "sub_element": "Wall"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Volume",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Wall"
+    }
+   ]
+  },
+  "Window": {
+   "parameters": [
+    {
+     "discipline": "Architectural",
+     "name": "AreaofUnit/Panel",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ClassificationSystem",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "FrameDepth",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "FrameFinish",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "FrameMaterial",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "FrameWidth",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "GlassType",
+     "optional_stages": [],
+     "stages": [
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "ID",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Level",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Material",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "OpenableArea",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "OverallHeight",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "OverallWidth",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "PanelThickness",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "Type",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built",
+      "operation"
+     ],
+     "sub_element": "Window"
+    },
+    {
+     "discipline": "Architectural",
+     "name": "U-Value",
+     "optional_stages": [],
+     "stages": [
+      "schematic",
+      "detailed",
+      "tender",
+      "construction",
+      "as_built"
+     ],
+     "sub_element": "Window"
+    }
+   ]
+  }
+ },
+ "label": "Public Residential",
+ "source": "IFC+SG Model Content Requirements V2.0, 20 Mar 2026",
+ "stages": [
+  {
+   "key": "conceptual",
+   "label": "Conceptual Design"
+  },
+  {
+   "key": "schematic",
+   "label": "Schematic / Preliminary Design"
+  },
+  {
+   "key": "detailed",
+   "label": "Detailed Design / Final Design"
+  },
+  {
+   "key": "tender",
+   "label": "Tender"
+  },
+  {
+   "key": "construction",
+   "label": "Construction & Fabrication"
+  },
+  {
+   "key": "as_built",
+   "label": "As-Built"
+  },
+  {
+   "key": "operation",
+   "label": "O&M / Asset Information"
+  }
+ ],
+ "typology": "public_residential"
+}

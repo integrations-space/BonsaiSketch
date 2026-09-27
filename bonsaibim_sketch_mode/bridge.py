@@ -214,14 +214,19 @@ Snap: Any = _namespace("Snap")
 # --- Convenience wrappers ----------------------------------------------------
 
 
+def ifc_file() -> Any:
+    """The currently open IFC file, or None."""
+    if _tool is None:
+        return None
+    try:
+        return _tool.Ifc.get()
+    except Exception:
+        return None
+
+
 def has_project() -> bool:
     """True if an IFC project is currently open."""
-    if _tool is None:
-        return False
-    try:
-        return _tool.Ifc.get() is not None
-    except Exception:
-        return False
+    return ifc_file() is not None
 
 
 def get_entity(obj: Any) -> Any:
