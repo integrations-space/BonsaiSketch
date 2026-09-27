@@ -64,14 +64,21 @@ _UNIT_NAMES = {1: "inches", 2: "feet", 4: "millimetres", 5: "centimetres", 6: "m
 
 
 class Polyline:
-    """A run of 2D points on a layer, closed or not. Points are (x, y) tuples."""
+    """A run of 2D points on a layer, closed or not. Points are (x, y) tuples.
 
-    __slots__ = ("layer", "points", "closed")
+    ``source`` names the DXF entity this came from -- its type plus the
+    file's own handle (group code 5) where the file wrote one, or an
+    ordinal (``LINE:#12``) where it did not -- so everything derived from
+    this geometry can say which drawn entity caused it to exist.
+    """
 
-    def __init__(self, layer: str, points: list, closed: bool) -> None:
+    __slots__ = ("layer", "points", "closed", "source")
+
+    def __init__(self, layer: str, points: list, closed: bool, source: str = "") -> None:
         self.layer = layer
         self.points = points
         self.closed = closed
+        self.source = source
 
 
 class Label:
@@ -84,12 +91,13 @@ class Label:
     becomes a space so a two-line name reads as one.
     """
 
-    __slots__ = ("layer", "text", "position")
+    __slots__ = ("layer", "text", "position", "source")
 
-    def __init__(self, layer: str, text: str, position: tuple) -> None:
+    def __init__(self, layer: str, text: str, position: tuple, source: str = "") -> None:
         self.layer = layer
         self.text = text
         self.position = position
+        self.source = source
 
 
 class Drawing:
@@ -200,20 +208,27 @@ def parse(text: str) -> Drawing:
     poly_layer: Optional[str] = None
     poly_closed = False
     poly_points: list = []
+    poly_source = ""
     in_polyline = False
     insunits: Optional[int] = None
+    ordinal = 0
 
     def flush() -> None:
         """Turn the accumulated fields of the finished entity into geometry."""
-        nonlocal in_polyline, poly_layer, poly_closed, poly_points
+        nonlocal in_polyline, poly_layer, poly_closed, poly_points, poly_source, ordinal
         if entity is None or section != "ENTITIES":
             return
         layer = fields.get(8, ["0"])[0].strip()
+        # The entity's own name for itself: the handle the file wrote, or
+        # its position in the entity stream where the file wrote none.
+        ordinal += 1
+        handle = fields.get(5, [""])[0].strip()
+        source = f"{entity}:{handle}" if handle else f"{entity}:#{ordinal}"
         try:
             if entity == "LINE":
                 start = (float(fields[10][0]), float(fields[20][0]))
                 end = (float(fields[11][0]), float(fields[21][0]))
-                drawing.add(Polyline(layer, [start, end], closed=False))
+                drawing.add(Polyline(layer, [start, end], closed=False, source=source))
             elif entity == "LWPOLYLINE":
                 xs = [float(v) for v in fields.get(10, [])]
                 ys = [float(v) for v in fields.get(20, [])]
@@ -238,17 +253,20 @@ def parse(text: str) -> Drawing:
                     # keep the arc, drop its duplicate landing point.
                     points.extend(_bulge_points(points[-1], points[0], bulges[count - 1])[:-1])
                 if len(points) >= 2:
-                    drawing.add(Polyline(layer, points, closed))
+                    drawing.add(Polyline(layer, points, closed, source=source))
             elif entity == "POLYLINE":
                 in_polyline = True
                 poly_layer = layer
                 poly_closed = bool(int(fields.get(70, ["0"])[0]) & 1)
                 poly_points = []
+                poly_source = source
             elif entity == "VERTEX" and in_polyline:
                 poly_points.append((float(fields[10][0]), float(fields[20][0])))
             elif entity == "SEQEND" and in_polyline:
                 if len(poly_points) >= 2 and poly_layer is not None:
-                    drawing.add(Polyline(poly_layer, list(poly_points), poly_closed))
+                    drawing.add(
+                        Polyline(poly_layer, list(poly_points), poly_closed, source=poly_source)
+                    )
                 in_polyline = False
                 poly_points = []
             elif entity == "ARC":
@@ -256,7 +274,7 @@ def parse(text: str) -> Drawing:
                     float(fields[10][0]), float(fields[20][0]),
                     float(fields[40][0]), float(fields[50][0]), float(fields[51][0]),
                 )
-                drawing.add(Polyline(layer, points, closed=False))
+                drawing.add(Polyline(layer, points, closed=False, source=source))
             elif entity == "CIRCLE":
                 points = _arc_points(
                     float(fields[10][0]), float(fields[20][0]),
@@ -264,7 +282,7 @@ def parse(text: str) -> Drawing:
                 )
                 # The walk returns to its start; a closed polyline stores
                 # that point once.
-                drawing.add(Polyline(layer, points[:-1], closed=True))
+                drawing.add(Polyline(layer, points[:-1], closed=True, source=source))
             elif entity in ("TEXT", "MTEXT"):
                 # MTEXT longer than a group's 250 characters arrives as code-3
                 # chunks with the tail in code 1; TEXT is code 1 alone. Either
@@ -273,7 +291,7 @@ def parse(text: str) -> Drawing:
                 value = value.replace("\\P", " ").strip()
                 if value:
                     position = (float(fields[10][0]), float(fields[20][0]))
-                    drawing.texts.append(Label(layer, value, position))
+                    drawing.texts.append(Label(layer, value, position, source=source))
             elif entity not in _HANDLED:
                 drawing.skip(entity)
         except (KeyError, IndexError, ValueError):

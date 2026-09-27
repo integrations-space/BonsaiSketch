@@ -52,6 +52,7 @@ import importlib
 
 walls = importlib.import_module("bonsai_sketch_mode.walls")
 dxf = importlib.import_module("bonsai_sketch_mode.dxf")
+ir = importlib.import_module("bonsai_sketch_mode.ir")
 
 
 section("One wall, two lines")
@@ -159,6 +160,113 @@ check("runs are the shared intervals, jambs unextended",
       lengths == [2.6, 2.6, 3.6, 3.6], str(lengths))
 check("as_dict serialises for the report and the verbs",
       all(isinstance(f.as_dict(), dict) and f.as_dict()["sources"] for f in found))
+
+
+section("Source handles survive the explode")
+fixture_sources = "\n".join(
+    str(x) for pair in (
+        (0, "SECTION"), (2, "ENTITIES"),
+        (0, "LINE"), (5, "AB12"), (8, "WALLS"), (10, 0), (20, 0), (11, 4), (21, 0),
+        (0, "LINE"), (8, "WALLS"), (10, 0), (20, 0.2), (11, 4), (21, 0.2),
+        (0, "ENDSEC"), (0, "EOF"),
+    ) for x in pair
+) + "\n"
+sourced = dxf.parse(fixture_sources)
+handled, ordinal = sourced.layers["WALLS"]
+check("a file's own handle names the entity", handled.source == "LINE:AB12",
+      handled.source)
+check("a file without handles still names it, by position",
+      ordinal.source.startswith("LINE:#"), ordinal.source)
+seg_list, handles = walls.explode(sourced.layers["WALLS"])
+check("segment handles carry entity and place",
+      handles[0] == "LINE:AB12/0" and handles[1].endswith("/0"), str(handles))
+found_sourced, _ = walls.detect(seg_list, sources=handles)
+check("a candidate's provenance is the drawn entities, not list positions",
+      len(found_sourced) == 1 and "LINE:AB12/0" in found_sourced[0].sources,
+      str([f.sources for f in found_sourced]))
+
+
+section("Junctions: a room's four corners")
+source_map = ir.SourceMap()
+room_walls, room_junctions = walls.resolve(found, source_map)
+check("four semantic walls with deterministic names",
+      [w.id for w in room_walls] == ["W001", "W002", "W003", "W004"])
+check("four L junctions",
+      len(room_junctions) == 4 and all(j.kind == "L" for j in room_junctions),
+      str([(j.id, j.kind) for j in room_junctions]))
+resolved_lengths = sorted(round(w.length, 6) for w in room_walls)
+check("corners resolved: lengths grow to the centreline crossings",
+      resolved_lengths == [2.8, 2.8, 3.8, 3.8], str(resolved_lengths))
+check("every wall meets two junctions",
+      all(len(w.junctions) == 2 for w in room_walls),
+      str([w.junctions for w in room_walls]))
+check("identity survives the junction: thickness and sources untouched",
+      all(near(w.thickness, 0.2) and len(w.sources) == 2 for w in room_walls))
+check("each endpoint move is a written decision",
+      all(len(w.diagnostics) == 2 and "extended" in w.diagnostics[0]
+          for w in room_walls),
+      str([w.diagnostics for w in room_walls]))
+ops = [r["op"] for r in source_map.records]
+check("the source map holds the whole derivation",
+      ops.count("PAIR") == 4 and ops.count("JUNCTION") == 4
+      and ops.count("EXTEND") == 8 and ops.count("TRIM") == 0,
+      str({op: ops.count(op) for op in set(ops)}))
+check("asking about a wall walks its records",
+      len(source_map.about("W001")) >= 3, str(source_map.about("W001")))
+
+
+def candidate(start, end, thickness):
+    length = ((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2) ** 0.5
+    return walls.WallCandidate(start, end, thickness, length, (0, 1), ["stated by hand"])
+
+
+section("Junctions: T, X, acute, mixed thickness")
+t_walls, t_junctions = walls.resolve([
+    candidate((0.0, 0.0), (2.0, 0.0), 0.2),
+    candidate((1.0, 0.2), (1.0, 2.0), 0.2),
+])
+check("a T: the stem extends, the bar stands still",
+      len(t_junctions) == 1 and t_junctions[0].kind == "T"
+      and near_point(t_walls[1].start, (1.0, 0.0))
+      and near_point(t_walls[0].start, (0.0, 0.0)) and near_point(t_walls[0].end, (2.0, 0.0)),
+      str([w.as_dict() for w in t_walls]))
+check("the bar still knows the junction happened on it",
+      t_walls[0].junctions == [t_junctions[0].id])
+
+x_walls, x_junctions = walls.resolve([
+    candidate((0.0, 0.0), (4.0, 0.0), 0.2),
+    candidate((2.0, -2.0), (2.0, 2.0), 0.2),
+])
+check("an X: recorded, nothing moved",
+      len(x_junctions) == 1 and x_junctions[0].kind == "X"
+      and all(not w.diagnostics for w in x_walls))
+
+acute_walls, acute_junctions = walls.resolve([
+    candidate((0.0, 0.0), (1.8, 0.0), 0.1),
+    candidate((2.0, 0.1), (3.0, 1.1), 0.1),
+])
+check("a 45-degree corner meets where the centrelines cross",
+      len(acute_junctions) == 1 and acute_junctions[0].kind == "L"
+      and near_point(acute_walls[0].end, (1.9, 0.0))
+      and near_point(acute_walls[1].start, (1.9, 0.0)),
+      str([w.as_dict() for w in acute_walls]))
+
+thick_walls, thick_junctions = walls.resolve([
+    candidate((0.0, 0.0), (1.65, 0.0), 0.3),
+    candidate((2.0, 0.35), (2.0, 2.0), 0.1),
+])
+check("mixed thicknesses reach by their sum",
+      len(thick_junctions) == 1
+      and near_point(thick_walls[0].end, (2.0, 0.0))
+      and near_point(thick_walls[1].start, (2.0, 0.0)),
+      str([w.as_dict() for w in thick_walls]))
+
+parallel_walls, parallel_junctions = walls.resolve([
+    candidate((0.0, 0.0), (2.0, 0.0), 0.2),
+    candidate((2.1, 0.01), (4.1, 0.08), 0.2),
+])
+check("near-parallel continuations are not junctions",
+      parallel_junctions == [] and all(not w.diagnostics for w in parallel_walls))
 
 
 section("Words on the drawing")
