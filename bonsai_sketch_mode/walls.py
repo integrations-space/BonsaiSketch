@@ -381,3 +381,192 @@ def resolve(
             source_map.record("EXTEND" if grew else "TRIM", [wall.id, junction.id], wall.id, note)
 
     return semantic, junctions
+
+
+# --- Continuation merging -----------------------------------------------
+#
+# The stricter sibling of the opening merge. An opening justified its
+# merge with independent evidence -- the gap was a doorway. Here the only
+# evidence is the geometry itself, so every predicate is written down and
+# any failure keeps the walls apart with the failing predicate named.
+# Geometric continuity is not semantic identity: two collinear runs a
+# hair apart are almost certainly one drawn wall split by drafting, but
+# they could be two deliberately separate construction types butted
+# together, and nothing on a plan tells those apart. A merge here is
+# MERGE_GEOMETRY only, with the assumption on the record.
+
+#: Ends this close are drafting fragmentation; anything wider is either
+#: an opening (the opening detector's range starts at 0.40) or a real
+#: gap that means something.
+CONTINUATION_GAP = 0.05
+
+#: Pairs whose nearest ends sit within this window are worth judging at
+#: all; everything farther is not a continuation question.
+CONSIDERATION_GAP = 0.30
+CONSIDERATION_ANGLE_DEGREES = 3.0
+
+
+def merge_continuations(
+    walls_list,
+    junctions=(),
+    openings=(),
+    source_map: Optional[ir.SourceMap] = None,
+    first: int = 1,
+    same_class: bool = True,
+    same_storey: bool = True,
+) -> tuple[list, list]:
+    """(walls after merges, MergeCandidates considered) for one layer.
+
+    Every pair whose facing ends fall inside the consideration window
+    gets a :class:`~.ir.MergeCandidate` -- merged or kept, the judgement
+    is on the record either way. ``same_class`` and ``same_storey`` are
+    the caller's testimony (walls from one classified layer of one plan
+    satisfy both); they are recorded as predicates so the record stays
+    honest when a future caller mixes sources.
+    """
+    walls_list = list(walls_list)
+    candidates_out: list = []
+    sin_consider = math.sin(math.radians(CONSIDERATION_ANGLE_DEGREES))
+    sin_collinear = math.sin(math.radians(ANGLE_TOLERANCE_DEGREES))
+
+    merged = True
+    while merged:
+        merged = False
+        for i in range(len(walls_list)):
+            a = walls_list[i]
+            # The wall's own drawn direction, not the canonical one: the
+            # merge moves a.end, so "beyond the end" must mean this end.
+            # Walls out of detect() are canonically oriented anyway; a
+            # hand-built wall keeps whatever orientation it stated.
+            dxa, dya = a.end[0] - a.start[0], a.end[1] - a.start[1]
+            len_a = math.hypot(dxa, dya)
+            if len_a < 1e-9:
+                continue
+            uxa, uya = dxa / len_a, dya / len_a
+            ax, ay = a.start
+            for j in range(len(walls_list)):
+                if j == i:
+                    continue
+                b = walls_list[j]
+                dxb, dyb = b.end[0] - b.start[0], b.end[1] - b.start[1]
+                len_b = math.hypot(dxb, dyb)
+                if len_b < 1e-9:
+                    continue
+                if abs(uxa * dyb - uya * dxb) > sin_consider * len_b:
+                    continue
+                alongs = []
+                laterals = []
+                for px, py in (b.start, b.end):
+                    rx, ry = px - ax, py - ay
+                    alongs.append(uxa * rx + uya * ry)
+                    laterals.append(abs(uxa * ry - uya * rx))
+                b_near, _b_far = sorted(alongs)
+                gap = b_near - len_a
+                if not -CONTINUATION_GAP <= gap <= CONSIDERATION_GAP:
+                    continue  # not a continuation question at all
+
+                joint_along = len_a + max(gap, 0.0) / 2.0
+                joint = (ax + uxa * joint_along, ay + uya * joint_along)
+                reach = max(a.thickness, b.thickness)
+                terminating = any(
+                    math.hypot(junction.point[0] - joint[0],
+                               junction.point[1] - joint[1]) <= reach
+                    and any(w not in (a.id, b.id) for w in junction.walls)
+                    for junction in junctions
+                )
+                # An opening already explains geometry near the joint on
+                # either wall: this break is that stage's business.
+                b_near_is_start = alongs[0] <= alongs[1]
+                conflicting = False
+                for opening in openings:
+                    if (opening.host_wall == a.id
+                            and abs(opening.position - joint_along) <= opening.width):
+                        conflicting = True
+                    if opening.host_wall == b.id:
+                        end_distance = (opening.position if b_near_is_start
+                                        else b.length - opening.position)
+                        if end_distance <= opening.width:
+                            conflicting = True
+                predicates = {
+                    "collinear": (
+                        abs(uxa * dyb - uya * dxb) <= sin_collinear * len_b
+                        and max(laterals) <= LATERAL_TOLERANCE_MERGE
+                    ),
+                    "gap": round(max(gap, 0.0), 6),
+                    "gap_within": -CONTINUATION_GAP <= gap <= CONTINUATION_GAP,
+                    "thickness_match": abs(a.thickness - b.thickness) <= 0.1 * a.thickness,
+                    "class_match": bool(same_class),
+                    "storey_match": bool(same_storey),
+                    "terminating_junction": terminating,
+                    "conflicting_opening": conflicting,
+                }
+                passed = (
+                    predicates["collinear"]
+                    and predicates["gap_within"]
+                    and predicates["thickness_match"]
+                    and predicates["class_match"]
+                    and predicates["storey_match"]
+                    and not predicates["terminating_junction"]
+                    and not predicates["conflicting_opening"]
+                )
+                merge_id = "M%03d" % (first + len(candidates_out))
+                if not passed:
+                    failed = next(
+                        name for name, want in (
+                            ("collinear", True), ("gap_within", True),
+                            ("thickness_match", True), ("class_match", True),
+                            ("storey_match", True), ("terminating_junction", False),
+                            ("conflicting_opening", False),
+                        )
+                        if predicates[name] is not want
+                    )
+                    candidates_out.append(ir.MergeCandidate(
+                        merge_id, [a.id, b.id], predicates,
+                        "KEEP_SEMANTICALLY_SEPARATE",
+                        f"predicate {failed} refused the merge",
+                    ))
+                    continue
+
+                candidates_out.append(ir.MergeCandidate(
+                    merge_id, [a.id, b.id], predicates, "MERGE_GEOMETRY",
+                    "semantic identity assumed -- no type or material evidence either way",
+                ))
+                far_point = b.start if alongs[0] > alongs[1] else b.end
+                for prior in openings:
+                    if prior.host_wall != b.id:
+                        continue
+                    absolute = (b.start[0] + (b.end[0] - b.start[0])
+                                * (prior.position / b.length),
+                                b.start[1] + (b.end[1] - b.start[1])
+                                * (prior.position / b.length))
+                    prior.position = (
+                        uxa * (absolute[0] - ax) + uya * (absolute[1] - ay)
+                    )
+                    prior.host_wall = a.id
+                    prior.diagnostics.append(
+                        f"host merged into {a.id} by {merge_id}; position re-anchored"
+                    )
+                a.end = tuple(far_point)
+                a.sources = list(a.sources) + list(b.sources)
+                a.junctions = list(a.junctions) + list(b.junctions)
+                a.diagnostics.append(
+                    f"geometry continued with {b.id} as {merge_id}; "
+                    "semantic identity assumed, not shown"
+                )
+                if source_map is not None:
+                    source_map.record(
+                        "MERGE", [a.id, b.id, merge_id], a.id,
+                        f"continuation across a {predicates['gap']:.3f} m break",
+                    )
+                del walls_list[j]
+                merged = True
+                break
+            if merged:
+                break
+    return walls_list, candidates_out
+
+
+#: How far off a shared line two "collinear" runs may sit. Tighter than
+#: the opening merge's tolerance on purpose: an opening had independent
+#: evidence, a continuation has only the geometry.
+LATERAL_TOLERANCE_MERGE = 0.02

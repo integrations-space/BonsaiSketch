@@ -141,6 +141,40 @@ class Junction:
         }
 
 
+class MergeCandidate:
+    """Two walls that might be one, judged by named predicates.
+
+    Geometric continuity and semantic identity are different claims. Two
+    collinear runs a hair apart are almost certainly one drawn wall split
+    by drafting -- but they could also be two deliberately separate
+    construction types butted together, and until type or material
+    evidence exists nothing on the plan can tell those apart. So the
+    decision here is ``MERGE_GEOMETRY``, never "same wall in every
+    sense": the geometry joins, and the record says semantic identity is
+    assumed, not shown. Any failed predicate makes the decision
+    ``KEEP_SEMANTICALLY_SEPARATE`` with the failing predicate named --
+    a refusal a person can audit, not a threshold someone tuned.
+    """
+
+    __slots__ = ("id", "walls", "predicates", "decision", "note")
+
+    def __init__(self, id, walls, predicates, decision, note=""):
+        self.id = id
+        self.walls = list(walls)
+        self.predicates = dict(predicates)
+        self.decision = decision  #: MERGE_GEOMETRY | KEEP_SEMANTICALLY_SEPARATE
+        self.note = note
+
+    def as_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "walls": list(self.walls),
+            "predicates": dict(self.predicates),
+            "decision": self.decision,
+            "note": self.note,
+        }
+
+
 class OpeningCandidate:
     """A break in a wall that several kinds of evidence may explain.
 

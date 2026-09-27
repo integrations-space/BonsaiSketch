@@ -1582,11 +1582,13 @@ plan_fixture = dxf_pairs(
     (9, "$INSUNITS"), (70, 4),
     (0, "ENDSEC"),
     (0, "SECTION"), (2, "ENTITIES"),
-    (0, "LINE"), (8, "WALLS"), (10, 0), (20, 0), (11, 4000), (21, 0),
+    (0, "LINE"), (8, "WALLS"), (10, 0), (20, 0), (11, 2500), (21, 0),
+    (0, "LINE"), (8, "WALLS"), (10, 2503), (20, 0), (11, 4000), (21, 0),
     (0, "LINE"), (8, "WALLS"), (10, 4000), (20, 0), (11, 4000), (21, 3000),
     (0, "LINE"), (8, "WALLS"), (10, 4000), (20, 3000), (11, 0), (21, 3000),
     (0, "LINE"), (8, "WALLS"), (10, 0), (20, 3000), (11, 0), (21, 2),
-    (0, "LINE"), (8, "WALLS"), (10, 200), (20, 200), (11, 3800), (21, 200),
+    (0, "LINE"), (8, "WALLS"), (10, 200), (20, 200), (11, 2500), (21, 200),
+    (0, "LINE"), (8, "WALLS"), (10, 2503), (20, 200), (11, 3800), (21, 200),
     (0, "LINE"), (8, "WALLS"), (10, 3800), (20, 200), (11, 3800), (21, 2800),
     (0, "LINE"), (8, "WALLS"), (10, 3800), (20, 2800), (11, 200), (21, 2800),
     (0, "LINE"), (8, "WALLS"), (10, 200), (20, 2800), (11, 200), (21, 200),
@@ -1623,15 +1625,22 @@ check("the layer no convention resolves is left for judgement",
       [u["layer"] for u in auto_report["unresolved"]] == [f"{auto_stem}/MYSTERY"],
       str(auto_report["unresolved"]))
 
-# Twelve source lines -> six candidates -> five semantic walls after the
-# doorway merges its host -> five IfcWall objects with stable GUIDs.
-# Dimensions stay measured facts: thickness off the drawing, lengths from
-# the junction-resolved centrelines, the merge on the record.
+# Fourteen source lines -> seven candidates -> five semantic walls after
+# the doorway merges its host and the drafting strokes merge by
+# predicate. Dimensions stay measured facts: thickness off the drawing,
+# lengths from the junction-resolved centrelines, every merge on the
+# record.
 auto_walls = auto_report["walls"]
-check("twelve drawn lines become five semantic walls",
+check("fourteen drawn lines become five semantic walls",
       len(auto_walls) == 5
-      and [w["id"] for w in auto_walls] == ["W001", "W002", "W003", "W004", "W005"],
+      and [w["id"] for w in auto_walls] == ["W001", "W002", "W003", "W004", "W006"],
       str([w["id"] for w in auto_walls]))
+check("the drafting strokes merged as geometry, semantics assumed",
+      len(auto_report["merges"]) == 1
+      and auto_report["merges"][0]["decision"] == "MERGE_GEOMETRY"
+      and auto_report["merges"][0]["predicates"]["collinear"] is True
+      and "assumed" in auto_report["merges"][0]["note"],
+      str(auto_report["merges"]))
 check("every thickness is the measured 200mm",
       all(abs(w["thickness"] - 0.2) < 1e-6 for w in auto_walls))
 check("corners and the doorway merge resolve the lengths",
@@ -1648,8 +1657,8 @@ check("five IfcWall objects with five stable GUIDs",
       all(auto_guids) and len(set(auto_guids)) == 5, str(auto_guids))
 auto_ops = [r["op"] for r in auto_report["source_map"]]
 check("the source map records the whole compilation",
-      auto_ops.count("PAIR") == 6 and auto_ops.count("JUNCTION") == 6
-      and auto_ops.count("EXTEND") == 10 and auto_ops.count("MERGE") == 1
+      auto_ops.count("PAIR") == 7 and auto_ops.count("JUNCTION") == 6
+      and auto_ops.count("EXTEND") == 10 and auto_ops.count("MERGE") == 2
       and auto_ops.count("OPEN") == 1 and auto_ops.count("EMIT") == 9
       and auto_ops.count("ENCLOSE") == 2 and auto_ops.count("LABEL") == 2
       and auto_ops.count("CONNECT") == 2,

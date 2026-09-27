@@ -216,8 +216,8 @@ def run(
     heights = heights or {}
     report: dict = {
         "path": path, "stages": [], "objects": [], "unresolved": [],
-        "walls": [], "junctions": [], "openings": [], "spaces": [],
-        "source_map": [],
+        "walls": [], "junctions": [], "openings": [], "merges": [],
+        "spaces": [], "source_map": [],
     }
 
     def stage(name: str, ok: bool, note: str, **extra) -> bool:
@@ -324,6 +324,7 @@ def run(
     # interrupted host merges across its gap with the merge on the record.
     # Only then does every wall become its own standing solid.
     all_openings: list = []
+    all_merges: list = []
     per_wall: list = []       # (object, proposal, SemanticWall)
     for proposal, semantic, glazing_segs, glazing_srcs in wall_layers:
         found, semantic = openings.detect(
@@ -336,19 +337,33 @@ def run(
             first=len(all_openings) + 1,
         )
         all_openings.extend(found)
+        # Continuation after openings: doorway gaps are already
+        # explained, so what remains is drafting fragmentation, judged
+        # predicate by predicate and recorded either way.
+        semantic, merges = walls.merge_continuations(
+            semantic,
+            junctions=all_junctions,
+            openings=all_openings,
+            source_map=source_map,
+            first=len(all_merges) + 1,
+        )
+        all_merges.extend(merges)
         target = float(heights.get(proposal.layer.rsplit("/", 1)[-1], height))
         for wall in semantic:
             wall_obj = _wall_object(context, f"{proposal.layer}/{wall.id}", wall, target)
             per_wall.append((wall_obj, proposal, wall))
     report["walls"] = [wall.as_dict() for _o, _p, wall in per_wall]
     report["openings"] = [o.as_dict() for o in all_openings]
+    report["merges"] = [m.as_dict() for m in all_merges]
     resolved_openings = sum(1 for o in all_openings if o.status == "resolved")
+    continued = sum(1 for m in all_merges if m.decision == "MERGE_GEOMETRY")
     stage(
         "OPENINGS",
         True,
         f"{len(all_openings)} opening(s) anchored on wall gaps; "
         f"{resolved_openings} resolved by converging evidence, "
-        f"{len(all_openings) - resolved_openings} awaiting judgement",
+        f"{len(all_openings) - resolved_openings} awaiting judgement; "
+        f"{continued} continuation(s) merged of {len(all_merges)} considered",
     )
 
     # STAND -- everything the wall reading did not claim.

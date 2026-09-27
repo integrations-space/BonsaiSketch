@@ -269,6 +269,83 @@ check("near-parallel continuations are not junctions",
       parallel_junctions == [] and all(not w.diagnostics for w in parallel_walls))
 
 
+section("Continuation merging: predicates, not thresholds")
+split = [candidate((0.0, 0.0), (2.0, 0.0), 0.2),
+         candidate((2.003, 0.0), (5.0, 0.0), 0.2)]
+merged_walls, verdicts = walls.merge_continuations(walls.resolve(split)[0])
+check("a 3mm drafting break merges the geometry",
+      len(merged_walls) == 1 and near(merged_walls[0].length, 5.0),
+      str([w.as_dict() for w in merged_walls]))
+check("the decision is MERGE_GEOMETRY, with the predicates on it",
+      len(verdicts) == 1 and verdicts[0].decision == "MERGE_GEOMETRY"
+      and verdicts[0].predicates["collinear"] is True
+      and verdicts[0].predicates["thickness_match"] is True,
+      str(verdicts[0].as_dict()))
+check("semantic identity is assumed, not shown",
+      "assumed" in verdicts[0].note
+      and any("assumed" in d for d in merged_walls[0].diagnostics))
+check("the merge carries both walls' provenance",
+      len(merged_walls[0].sources) == 4, str(merged_walls[0].sources))
+
+mismatch = walls.resolve([candidate((0.0, 0.0), (2.0, 0.0), 0.3),
+                          candidate((2.003, 0.0), (5.0, 0.0), 0.1)])[0]
+kept_walls, kept = walls.merge_continuations(mismatch)
+check("different thicknesses keep the walls apart, predicate named",
+      len(kept_walls) == 2 and kept[0].decision == "KEEP_SEMANTICALLY_SEPARATE"
+      and "thickness_match" in kept[0].note, str(kept[0].as_dict()))
+
+skew = walls.resolve([candidate((0.0, 0.0), (2.0, 0.0), 0.2),
+                      candidate((2.003, 0.06), (5.0, 0.06), 0.2)])[0]
+skew_walls, skew_verdicts = walls.merge_continuations(skew)
+check("off the shared line is not collinear",
+      len(skew_walls) == 2 and skew_verdicts[0].decision == "KEEP_SEMANTICALLY_SEPARATE"
+      and "collinear" in skew_verdicts[0].note, str(skew_verdicts[0].as_dict()))
+
+wide = walls.resolve([candidate((0.0, 0.0), (2.0, 0.0), 0.2),
+                      candidate((2.2, 0.0), (5.0, 0.0), 0.2)])[0]
+wide_walls, wide_verdicts = walls.merge_continuations(wide)
+check("a 200mm break is a real gap, not fragmentation",
+      len(wide_walls) == 2 and wide_verdicts
+      and wide_verdicts[0].decision == "KEEP_SEMANTICALLY_SEPARATE"
+      and "gap_within" in wide_verdicts[0].note, str([v.as_dict() for v in wide_verdicts]))
+
+# A third wall terminates exactly at the joint: that junction is a
+# statement, and the two runs stay two walls.
+tee = walls.resolve([
+    candidate((0.0, 0.1), (2.0, 0.1), 0.2),
+    candidate((2.01, 0.1), (5.0, 0.1), 0.2),
+    candidate((2.0, 0.3), (2.0, 3.0), 0.2),
+])
+term_walls, term_verdicts = walls.merge_continuations(tee[0], junctions=tee[1])
+check("a terminating junction keeps the walls apart",
+      len(term_walls) == 3
+      and any(v.decision == "KEEP_SEMANTICALLY_SEPARATE"
+              and "terminating_junction" in v.note for v in term_verdicts),
+      str([v.as_dict() for v in term_verdicts]))
+
+# An opening already explaining geometry at the joint vetoes the merge:
+# that break is the opening stage's business, not fragmentation.
+veto = walls.resolve([candidate((0.0, 0.0), (2.0, 0.0), 0.2),
+                      candidate((2.02, 0.0), (5.0, 0.0), 0.2)])[0]
+near_joint = ir.OpeningCandidate("O099", veto[0].id, 1.9, 0.9, [], ["stated by hand"])
+veto_walls, veto_verdicts = walls.merge_continuations(veto, openings=[near_joint])
+check("an opening at the joint keeps the walls apart",
+      len(veto_walls) == 2
+      and veto_verdicts[0].decision == "KEEP_SEMANTICALLY_SEPARATE"
+      and "conflicting_opening" in veto_verdicts[0].note,
+      str([v.as_dict() for v in veto_verdicts]))
+
+# Chained fragmentation: three strokes, one wall, two recorded merges.
+strokes = walls.resolve([candidate((0.0, 0.0), (1.5, 0.0), 0.2),
+                         candidate((1.503, 0.0), (3.0, 0.0), 0.2),
+                         candidate((3.004, 0.0), (5.0, 0.0), 0.2)])[0]
+stroke_walls, stroke_verdicts = walls.merge_continuations(strokes)
+check("three drafting strokes become one wall through two merges",
+      len(stroke_walls) == 1 and near(stroke_walls[0].length, 5.0, 1e-2)
+      and sum(1 for v in stroke_verdicts if v.decision == "MERGE_GEOMETRY") == 2,
+      str([v.as_dict() for v in stroke_verdicts]))
+
+
 section("Words on the drawing")
 fixture = "\n".join(
     str(x) for pair in (
