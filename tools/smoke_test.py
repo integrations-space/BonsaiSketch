@@ -1506,6 +1506,110 @@ check("an opened shell refuses a volume", open_volume is None, f"got {open_volum
 check("but its extents still speak", abs(open_extents[2] - 3.0) < 1e-6)
 
 
+# --- AutoModel pipeline --------------------------------------------------
+#
+# AutoModel stage 9: the whole road in one command -- a drawn plan in, an
+# IFC model that knows what it owes out. Every stage below is a module or
+# verb with its own checks above; what this section pins is the composition,
+# end to end against a real Bonsai project: the DXF's wall outline comes out
+# the far side as an IfcWall carrying its requirement sets, the values its
+# geometry states filled, and everything else -- the unresolvable layer, the
+# unanswerable Area -- reported rather than guessed.
+
+section("AutoModel pipeline")
+pipeline = addon.pipeline
+commands = addon.textmodel.commands
+check("auto_model operator registered", hasattr(bpy.ops.bonsai_sketch_mode, "auto_model"))
+check("auto_model is in the vocabulary", "auto_model" in commands.names())
+check("classify_layers is in the vocabulary", "classify_layers" in commands.names())
+
+# A millimetre plan: a 4000x200 wall outline on WALLS with a 2mm drafting
+# gap, and a layer no convention resolves.
+plan_fixture = dxf_pairs(
+    (0, "SECTION"), (2, "HEADER"),
+    (9, "$INSUNITS"), (70, 4),
+    (0, "ENDSEC"),
+    (0, "SECTION"), (2, "ENTITIES"),
+    (0, "LINE"), (8, "WALLS"), (10, 0), (20, 0), (11, 4000), (21, 0),
+    (0, "LINE"), (8, "WALLS"), (10, 4000), (20, 0), (11, 4000), (21, 200),
+    (0, "LINE"), (8, "WALLS"), (10, 4000), (20, 200), (11, 0), (21, 200),
+    (0, "LINE"), (8, "WALLS"), (10, 0), (20, 200), (11, 0), (21, 2),
+    (0, "LINE"), (8, "MYSTERY"), (10, 0), (20, 5000), (11, 1000), (21, 5000),
+    (0, "ENDSEC"), (0, "EOF"),
+)
+with tempfile.NamedTemporaryFile("w", suffix=".dxf", delete=False) as handle:
+    handle.write(plan_fixture)
+    auto_path = handle.name
+
+context.scene.bonsai_sketch_sg_stage = "detailed"
+context.scene.bonsai_sketch_sg_typology = "public_residential"
+auto_report = commands.run(
+    "auto_model", {"path": auto_path, "height": 3.0, "weld": 0.001, "gap": 0.005})
+
+ran = [entry["stage"] for entry in auto_report["stages"]]
+check("all eight stages ran",
+      ran == ["READ", "HEAL", "STAND", "CLASSIFY", "ASSIGN", "MCR", "FILL", "CHECK"],
+      str(ran))
+check("every stage that ran succeeded",
+      all(entry["ok"] for entry in auto_report["stages"]),
+      str([f"{e['stage']}: {e['note']}" for e in auto_report["stages"] if not e["ok"]]))
+
+auto_stem = os.path.splitext(os.path.basename(auto_path))[0]
+stand = next(e for e in auto_report["stages"] if e["stage"] == "STAND")
+check("the wall outline stood up to a measured volume",
+      abs(stand["volumes"].get(f"{auto_stem}/WALLS", 0) - 2.4) < 1e-6,
+      str(stand["volumes"]))
+
+check("the layer no convention resolves is left for judgement",
+      [u["layer"] for u in auto_report["unresolved"]] == [f"{auto_stem}/MYSTERY"],
+      str(auto_report["unresolved"]))
+
+check("one element came out the far side",
+      len(auto_report["objects"]) == 1
+      and auto_report["objects"][0]["ifc_class"] == "IfcWall",
+      str(auto_report["objects"]))
+
+# The element itself, not just the report: an IfcWall in a real project,
+# both requirement sets attached, the geometric questions answered in the
+# project's own units and the judgement ones still visibly open.
+auto_entity = [e for e in bridge.Ifc.get().by_type("IfcWall")
+               if bridge.Ifc.get_object(e) is not None][-1]
+auto_scale = derive._unit_scale(bridge.Ifc.get())
+auto_sg = ifcopenshell.util.element.get_pset(
+    auto_entity, psets.PSET_NAME, should_inherit=False) or {}
+auto_dl = ifcopenshell.util.element.get_pset(
+    auto_entity, psets.DELIVERY_PSET_NAME, should_inherit=False) or {}
+
+
+def about(value, metres, power=1):
+    expected = metres / auto_scale ** power
+    return value is not None and abs(value - expected) < 1e-4 * max(1.0, abs(expected))
+
+
+check("the wall's thickness fills from its geometry",
+      about(auto_sg.get("Thickness"), 0.2), f"got {auto_sg.get('Thickness')!r}")
+check("the delivery set's height and length fill in project units",
+      about(auto_dl.get("Height"), 3.0) and about(auto_dl.get("Length"), 4.0),
+      f"got {auto_dl.get('Height')!r}, {auto_dl.get('Length')!r}")
+check("the closed shell's volume fills, cubed into the units",
+      about(auto_dl.get("Volume"), 2.4, power=3), f"got {auto_dl.get('Volume')!r}")
+check("a wall's Area stays a question end to end",
+      auto_dl.get("Area", "sentinel") is None)
+check("a fire rating is still nobody's to guess",
+      auto_sg.get("Load Bearing", "sentinel") is None)
+check("the checker closes the loop on what is still owed",
+      "Thickness" not in auto_report["objects"][0]["check"]["missing"]
+      and "Load Bearing" in auto_report["objects"][0]["check"]["missing"],
+      str(auto_report["objects"][0]["check"]))
+
+check("the report is readable in the text editor",
+      pipeline.TEXT_NAME in bpy.data.texts
+      and "CLASSIFY" in bpy.data.texts[pipeline.TEXT_NAME].as_string())
+
+context.scene.bonsai_sketch_sg_typology = "none"
+os.unlink(auto_path)
+
+
 # --- Theme -------------------------------------------------------------------
 #
 # The one thing this add-on changes outside its own tab, so the promise that it

@@ -34,7 +34,7 @@ import os
 
 import bpy
 
-from . import bridge, classify, derive, dxf, ground, heal, keyconfig, marks, ops, requirements, sidebar, textmodel, theme, tools, workspace
+from . import bridge, classify, derive, dxf, ground, heal, keyconfig, marks, ops, pipeline, requirements, sidebar, textmodel, theme, tools, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
@@ -531,6 +531,10 @@ def register() -> None:
     # register_tool validates that the keymap targets exist.
     ops.register()
 
+    # The AutoModel pipeline rides behind the same File > Import door as the
+    # plain CAD import it extends, so finding one means finding both.
+    pipeline.register()
+
     _tools_status = tools.register()
     if not _tools_status[0]:
         print(f"[bonsai_sketch_mode] tools: {_tools_status[1]}")
@@ -578,6 +582,7 @@ def unregister() -> None:
     workspace.unregister_handlers()
     keyconfig.unload()
     tools.unregister()
+    pipeline.unregister()
     ops.unregister()
 
     for cls in reversed(classes):

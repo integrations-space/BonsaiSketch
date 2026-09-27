@@ -37,6 +37,7 @@ wrongly, and every verb here has a test behind it.
 
 from __future__ import annotations
 
+import os
 from typing import Any, Callable, Optional
 
 import bmesh
@@ -465,3 +466,63 @@ def _derive_values(params: dict) -> dict:
     report = derive.fill(ifc, entity, extents, volume=volume, base_area=base_area)
     report.update(object=obj.name, ifc_class=entity.is_a())
     return report
+
+
+@verb("classify_layers")
+def _classify_layers(params: dict) -> dict:
+    """Read layer names against the drafting conventions. Never guesses.
+
+    Given object names, or every sketch object when none are named. The
+    unresolved list is this verb's real product for an agent: those are the
+    layers whose classes are somebody's judgement, to be proposed through
+    the plan/approve flow rather than assigned by a table.
+    """
+    from .. import classify
+
+    names = params.get("objects")
+    if names is None:
+        names = _sketch_objects()
+    if not isinstance(names, (list, tuple)) or not all(isinstance(n, str) for n in names):
+        raise CommandError("'objects' must be a list of object names")
+    for name in names:
+        if name not in bpy.data.objects:
+            raise CommandError("no object named %r" % name)
+    resolved, unresolved = classify.classify_all(names)
+    return {
+        "resolved": [p.as_dict() for p in resolved],
+        "unresolved": [p.as_dict() for p in unresolved],
+    }
+
+
+@verb("auto_model")
+def _auto_model(params: dict) -> dict:
+    """The whole AutoModel pipeline: a drawn plan in, a reported model out.
+
+    Composes the other verbs rather than shadowing them, so an agent that
+    wants finer control runs the stages itself and gets identical results.
+    ``heights`` maps a layer name to its own standing height where one
+    number for the whole drawing is too blunt.
+    """
+    from .. import pipeline
+
+    path = params.get("path")
+    if not isinstance(path, str) or not path:
+        raise CommandError("'path' is required: the DXF or DWG to model from")
+    path = bpy.path.abspath(path)
+    if not os.path.isfile(path):
+        raise CommandError("no file at %r" % path)
+    heights = params.get("heights") or {}
+    if not isinstance(heights, dict):
+        raise CommandError("'heights' must map layer names to heights")
+    try:
+        heights = {str(k): float(v) for k, v in heights.items()}
+    except (TypeError, ValueError):
+        raise CommandError("'heights' values must be numbers")
+    return pipeline.run(
+        bpy.context,
+        path,
+        weld=_number(params, "weld", 0.001),
+        gap=_number(params, "gap", 0.01),
+        height=_number(params, "height", 3.0),
+        heights=heights,
+    )
