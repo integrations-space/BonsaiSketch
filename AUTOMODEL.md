@@ -281,47 +281,64 @@ parallel graph would be a second source of truth to keep honest. The
 report carries the relationships the stages discovered. Bidirectional
 DXF regeneration: out of scope for a sketch-first modeller.
 
-## The image route — agentic sketch-to-IFC (method, 2026-09-28)
+## The image route — rule-based first, agentic only at the gap (method, 2026-09-28)
 
-Concept sketches, presentation perspectives and photographs are the
-evidence architects actually start from, and they enter the pipeline the
-same way every other view does: as an *evidence provider*, never as an
-author of unverified geometry. The route reuses what already exists
-rather than inventing a parallel system:
+Concept sketches, presentation perspectives, scans and photographs are
+the evidence architects actually start from, and they enter the pipeline
+the same way every other view does: as an *evidence provider*, never as
+an author of unverified geometry. The governing rule, sharpened on
+review: **rule-based wherever rules can reach; an agent only where
+interpretation is genuinely unavoidable; and even there, the agent's
+only output is a reviewable description that deterministic tools
+compile.** No stage of the route may swap a rule for a model because the
+model is easier to reach for.
 
-1. **A vision-capable agent interprets; it does not model.** Through the
-   textmodel bridge (`textmodel/claude.py`), an agent reads the image and
-   emits a *building description* in the schema `autobuild.py` already
-   compiles (`openshrimp.building/1`) — massing volumes, storey count,
-   roof planes, opening positions — with every fact tagged by where in
-   the image it was read and whether it is **stated** (a labelled
-   dimension), **inferred** (proportion against a known element) or
-   **assumed** (a convention, named as one).
-2. **Controlling dimensions are human decisions.** An image without a
-   scale bar fixes proportions, not sizes. The description carries
-   REQUIRED slots (storey height, one plan dimension) that a person
-   fills; the agent never invents them, exactly as the drawing compiler
-   never invents a level. Image-derived facts rank below drawn geometry
-   and stated dimensions in the evidence hierarchy, so a later drawing
-   set corrects an image-seeded model through the normal Conflict route.
-3. **Deterministic tools do the modelling.** `autobuild.py` compiles the
-   description to native IFC; `modelcheck.py` reads the result back
-   independently; the source map records image region → description
-   fact → IFC GUID, unbroken.
-4. **The loop closes visually.** The camera tools (`camera.py`,
-   `ops/camera.py`) place a level, eye-height, two-point camera matched
-   to the source image's viewpoint, and the sketch render style
-   (`style.py`) renders the model in the same flat-and-ink language as
-   the sketch — so a person compares like with like and judges the
-   interpretation before anyone treats it as a model. Acceptance is a
-   person agreeing the render answers the sketch, plus the same
-   zero-silent-resolution gate every other route obeys.
+The ladder, by input, in build order:
 
-What ships today is stage 4 (cameras and style, CI-verified) and the
-stages 1–3 contracts, which already exist as code. Wiring a vision agent
-to emit the description is deliberately *not* started until a real image
-benchmark with hand-stated truth exists — the hold-out discipline
-applies to pictures exactly as it applies to drawings.
+1. **Vector CAD (DXF/DWG) — pure rules, built.** The AutoModel compiler
+   and the drawing-project route. No AI anywhere in the chain.
+2. **Raster orthogonal drawings (scans, plotted PDFs) — pure rules,
+   next.** Most "images" in practice are scanned plans and sections, and
+   they need no interpretation, only recovery: deskew and threshold,
+   vectorise the linework (classical thinning/tracing — deterministic,
+   parameterised, no learning), read text by OCR into the same label
+   grammar, and feed the result to the *existing* compiler, which
+   already knows how to refuse what it cannot read. A scan that
+   vectorises badly fails loudly into diagnostics, exactly as an
+   unhealed DXF does. This step multiplies the reach of everything
+   already built and contains zero model judgement.
+3. **Perspective sketches and photographs — rules first, judgement
+   last.** The geometry half is classical, not learned: line clustering,
+   vanishing-point estimation and camera resection recover the view;
+   known heights fix the scale. Only the *massing interpretation* — what
+   is wall, what is roof plane, what the sketch left undecided — is
+   judgement. That gap is filled by a person, or by a vision agent
+   *proposing*: either way the output is the `autobuild.py` building
+   description (`openshrimp.building/1`), every fact tagged **stated**,
+   **inferred** or **assumed**, with REQUIRED slots (storey height, one
+   plan dimension) that only a person may fill. Image-derived facts rank
+   below drawn geometry and stated dimensions in the evidence hierarchy,
+   so a later drawing set corrects an image-seeded model through the
+   normal Conflict route.
+
+Downstream of any of the three, everything is rules again:
+`autobuild.py` compiles the description to native IFC, `modelcheck.py`
+reads the result back independently, and the source map records image
+region → description fact → IFC GUID, unbroken. The loop closes
+visually: the camera tools (`camera.py`, `ops/camera.py`) place a
+level, eye-height, two-point camera matched to the source image's
+viewpoint, and the sketch render style (`style.py`) renders the model
+in the same flat-and-ink language as the sketch — so a person compares
+like with like and judges the interpretation before anyone treats it as
+a model. Acceptance is a person agreeing the render answers the sketch,
+plus the same zero-silent-resolution gate every other route obeys.
+
+What ships today is the visual loop (cameras and style, CI-verified)
+and the stage-3 contracts, which already exist as code. Step 2 — the
+rule-based raster route — comes before any vision agent, and the agent
+itself waits for an image benchmark with hand-stated truth: the
+hold-out discipline applies to pictures exactly as it applies to
+drawings.
 
 ## Progress log
 
@@ -491,3 +508,10 @@ applies to pictures exactly as it applies to drawings.
   description with provenance and REQUIRED slots, deterministic tools
   compile and check, and these cameras close the loop by rendering the
   model back in the sketch's own language for a person to judge.
+- **2026-09-28** — The image-route method sharpened on review: rule-based
+  wherever rules can reach, an agent only at the one gap interpretation
+  cannot be avoided, and its only output a reviewable description that
+  rules compile. Build order fixed accordingly: the raster route
+  (deskew, vectorise, OCR into the existing compiler -- classical image
+  processing, zero model judgement) comes before any vision agent, and
+  the vision agent waits for an image hold-out with hand-stated truth.
