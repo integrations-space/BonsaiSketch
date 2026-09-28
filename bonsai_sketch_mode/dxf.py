@@ -151,6 +151,7 @@ class Drawing:
         #: Entity types read past because this subset does not cover them,
         #: with counts. Reported, never silently dropped.
         self.skipped: dict[str, int] = {}
+        self.skipped_by_layer: dict[str, dict[str, int]] = {}
         #: The factor applied to every coordinate, and the unit name it came
         #: from -- "as drawn" when the file declared nothing usable.
         self.scale: float = 1.0
@@ -159,8 +160,10 @@ class Drawing:
     def add(self, polyline: Polyline) -> None:
         self.layers.setdefault(polyline.layer, []).append(polyline)
 
-    def skip(self, entity_type: str) -> None:
+    def skip(self, entity_type: str, layer: str = "0") -> None:
         self.skipped[entity_type] = self.skipped.get(entity_type, 0) + 1
+        counts = self.skipped_by_layer.setdefault(layer, {})
+        counts[entity_type] = counts.get(entity_type, 0) + 1
 
 
 def _pairs(text: str) -> Iterator[tuple[int, str]]:
@@ -339,11 +342,11 @@ def parse(text: str) -> Drawing:
                     position = (float(fields[10][0]), float(fields[20][0]))
                     drawing.inserts.append(Insert(layer, name, position, source=source))
             elif entity not in _HANDLED:
-                drawing.skip(entity)
+                drawing.skip(entity, layer)
         except (KeyError, IndexError, ValueError):
             # An entity missing the fields its type promises. Skipping it is
             # the recoverable reading; counting it keeps it visible.
-            drawing.skip(entity)
+            drawing.skip(entity, layer)
 
     pending_header: Optional[str] = None
     for code, value in _pairs(text):

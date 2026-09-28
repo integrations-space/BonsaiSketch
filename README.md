@@ -192,6 +192,21 @@ installed.
 
 ### Already have a plan drawn?
 
+For the new modular drawing-project prototype, its example IFC, supported
+components and remaining work, see [Drawing-to-model workflow](DRAWING_WORKFLOW.md).
+
+On the **Sketch** workspace, use the viewport's **Sketch > Import DXF / DWG...**
+menu, or press **N** and choose **Sketch > Import 2D Drawing > Import DXF / DWG...**.
+One button opens the file picker; select a drawing and confirm the import.
+Set **Extrude** in the picker to stand closed outlines up during the same import.
+The imported layers are selected, ready for **Stand Up Outlines** or IFC assignment.
+
+Import, gap repair and extrusion run locally with no API key or AI charges.
+Sketch Agents can propose supported modelling commands for your approval, but
+currently receives object names, dimensions and transforms rather than complete
+drawing linework. It does not automatically recognise walls, doors or rooms in
+an arbitrary plan. Its optional Anthropic API calls are billed by the provider.
+
 **`File` > `Import` > `CAD Drawing (.dxf/.dwg)`** brings a DXF in as sketch
 geometry, one object per layer, so choosing the layers that matter is ordinary
 selection and every tool above works on what arrives. Outlines the drafter
@@ -209,10 +224,13 @@ extrusion with its own height, gap and weld, re-adjustable in the panel after
 each run. WALLS at 3 m, PARTITIONS at 2.4 m, one selection at a time. Layers
 already standing are left alone rather than doubled.
 
-DWG needs the free [ODA File Converter](https://www.opendesign.com/guestfiles/oda_file_converter)
-installed and pointed at in the add-on preferences — it is a proprietary
+DWG needs [ODA File Converter](https://www.opendesign.com/guestfiles/oda_file_converter)
+installed; standard installations are detected automatically, and a custom path
+can be set in the add-on preferences or DWG file picker. DWG is a proprietary
 format, and converting is the honest route. Without it, the import explains
-itself instead of failing.
+itself instead of failing. ODA's [FAQ](https://www.opendesign.com/faq/question/what-are-oda-viewer-and-oda-file-converter)
+limits use by non-members to non-commercial applications; check its terms for
+your use. DXF import does not require ODA.
 
 ### If something does not work
 
@@ -257,6 +275,19 @@ and the Eraser refuses to delete one — that is a modelled decision with data
 hanging off it, for Bonsai's own delete.
 
 ## IFC+SG and Sketch Agents
+
+**IFC+SG field setup now comes with Sketch.** Its bundled CORENET X mapping
+(4 December 2025) adds applicable property sets and empty, typed fields to new
+IFC4 elements created in **BIM or Sketch**. No separate download or AI key is
+needed. Plain sketches receive IFC fields when classified. Existing values are
+preserved; enter design values in Bonsai's property editor. The per-scene
+**Set up IFC+SG fields automatically** switch is in the Sketch IFC+SG panel.
+
+The published mapping covers a subset of classes/subtypes. Unsupported or
+ambiguous mappings are skipped, and existing models are not backfilled on open.
+Automatic setup does not certify compliance or guess fire ratings, material
+grades, dimensions or other design values. The stage checklist below remains
+a separate review tool. See the [scope and source details](bonsai_sketch_mode/AGENTS_WORKFLOW.md#automatic-fields-bundled-with-sketch).
 
 The **Sketch > IFC+SG Requirements** sidebar panel shows candidate requirements
 for the selected IFC element and project stage. **Check Selected IFC+SG** writes

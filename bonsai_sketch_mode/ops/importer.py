@@ -42,6 +42,7 @@ rather than failing quietly.
 from __future__ import annotations
 
 import os
+import glob
 import shutil
 import subprocess
 import tempfile
@@ -55,6 +56,26 @@ from .. import dxf, heal, sketchmesh
 
 #: How long a DWG conversion may take before it is declared stuck, in seconds.
 CONVERT_TIMEOUT = 120
+
+
+def find_oda_converter(configured: str = "") -> str:
+    """Respect an explicit path, otherwise discover a standard ODA installation."""
+    if configured:
+        return bpy.path.abspath(configured)
+    on_path = shutil.which("ODAFileConverter")
+    if on_path:
+        return on_path
+    patterns = ["/Applications/ODAFileConverter*.app/Contents/MacOS/ODAFileConverter"]
+    for base in (os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)")):
+        if base:
+            patterns.append(os.path.join(base, "ODA", "ODAFileConverter*", "ODAFileConverter.exe"))
+    return next((path for pattern in patterns for path in sorted(glob.glob(pattern), reverse=True)
+                 if os.path.isfile(path)), "")
+
+
+def import_preferences(context):
+    addon = context.preferences.addons.get(__package__.rsplit(".", 1)[0])
+    return addon.preferences if addon else None
 
 
 def layer_object(context: bpy.types.Context, name: str) -> bpy.types.Object:
@@ -189,8 +210,8 @@ def convert_dwg(path: str, converter: str) -> tuple[Optional[str], str]:
     if not converter:
         return None, (
             "DWG is a proprietary format; converting it needs ODA File Converter "
-            "(free, from opendesign.com). Install it and point the add-on "
-            "preferences at the executable"
+            "from opendesign.com (subject to ODA's licence terms). Install it "
+            "or set its executable path in the file picker or add-on preferences"
         )
     if not os.path.isfile(converter):
         return None, f"ODA File Converter not found at {converter!r} -- check the preference"
@@ -269,12 +290,31 @@ class BONSAI_SKETCH_MODE_OT_import_cad(bpy.types.Operator, ImportHelper):
         layout.prop(self, "weld")
         layout.prop(self, "gap")
         layout.prop(self, "extrude")
+        if self.filepath.lower().endswith(".dwg"):
+            prefs = import_preferences(context)
+            converter = find_oda_converter(getattr(prefs, "oda_converter", ""))
+            if converter and os.path.isfile(converter):
+                layout.label(text="DWG converter ready", icon="CHECKMARK")
+            else:
+                layout.label(text="DWG needs ODA File Converter", icon="ERROR")
+                if prefs:
+                    layout.prop(prefs, "oda_converter")
+                layout.operator("wm.url_open", text="Get ODA File Converter", icon="URL").url = (
+                    "https://www.opendesign.com/guestfiles/oda_file_converter")
+                layout.label(text="Subject to ODA's licence terms")
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == "OBJECT"
 
     def execute(self, context: bpy.types.Context):
         path = self.filepath
+        if not path.lower().endswith((".dxf", ".dwg")):
+            self.report({"ERROR"}, "Choose a DXF or DWG drawing")
+            return {"CANCELLED"}
         if path.lower().endswith(".dwg"):
-            prefs = context.preferences.addons.get(__package__.rsplit(".", 1)[0])
-            converter = getattr(prefs.preferences, "oda_converter", "") if prefs else ""
+            prefs = import_preferences(context)
+            converter = find_oda_converter(getattr(prefs, "oda_converter", ""))
             converted, why_not = convert_dwg(path, converter)
             if converted is None:
                 self.report({"ERROR"}, why_not)
@@ -300,6 +340,8 @@ class BONSAI_SKETCH_MODE_OT_import_cad(bpy.types.Operator, ImportHelper):
         objects, notes, _stats = build(
             context, drawing, stem, self.weld, self.gap, self.extrude
         )
+        for obj in context.selected_objects:
+            obj.select_set(False)
         for obj in objects:
             obj.select_set(True)
         if objects:
@@ -472,3 +514,20 @@ def menu_entry(self, context: bpy.types.Context) -> None:
 
 def object_menu_entry(self, context: bpy.types.Context) -> None:
     self.layout.operator(BONSAI_SKETCH_MODE_OT_stand_up.bl_idname)
+
+
+class BONSAI_SKETCH_MODE_MT_sketch(bpy.types.Menu):
+    bl_label = "Sketch"
+    bl_idname = "BONSAI_SKETCH_MODE_MT_sketch"
+
+    def draw(self, context):
+        self.layout.operator_context = "INVOKE_DEFAULT"
+        self.layout.operator(BONSAI_SKETCH_MODE_OT_import_cad.bl_idname,
+                             text="Import DXF / DWG...", icon="IMPORT")
+        self.layout.operator(BONSAI_SKETCH_MODE_OT_stand_up.bl_idname)
+
+
+def sketch_menu_entry(self, context):
+    from ..workspace import WORKSPACE_NAME
+    if context.workspace and context.workspace.name == WORKSPACE_NAME:
+        self.layout.menu(BONSAI_SKETCH_MODE_MT_sketch.bl_idname)

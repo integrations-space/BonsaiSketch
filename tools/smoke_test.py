@@ -851,16 +851,33 @@ check("a crossing loop is recognised, an honest one is not",
 # The whole pipeline through the real operator, extruding 2m.
 import os
 import tempfile
+from unittest.mock import patch
+
+check("Sketch import menu and drawing panel are registered",
+      hasattr(bpy.types, "BONSAI_SKETCH_MODE_MT_sketch")
+      and hasattr(bpy.types, "BONSAI_SKETCH_MODE_PT_drawing"))
+with patch.object(addon.ops.importer.shutil, "which", return_value="/fixture/ODAFileConverter"):
+    check("DWG converter is discovered on PATH",
+          addon.ops.importer.find_oda_converter() == "/fixture/ODAFileConverter")
+    check("explicit DWG converter takes precedence",
+          addon.ops.importer.find_oda_converter("/custom/ODAFileConverter")
+          == bpy.path.abspath("/custom/ODAFileConverter"))
 
 context.view_layer.objects.active = None
 for existing in list(bpy.data.objects):
     existing.select_set(False)
+previous_selection = list(context.scene.objects)[:1]
+for existing in previous_selection:
+    existing.select_set(True)
 with tempfile.NamedTemporaryFile("w", suffix=".dxf", delete=False) as handle:
     handle.write(fixture)
     plan_path = handle.name
 result = bpy.ops.bonsai_sketch_mode.import_cad(
     filepath=plan_path, weld=0.001, gap=0.005, extrude=2.0)
 check("the import operator finishes", result == {"FINISHED"}, str(result))
+check("import selects only the new drawing layers",
+      len(context.selected_objects) == 2
+      and not any(obj.select_get() for obj in previous_selection))
 
 plan_stem = os.path.splitext(os.path.basename(plan_path))[0]
 walls_obj = bpy.data.objects.get(f"{plan_stem}/WALLS")

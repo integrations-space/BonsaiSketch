@@ -29,11 +29,14 @@ from .eraser import BONSAI_SKETCH_MODE_OT_eraser
 from .importer import (
     BONSAI_SKETCH_MODE_OT_import_cad,
     BONSAI_SKETCH_MODE_OT_stand_up,
+    BONSAI_SKETCH_MODE_MT_sketch,
+    sketch_menu_entry,
     menu_entry,
     object_menu_entry,
 )
 from .line import BONSAI_SKETCH_MODE_OT_line
 from .offset import BONSAI_SKETCH_MODE_OT_offset
+from .drawing_project import BONSAI_SKETCH_MODE_OT_build_drawing_project
 from .pushpull import BONSAI_SKETCH_MODE_OT_push_pull
 from .rectangle import BONSAI_SKETCH_MODE_OT_rectangle
 
@@ -45,6 +48,7 @@ ERASER_OP = BONSAI_SKETCH_MODE_OT_eraser.bl_idname
 IMPORT_OP = BONSAI_SKETCH_MODE_OT_import_cad.bl_idname
 
 classes = (
+    BONSAI_SKETCH_MODE_OT_build_drawing_project,
     BONSAI_SKETCH_MODE_OT_line,
     BONSAI_SKETCH_MODE_OT_rectangle,
     BONSAI_SKETCH_MODE_OT_push_pull,
@@ -52,6 +56,7 @@ classes = (
     BONSAI_SKETCH_MODE_OT_eraser,
     BONSAI_SKETCH_MODE_OT_import_cad,
     BONSAI_SKETCH_MODE_OT_stand_up,
+    BONSAI_SKETCH_MODE_MT_sketch,
 )
 
 
@@ -60,12 +65,14 @@ def register() -> None:
         bpy.utils.register_class(cls)
     bpy.types.TOPBAR_MT_file_import.append(menu_entry)
     bpy.types.VIEW3D_MT_object.append(object_menu_entry)
+    bpy.types.VIEW3D_MT_editor_menus.append(sketch_menu_entry)
 
 
 def unregister() -> None:
     for menu, entry in (
         (bpy.types.TOPBAR_MT_file_import, menu_entry),
         (bpy.types.VIEW3D_MT_object, object_menu_entry),
+        (bpy.types.VIEW3D_MT_editor_menus, sketch_menu_entry),
     ):
         try:
             menu.remove(entry)

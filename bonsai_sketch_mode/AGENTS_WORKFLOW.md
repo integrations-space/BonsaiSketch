@@ -2,6 +2,19 @@
 
 ## Setup and use
 
+**Import a plan:** In the Sketch workspace, choose **Sketch > Import DXF / DWG...**
+from the viewport menu, or use **Sketch > Import 2D Drawing** in the N sidebar.
+Select the drawing and confirm. Gap repair, face creation and optional **Extrude**
+run locally with no AI fees. DWG requires ODA File Converter, detected on PATH or
+in standard Windows/macOS locations; an explicit add-on preference takes priority.
+The file picker offers converter setup when a DWG is selected and ODA is missing.
+ODA's own licence terms apply; DXF import needs no external converter.
+
+Sketch Agents can review imported objects and propose supported commands, but
+its context currently contains names, dimensions and transforms, not the full
+linework. Automatic recognition of a complete floor plan is not implemented.
+The optional Anthropic workflow requires an API key and incurs provider charges.
+
 On Windows, install Blender 5.0 or 5.2 and close it, then double-click
 [`Install-Bonsai-Sketch.cmd`](../Install-Bonsai-Sketch.cmd). It installs and enables
 Bonsai and Sketch Mode automatically; no folder copying or separate agent
@@ -37,6 +50,39 @@ API keys are not written into the generated review or execution reports.
 
 ## IFC+SG scope and sources
 
+### Automatic fields bundled with Sketch
+
+Installing Sketch also installs `data/ifc_sg_mapping.json`, extracted from the
+official CORENET X **CX Pilot Mapping, 4 December 2025**. No separate workbook
+import, server, subscription or AI request is needed by the user.
+
+**Set up IFC+SG fields automatically** is on by default per Blender scene. It
+adds mapped property names with null values to new **IFC4** occurrences created
+through Bonsai in either BIM or Sketch, including classified sketch meshes,
+copies and construction-type assignment. Matching uses the IFC class and effective
+predefined/custom subtype. Existing occurrence and inherited values are preserved.
+Plain meshes stay unclassified; IFC2X3, IFC4X3 and unmapped classes are not altered.
+Opening an existing model does not backfill it or change its authored values.
+
+Fields are saved in the IFC file and participate in the creating operation's
+IFC undo transaction. SGPset templates provide the native Bonsai editor with
+field types. Fill in design values in Bonsai's property editor; blank fields do
+not satisfy a requirement. Accepted-value guidance is retained in template
+descriptions, but controlled-value validation is not implemented by this setup.
+
+This source is a published subset, with no machine-readable gateway conditions.
+Its 657 explicit bindings are bundled; 176 reference, ambiguous, conflicting or
+damaged rows are recorded as excluded instead of guessed. The stage selector
+below still controls the separate candidate checklist, not automatic field
+creation. Authored property sets are not renamed or removed on subtype changes.
+When a newly assigned construction type supplies a value, an empty placeholder
+created by Sketch is removed so that it does not hide the inherited value.
+
+Regenerate with `python tools/extract_ifc_sg_mapping.py <official-workbook.xlsx>`.
+The JSON records its source URL, revision, workbook SHA-256 and source row numbers.
+Run `blender --background --python-exit-code 1 --python tools/sg_defaults_check.py`
+using an isolated profile with Bonsai and the current Sketch build installed.
+
 The shipped `data/ifc_sg.json` is extracted from **IFC+SG Model Content
 Requirements V2.0, 20 Mar 2026**; its class mapping is separately maintained in
 `data/ifc_sg_classes.json`. `tools/extract_ifc_sg.py` regenerates the checklist
@@ -47,7 +93,8 @@ The checker retains stage, discipline and sub-element context, reports exact
 property paths as evidence, and accepts zero and false as populated values.
 Unknown classes remain unmapped. Roof slabs use Roof candidates; non-ceiling
 coverings are not silently checked as ceilings. Inherited type properties are
-included. No empty or invented SGPsets are written into the model.
+included. That checklist does not write property sets. Automatic setup uses the
+separate exact mapping above to create empty fields for design input.
 
 A present property name means **present, unverified**. The checklist cannot prove
 that the correct Pset, type, units, controlled value, applicability, geometry or

@@ -134,6 +134,24 @@ def raise_category(workspace_name: str) -> int:
     return changed
 
 
+class BONSAI_SKETCH_MODE_PT_drawing(bpy.types.Panel):
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = CATEGORY
+    bl_label = "Import 2D Drawing"
+    bl_idname = "BONSAI_SKETCH_MODE_PT_drawing"
+    bl_order = -10
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator_context = "INVOKE_DEFAULT"
+        layout.operator("bonsai_sketch_mode.import_cad", text="Import DXF / DWG...", icon="IMPORT")
+        layout.operator("bonsai_sketch_mode.build_drawing_project", text="Build IFC from Drawing Project...", icon="FILE_3D")
+        layout.label(text="Local import; no AI credits needed")
+        layout.label(text="DWG requires ODA File Converter")
+        layout.operator("bonsai_sketch_mode.stand_up")
+
+
 class BONSAI_SKETCH_MODE_PT_ifc(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -305,7 +323,18 @@ class BONSAI_SKETCH_MODE_PT_sg(bpy.types.Panel):
 
     def draw(self, context):
         from . import sg
+        from . import sg_defaults
         layout = self.layout
+        if hasattr(context.scene, 'bonsai_sketch_sg_auto'):
+            layout.prop(context.scene, 'bonsai_sketch_sg_auto')
+        layout.label(text='Automatic fields: IFC4 mapping, 4 Dec 2025')
+        layout.label(text='New BIM / classified Sketch elements')
+        layout.label(text='Empty fields still need design values')
+        if sg_defaults.status():
+            layout.label(text='Automatic field setup failed; see console', icon='ERROR')
+        if bridge.has_project() and bridge.Ifc.get().schema != 'IFC4':
+            layout.label(text='Automatic field setup supports IFC4 only', icon='INFO')
+        layout.separator()
         layout.prop(context.scene, "bonsai_sketch_sg_stage", text="Stage")
         layout.prop(context.scene, "bonsai_sketch_sg_typology", text="Typology")
         col = layout.column(align=True)
@@ -330,6 +359,9 @@ class BONSAI_SKETCH_MODE_PT_sg(bpy.types.Panel):
             layout.label(text="Select a classified IFC element", icon="INFO")
             return
         result = sg.inspect(obj)
+        entity = bridge.get_entity(obj)
+        exact = sg_defaults.applicable(entity)
+        layout.label(text=f'{len(exact)} exact mapping fields for this subtype')
         layout.label(text=result["element"] or "Unmapped element", icon="INFO")
         layout.label(text="Review applicability and Pset mapping")
         missing = result["missing"]
@@ -342,7 +374,7 @@ class BONSAI_SKETCH_MODE_PT_sg(bpy.types.Panel):
         layout.label(text="Not a regulatory compliance verdict")
 
 
-classes = (BONSAI_SKETCH_MODE_OT_assign_class, BONSAI_SKETCH_MODE_PT_ifc,
+classes = (BONSAI_SKETCH_MODE_PT_drawing, BONSAI_SKETCH_MODE_OT_assign_class, BONSAI_SKETCH_MODE_PT_ifc,
            BONSAI_SKETCH_MODE_OT_sg_check, BONSAI_SKETCH_MODE_OT_sg_apply,
            BONSAI_SKETCH_MODE_PT_sg)
 

@@ -212,11 +212,10 @@ class BONSAI_SKETCH_MODE_Preferences(bpy.types.AddonPreferences):
     oda_converter: bpy.props.StringProperty(
         name="ODA File Converter",
         description=(
-            "Path to the ODA File Converter executable (free, from "
-            "opendesign.com). DWG is a proprietary format with no reliable "
-            "free reader, so File > Import reads DWG by converting it to DXF "
-            "through this tool first. Leave empty and DWG import explains "
-            "itself instead of failing quietly"
+            "Path to ODA File Converter from opendesign.com, subject to ODA's "
+            "licence terms. DWG import converts the drawing to DXF through "
+            "this tool. Leave empty to detect an installation on PATH or "
+            "in the standard Windows/macOS location"
         ),
         default="",
         subtype="FILE_PATH",
@@ -534,6 +533,8 @@ def register() -> None:
     # The AutoModel pipeline rides behind the same File > Import door as the
     # plain CAD import it extends, so finding one means finding both.
     pipeline.register()
+    from . import sg_defaults
+    sg_defaults.register()
 
     _tools_status = tools.register()
     if not _tools_status[0]:
@@ -573,6 +574,8 @@ def register() -> None:
 
 
 def unregister() -> None:
+    from . import sg_defaults
+    sg_defaults.unregister()
     # First: it is the only thing here holding an OS resource and a thread.
     textmodel.unregister()
     textmodel.unregister_ui()

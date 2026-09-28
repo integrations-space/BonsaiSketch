@@ -93,6 +93,11 @@ jobs:
           path: dist/*.zip
           if-no-files-found: warn
 
+      - name: Verify IFC+SG automatic fields
+        # Field setup mutates IFC, so exercise it against the real host/API.
+        run: |
+          "$PWD/$BLENDER_DIR/blender" --background --python-exit-code 1 --python tools/sg_defaults_check.py
+
   windows-installer:
     runs-on: windows-latest
     steps:

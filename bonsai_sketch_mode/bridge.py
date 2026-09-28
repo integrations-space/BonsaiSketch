@@ -106,6 +106,31 @@ def element_properties(entity: Any) -> dict:
     return ifcopenshell.util.element.get_psets(entity)
 
 
+def install_sg_templates(templates: Any) -> None:
+    """Expose typed IFC+SG fields in Bonsai's native property editor."""
+    import bonsai.bim.schema
+
+    if bonsai.bim.schema.ifc.schema_identifier != 'IFC4':
+        return
+    catalog = bonsai.bim.schema.ifc.psetqto
+    if templates not in catalog.templates:
+        catalog.templates.append(templates)
+        for name in ('get_applicable', 'get_applicable_names', 'get_by_name'):
+            getattr(catalog, name).cache_clear()
+
+
+def remove_sg_templates(templates: Any) -> None:
+    if templates is None or not is_available():
+        return
+    import ifcopenshell.util.pset
+
+    catalog = ifcopenshell.util.pset.get_template('IFC4')
+    if templates in catalog.templates:
+        catalog.templates.remove(templates)
+        for name in ('get_applicable', 'get_applicable_names', 'get_by_name'):
+            getattr(catalog, name).cache_clear()
+
+
 # --- Verified Bonsai surface -------------------------------------------------
 # Tool idnames read from bonsai/bim/module/model/workspace.py (Bonsai 0.8.4).
 # Keep this list in sync when bumping the tested version.
