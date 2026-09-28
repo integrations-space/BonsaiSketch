@@ -281,6 +281,48 @@ parallel graph would be a second source of truth to keep honest. The
 report carries the relationships the stages discovered. Bidirectional
 DXF regeneration: out of scope for a sketch-first modeller.
 
+## The image route — agentic sketch-to-IFC (method, 2026-09-28)
+
+Concept sketches, presentation perspectives and photographs are the
+evidence architects actually start from, and they enter the pipeline the
+same way every other view does: as an *evidence provider*, never as an
+author of unverified geometry. The route reuses what already exists
+rather than inventing a parallel system:
+
+1. **A vision-capable agent interprets; it does not model.** Through the
+   textmodel bridge (`textmodel/claude.py`), an agent reads the image and
+   emits a *building description* in the schema `autobuild.py` already
+   compiles (`openshrimp.building/1`) — massing volumes, storey count,
+   roof planes, opening positions — with every fact tagged by where in
+   the image it was read and whether it is **stated** (a labelled
+   dimension), **inferred** (proportion against a known element) or
+   **assumed** (a convention, named as one).
+2. **Controlling dimensions are human decisions.** An image without a
+   scale bar fixes proportions, not sizes. The description carries
+   REQUIRED slots (storey height, one plan dimension) that a person
+   fills; the agent never invents them, exactly as the drawing compiler
+   never invents a level. Image-derived facts rank below drawn geometry
+   and stated dimensions in the evidence hierarchy, so a later drawing
+   set corrects an image-seeded model through the normal Conflict route.
+3. **Deterministic tools do the modelling.** `autobuild.py` compiles the
+   description to native IFC; `modelcheck.py` reads the result back
+   independently; the source map records image region → description
+   fact → IFC GUID, unbroken.
+4. **The loop closes visually.** The camera tools (`camera.py`,
+   `ops/camera.py`) place a level, eye-height, two-point camera matched
+   to the source image's viewpoint, and the sketch render style
+   (`style.py`) renders the model in the same flat-and-ink language as
+   the sketch — so a person compares like with like and judges the
+   interpretation before anyone treats it as a model. Acceptance is a
+   person agreeing the render answers the sketch, plus the same
+   zero-silent-resolution gate every other route obeys.
+
+What ships today is stage 4 (cameras and style, CI-verified) and the
+stages 1–3 contracts, which already exist as code. Wiring a vision agent
+to emit the description is deliberately *not* started until a real image
+benchmark with hand-stated truth exists — the hold-out discipline
+applies to pictures exactly as it applies to drawings.
+
 ## Progress log
 
 - **2026-09-27** — Research done: pipeline composes the verb registry;
@@ -433,3 +475,19 @@ DXF regeneration: out of scope for a sketch-first modeller.
   plan with a fresh drawn section and watches the height land on the
   door while the width corroborates without conflict. The golden
   package itself is untouched, as the freeze demands.
+- **2026-09-28** — The presentation side opens: `camera.py` holds the
+  two-point arithmetic (pitch/yaw decomposition, the lens shift that
+  recovers a levelled view's framing, a 45-degree refusal past which
+  framing is honestly let go), checked by hand in
+  tools/camera_check.py (18 checks); `ops/camera.py` turns it into
+  Camera From View (level, eye-height, verticals vertical) and
+  Two-Point Perspective (repairs an existing camera, refuses a bird's
+  view); `style.py` is the sketch render look — flat colour, cavity,
+  traced Line Art ink — applied to viewport and render alike, with a
+  recorded snapshot so Off restores exactly what was there. Sidebar
+  panel, textmodel verbs (`camera_perspective`, `sketch_style`) and
+  agent schema entries ride along. The agentic image→IFC method is
+  written down above: agents interpret images into the autobuild
+  description with provenance and REQUIRED slots, deterministic tools
+  compile and check, and these cameras close the loop by rendering the
+  model back in the sketch's own language for a person to judge.

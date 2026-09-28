@@ -2097,6 +2097,114 @@ check("the level above matches no storey and is noted, not failed",
 os.unlink(drawn_path)
 
 
+# --- Camera tools --------------------------------------------------------
+#
+# The presentation camera: level, at eye height, framing recovered by
+# lens shift so verticals draw vertical. The arithmetic is checked by
+# hand in tools/camera_check.py; here the operators drive a real
+# viewport and a real camera, headless, through the same fallback the
+# textmodel agents use.
+
+section("Camera tools")
+from mathutils import Euler
+
+_view_region = addon.ops.camera._view_region()
+check("a viewport view is reachable headless", _view_region is not None)
+_view_region.view_location = (0.0, 0.0, 0.0)
+_view_region.view_distance = 15.0
+# Ten degrees down, thirty degrees of yaw: the everyday orbited view.
+_view_region.view_rotation = Euler(
+    (_math.radians(80.0), 0.0, _math.radians(30.0)), "XYZ").to_quaternion()
+
+camera_result = bpy.ops.bonsai_sketch_mode.camera_from_view(
+    lens=32.0, eye_height=1.6)
+check("camera from view finishes", camera_result == {"FINISHED"}, str(camera_result))
+sketch_camera = context.scene.camera
+check("the scene camera is the sketch camera, perspective, on the lens asked",
+      sketch_camera is not None and sketch_camera.name == "Sketch Camera"
+      and sketch_camera.data.type == "PERSP"
+      and abs(sketch_camera.data.lens - 32.0) < 1e-4)
+check("the camera stands level at eye height",
+      abs(sketch_camera.rotation_euler[0] - _math.pi / 2.0) < 1e-6
+      and abs(sketch_camera.rotation_euler[1]) < 1e-6
+      and abs(sketch_camera.rotation_euler[2] - _math.radians(30.0)) < 1e-5
+      and abs(sketch_camera.location.z - 1.6) < 1e-6,
+      str((tuple(sketch_camera.rotation_euler), sketch_camera.location.z)))
+check("the removed tilt became lens shift, downward",
+      abs(sketch_camera.data.shift_y
+          - (-_math.tan(_math.radians(10.0)) * 32.0 / 36.0)) < 1e-4,
+      repr(sketch_camera.data.shift_y))
+
+# Repairing an existing camera: tilt it twenty degrees down, level it.
+sketch_camera.data.shift_y = 0.0
+sketch_camera.rotation_euler = (
+    _math.radians(70.0), 0.0, _math.radians(30.0))
+context.view_layer.update()
+check("two-point levels a tilted camera and keeps its framing",
+      bpy.ops.bonsai_sketch_mode.camera_two_point() == {"FINISHED"}
+      and abs(sketch_camera.rotation_euler[0] - _math.pi / 2.0) < 1e-6
+      and abs(sketch_camera.data.shift_y
+              - (-_math.tan(_math.radians(20.0)) * 32.0 / 36.0)) < 1e-4,
+      repr(sketch_camera.data.shift_y))
+_shift_before = sketch_camera.data.shift_y
+context.view_layer.update()
+check("levelling a level camera changes nothing",
+      bpy.ops.bonsai_sketch_mode.camera_two_point() == {"FINISHED"}
+      and abs(sketch_camera.data.shift_y - _shift_before) < 1e-6)
+
+# A bird's view is refused, not distorted.
+sketch_camera.rotation_euler = (_math.radians(20.0), 0.0, 0.0)
+context.view_layer.update()
+check("a camera pitched past two-point range is refused",
+      bpy.ops.bonsai_sketch_mode.camera_two_point() == {"CANCELLED"}
+      and abs(sketch_camera.rotation_euler[0] - _math.radians(20.0)) < 1e-6
+      and abs(sketch_camera.data.shift_y - _shift_before) < 1e-6)
+
+check("the camera verb reports through the agent vocabulary",
+      "camera_perspective" in commands.names()
+      and "sketch_style" in commands.names())
+
+
+# --- Sketch render style -------------------------------------------------
+#
+# The presentation look: flat colour, cavity shading, traced ink lines,
+# the same in the viewport and in the render. On records what it
+# changes; off must put back exactly that, because restyling a user's
+# shading is a loan, not a gift.
+
+section("Sketch render style")
+_engine_before = context.scene.render.engine
+_style_space = next(space for _key, space in addon.style._spaces())
+_light_before = _style_space.shading.light
+
+style_ok, style_message = addon.style.apply(context.scene)
+check("the sketch style applies, ink lines included",
+      style_ok and style_message == "Sketch style on", style_message)
+check("the render engine is the viewport's engine",
+      context.scene.render.engine == "BLENDER_WORKBENCH")
+check("flat light, cavity and outline, in viewport and render alike",
+      _style_space.shading.light == "FLAT"
+      and _style_space.shading.show_cavity
+      and _style_space.shading.show_object_outline
+      and context.scene.display.shading.light == "FLAT"
+      and context.scene.display.shading.show_cavity)
+_ink = bpy.data.objects.get(addon.style.INK_NAME)
+check("the ink lines are a line-art layer over the scene",
+      _ink is not None and len(_ink.modifiers) == 1,
+      str(_ink and [m.type for m in _ink.modifiers]))
+check("applying twice does not double the record",
+      addon.style.apply(context.scene) == (True, "Sketch style is already on"))
+
+check("the style operator turns it off",
+      bpy.ops.bonsai_sketch_mode.sketch_style(mode="OFF") == {"FINISHED"})
+check("off put back the engine and the shading it recorded",
+      context.scene.render.engine == _engine_before
+      and _style_space.shading.light == _light_before
+      and bpy.data.objects.get(addon.style.INK_NAME) is None
+      and not addon.style.is_on(context.scene),
+      str((context.scene.render.engine, _style_space.shading.light)))
+
+
 # --- Theme -------------------------------------------------------------------
 #
 # The one thing this add-on changes outside its own tab, so the promise that it

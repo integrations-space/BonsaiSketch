@@ -374,9 +374,31 @@ class BONSAI_SKETCH_MODE_PT_sg(bpy.types.Panel):
         layout.label(text="Not a regulatory compliance verdict")
 
 
+class BONSAI_SKETCH_MODE_PT_perspective(bpy.types.Panel):
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = CATEGORY
+    bl_label = "Perspective & Style"
+    bl_idname = "BONSAI_SKETCH_MODE_PT_perspective"
+    bl_options = {"DEFAULT_CLOSED"}
+
+    def draw(self, context):
+        from . import style
+
+        layout = self.layout
+        layout.operator("bonsai_sketch_mode.camera_from_view", icon="CAMERA_DATA")
+        layout.operator("bonsai_sketch_mode.camera_two_point", icon="DRIVER_ROTATIONAL_DIFFERENCE")
+        if style.is_on(context.scene):
+            layout.operator("bonsai_sketch_mode.sketch_style",
+                            text="Sketch Style Off", icon="SHADING_SOLID").mode = "OFF"
+        else:
+            layout.operator("bonsai_sketch_mode.sketch_style",
+                            text="Sketch Style On", icon="GREASEPENCIL").mode = "ON"
+
+
 classes = (BONSAI_SKETCH_MODE_PT_drawing, BONSAI_SKETCH_MODE_OT_assign_class, BONSAI_SKETCH_MODE_PT_ifc,
            BONSAI_SKETCH_MODE_OT_sg_check, BONSAI_SKETCH_MODE_OT_sg_apply,
-           BONSAI_SKETCH_MODE_PT_sg)
+           BONSAI_SKETCH_MODE_PT_sg, BONSAI_SKETCH_MODE_PT_perspective)
 
 
 def register() -> tuple[bool, str]:

@@ -220,6 +220,112 @@ TOOLS.update({
             "object": {"type": "string"}, "stage": {"type": "string"}}, "required": ["object"]}},
 })
 
+TOOLS.update({
+    "derive_values": {
+        "description": (
+            "Fill the geometric requirement values an element's own shape "
+            "states -- height, thickness, a closed shell's volume -- and "
+            "report by name every question the geometry leaves open. Needs "
+            "an element that has been through assign_class. Nothing here "
+            "guesses; the returned 'left' list is what an agent still owes."
+        ),
+        "schema": {"type": "object", "properties": {
+            "object": {"type": "string", "description": "The IFC element's object name."},
+        }, "required": ["object"]},
+    },
+    "detect_walls": {
+        "description": (
+            "Read parallel-line wall candidates out of a flat plan sketch "
+            "object: centrelines, measured thicknesses, lengths and the "
+            "evidence in sentences. Candidates, not walls -- what does not "
+            "pair comes back counted as unpaired rather than misread."
+        ),
+        "schema": {"type": "object", "properties": {
+            "object": {"type": "string", "description": "A flat sketch object holding the plan lines."},
+        }, "required": ["object"]},
+    },
+    "classify_layers": {
+        "description": (
+            "Read layer names against the drafting conventions, never "
+            "guessing: resolved pairs carry their IFC class and evidence, "
+            "and the unresolved list is the real product -- the layers "
+            "whose classes need somebody's judgement."
+        ),
+        "schema": {"type": "object", "properties": {
+            "objects": {"type": "array", "items": {"type": "string"},
+                        "description": "Object names to read; every sketch object when omitted."},
+        }},
+    },
+    "auto_model": {
+        "description": (
+            "Compile one 2D plan (DXF/DWG) into semantic IFC: walls with "
+            "junctions, openings with doors and windows, labelled spaces, "
+            "every element carrying its source-map provenance. Refusals and "
+            "diagnostics come back in the report rather than being guessed "
+            "over. For a set of sheets, use auto_building instead."
+        ),
+        "schema": {"type": "object", "properties": {
+            "path": {"type": "string", "description": "The drawing file."},
+            "height": {"type": "number",
+                       "description": "Default extrusion height in metres. Default 3."},
+            "heights": {"type": "object",
+                        "description": "Optional per-layer heights, layer name to metres."},
+            "weld": {"type": "number", "description": "Weld tolerance in metres."},
+            "gap": {"type": "number", "description": "Healing gap tolerance in metres."},
+        }, "required": ["path"]},
+    },
+    "auto_building": {
+        "description": (
+            "Compile a whole drawing set -- plans, sections, elevations -- "
+            "into one multi-storey IFC building. Sheets earn their identity, "
+            "transform and storey from evidence; sections contribute "
+            "measurements to plan objects; disagreements become conflicts "
+            "for human review, never silent resolutions. The report carries "
+            "drawings, transforms, storeys, per-storey compilations, "
+            "conflicts, failure tallies and KPIs."
+        ),
+        "schema": {"type": "object", "properties": {
+            "paths": {"type": "array", "items": {"type": "string"},
+                      "description": "The sheet files, in register order."},
+            "height": {"type": "number",
+                       "description": "Default wall height in metres. Default 3."},
+            "heights": {"type": "object",
+                        "description": "Optional per-layer heights, layer name to metres."},
+            "georeference": {"type": "object",
+                             "description": "Optional CRS configuration; otherwise "
+                                            "georeference.json beside the first sheet."},
+            "weld": {"type": "number", "description": "Weld tolerance in metres."},
+            "gap": {"type": "number", "description": "Healing gap tolerance in metres."},
+        }, "required": ["paths"]},
+    },
+    "camera_perspective": {
+        "description": (
+            "Place a presentation camera from the current view: level, at eye "
+            "height, verticals kept vertical by lens shift (two-point "
+            "perspective). Makes it the scene camera. Use it before rendering "
+            "a perspective for a person to judge."
+        ),
+        "schema": {"type": "object", "properties": {
+            "lens": {"type": "number",
+                     "description": "Focal length in mm. Default 32."},
+            "eye_height": {"type": "number",
+                           "description": "Camera height in metres above zero; "
+                                          "0 keeps the view's own height. Default 1.6."},
+        }},
+    },
+    "sketch_style": {
+        "description": (
+            "Switch the sketch render look on or off: flat material colour, "
+            "cavity shading and traced ink lines, in the viewport and in the "
+            "render. Off restores exactly the shading recorded when it went on."
+        ),
+        "schema": {"type": "object", "properties": {
+            "mode": {"type": "string", "enum": ["on", "off"],
+                     "description": "Default on."},
+        }},
+    },
+})
+
 
 def tool_definitions(names: list) -> list:
     """Messages API tool definitions for ``names``, in a stable order.

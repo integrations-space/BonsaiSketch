@@ -35,6 +35,10 @@ from .importer import (
     object_menu_entry,
 )
 from .line import BONSAI_SKETCH_MODE_OT_line
+from .camera import (
+    BONSAI_SKETCH_MODE_OT_camera_from_view,
+    BONSAI_SKETCH_MODE_OT_camera_two_point,
+)
 from .offset import BONSAI_SKETCH_MODE_OT_offset
 from .drawing_project import BONSAI_SKETCH_MODE_OT_build_drawing_project
 from .pushpull import BONSAI_SKETCH_MODE_OT_push_pull
@@ -56,6 +60,8 @@ classes = (
     BONSAI_SKETCH_MODE_OT_eraser,
     BONSAI_SKETCH_MODE_OT_import_cad,
     BONSAI_SKETCH_MODE_OT_stand_up,
+    BONSAI_SKETCH_MODE_OT_camera_from_view,
+    BONSAI_SKETCH_MODE_OT_camera_two_point,
     BONSAI_SKETCH_MODE_MT_sketch,
 )
 

@@ -34,7 +34,7 @@ import os
 
 import bpy
 
-from . import align, bridge, classify, derive, drawings, dxf, failures, ground, heal, ir, keyconfig, marks, ops, pipeline, reconcile, requirements, sections, sidebar, spaces, storeys, textmodel, theme, tools, walls, workspace
+from . import align, bridge, camera, classify, derive, drawings, dxf, failures, ground, heal, ir, keyconfig, marks, ops, pipeline, reconcile, requirements, sections, sidebar, spaces, storeys, style, textmodel, theme, tools, walls, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
@@ -530,6 +530,10 @@ def register() -> None:
     # register_tool validates that the keymap targets exist.
     ops.register()
 
+    # The presentation side: the sketch render style that pairs with the
+    # camera operators ops just registered.
+    style.register()
+
     # The AutoModel pipeline rides behind the same File > Import door as the
     # plain CAD import it extends, so finding one means finding both.
     pipeline.register()
@@ -586,6 +590,7 @@ def unregister() -> None:
     keyconfig.unload()
     tools.unregister()
     pipeline.unregister()
+    style.unregister()
     ops.unregister()
 
     for cls in reversed(classes):

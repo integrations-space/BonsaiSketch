@@ -262,6 +262,8 @@ align.py          placing sheets in one building, on grid evidence
 storeys.py        storeys assembled from drawings; unknown is valid state
 reconcile.py      several views, one object; disagreement stays a Conflict
 sections.py       a section's drawn geometry as evidence: levels, jambs, sills
+camera.py         two-point perspective arithmetic: level, eye height, lens shift
+style.py          the sketch render look: flat colour, cavity, traced ink lines
 failures.py       the failure taxonomy: what breaks, counted by kind
 ir.py             the compiler's state: semantic objects and the source map
 classify.py       layer names read against the drafting conventions

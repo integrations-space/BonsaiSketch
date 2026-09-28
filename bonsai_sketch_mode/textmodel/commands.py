@@ -602,3 +602,48 @@ def _auto_building(params: dict) -> dict:
         heights={str(k): float(v) for k, v in heights.items()},
         georeference=georeference,
     )
+
+
+@verb("camera_perspective")
+def _camera_perspective(params: dict) -> dict:
+    """A presentation camera: level, at eye height, two-point.
+
+    Reads the current viewport (or, headless, the first one in the file),
+    levels it so verticals draw vertical, recovers the framing with lens
+    shift, and makes the result the scene camera. The report says where
+    the camera stands and what, if anything, could not be preserved.
+    """
+    lens = _number(params, "lens", 32.0)
+    eye_height = _number(params, "eye_height", 1.6)
+    result = bpy.ops.bonsai_sketch_mode.camera_from_view(
+        lens=lens, eye_height=eye_height)
+    if "FINISHED" not in result:
+        raise CommandError("no viewport view to place a camera from")
+    obj = bpy.context.scene.camera
+    return {
+        "camera": obj.name,
+        "location": [round(v, 6) for v in obj.location],
+        "lens": obj.data.lens,
+        "shift_y": round(obj.data.shift_y, 6),
+    }
+
+
+@verb("sketch_style")
+def _sketch_style(params: dict) -> dict:
+    """The sketch render look, on or off.
+
+    On: flat material colour, cavity shading and traced ink lines, in the
+    viewport and the render alike. Off: exactly the shading that was
+    there before comes back. The message reports the ink layer's fate
+    separately, because a host without Line Art still gets the flat look.
+    """
+    from .. import style
+
+    mode = params.get("mode", "on")
+    if mode not in ("on", "off"):
+        raise CommandError("'mode' must be 'on' or 'off'")
+    scene = bpy.context.scene
+    ok, message = style.apply(scene) if mode == "on" else style.restore(scene)
+    if not ok:
+        raise CommandError(message)
+    return {"style": mode, "message": message}
