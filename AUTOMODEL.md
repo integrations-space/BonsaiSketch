@@ -298,15 +298,19 @@ The ladder, by input, in build order:
 1. **Vector CAD (DXF/DWG) — pure rules, built.** The AutoModel compiler
    and the drawing-project route. No AI anywhere in the chain.
 2. **Raster orthogonal drawings (scans, plotted PDFs) — pure rules,
-   next.** Most "images" in practice are scanned plans and sections, and
-   they need no interpretation, only recovery: deskew and threshold,
-   vectorise the linework (classical thinning/tracing — deterministic,
-   parameterised, no learning), read text by OCR into the same label
-   grammar, and feed the result to the *existing* compiler, which
-   already knows how to refuse what it cannot read. A scan that
-   vectorises badly fails loudly into diagnostics, exactly as an
-   unhealed DXF does. This step multiplies the reach of everything
-   already built and contains zero model judgement.
+   built (`raster.py`).** Most "images" in practice are scanned plans and
+   sections, and they need no interpretation, only recovery: Otsu's
+   threshold, Zhang-Suen thinning, stroke tracing with junction-cluster
+   contraction, Douglas-Peucker plus a least-squares refit of every
+   straight run, a deskew voted by the strokes' own angles, and the
+   rejoining of through-lines thinning broke at junctions -- classical
+   image processing, deterministic and parameterised, no learning. The
+   result is the same ``Drawing`` structure a DXF parses to, fed to the
+   *existing* compiler, which already knows how to refuse what it
+   cannot read. Scale and the linework layer come from ``raster.json``
+   beside the scan -- human decisions recorded as configuration, refused
+   when absent. Text is not read yet: labels, marks and levels wait for
+   the OCR rung, and unlabelled is already a valid state downstream.
 3. **Perspective sketches and photographs — rules first, judgement
    last.** The geometry half is classical, not learned: line clustering,
    vanishing-point estimation and camera resection recover the view;
@@ -515,3 +519,21 @@ drawings.
   (deskew, vectorise, OCR into the existing compiler -- classical image
   processing, zero model judgement) comes before any vision agent, and
   the vision agent waits for an image hold-out with hand-stated truth.
+- **2026-09-28** — Rung 2 of the image ladder, entirely by rules:
+  `raster.py` recovers a scanned drawing's linework with Otsu's
+  threshold, Zhang-Suen thinning, stroke tracing (junction clusters
+  contracted to single points), Douglas-Peucker, a wobble-straightening
+  and corner-sharpening tidy, an orthogonal least-squares refit of every
+  straight run against the raw skeleton, a deskew voted by the strokes'
+  own angles (weighted median, diagonals abstain), and the rejoining of
+  through-lines thinning broke at junctions -- because the drafter drew
+  one line and a T is an end against a middle. Scale and linework layer
+  are stated in raster.json beside the scan or the route refuses; the
+  output is the same Drawing a DXF parses to, so the existing compiler,
+  healer and refusal machinery do the rest. tools/raster_check.py (40
+  checks) closes with the acceptance: a 1.5-degree-tilted synthetic
+  scan of a two-room plan compiles to four perimeter walls and a
+  partition at drawn thicknesses (0.200/0.100 m), four Ls and two Ts,
+  and both rooms at their drawn areas (8.1 / 11.7 m^2) -- no learned
+  model anywhere in the chain. The smoke drives the same scan through
+  auto_model in Blender to real IfcWalls with SCAN:#n provenance.

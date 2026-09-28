@@ -2205,6 +2205,96 @@ check("off put back the engine and the shading it recorded",
       str((context.scene.render.engine, _style_space.shading.light)))
 
 
+# --- Scanned drawing (raster route) --------------------------------------
+#
+# The rule-based raster route: a synthetic scan of a two-room plan --
+# stamped pixel by pixel, tilted 1.5 degrees like a sheet fed slightly
+# crooked -- recovered by threshold, thinning, tracing, refit and
+# rejoin, then compiled by the same pipeline as any DXF. The scale and
+# the linework layer come from raster.json beside the scan, because a
+# bitmap cannot state either; without that file the route refuses.
+
+section("Scanned drawing (raster route)")
+scan_dir = os.path.join(tempfile.gettempdir(), "bonsai_sketch_scan_fixture")
+os.makedirs(scan_dir, exist_ok=True)
+scan_path = os.path.join(scan_dir, "GF_SCAN.pgm")
+
+_SCAN_MPP = 0.02
+_SCAN_W, _SCAN_H, _SCAN_MARGIN = 360, 260, 24
+_SCAN_TILT = _math.radians(1.5)
+_scan_pixels = bytearray([255]) * (_SCAN_W * _SCAN_H)
+
+
+def _scan_point(mx, my):
+    x = _SCAN_MARGIN + mx / _SCAN_MPP
+    y = (_SCAN_H - 1) - (_SCAN_MARGIN + my / _SCAN_MPP)
+    cx, cy = _SCAN_W / 2, _SCAN_H / 2
+    return (cx + (x - cx) * _math.cos(_SCAN_TILT) - (y - cy) * _math.sin(_SCAN_TILT),
+            cy + (x - cx) * _math.sin(_SCAN_TILT) + (y - cy) * _math.cos(_SCAN_TILT))
+
+
+def _scan_stroke(m1, m2):
+    (x1, y1), (x2, y2) = _scan_point(*m1), _scan_point(*m2)
+    steps = max(2, int(_math.hypot(x2 - x1, y2 - y1) * 3))
+    for step in range(steps + 1):
+        t = step / steps
+        cx, cy = x1 + (x2 - x1) * t, y1 + (y2 - y1) * t
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if dx * dx + dy * dy <= 1.5:
+                    px, py = int(round(cx + dx)), int(round(cy + dy))
+                    if 0 <= px < _SCAN_W and 0 <= py < _SCAN_H:
+                        _scan_pixels[py * _SCAN_W + px] = 0
+
+
+for corner_a, corner_b in (((0, 0), (6, 4)), ((0.2, 0.2), (5.8, 3.8))):
+    (x1, y1), (x2, y2) = corner_a, corner_b
+    for p, q in (((x1, y1), (x2, y1)), ((x2, y1), (x2, y2)),
+                 ((x2, y2), (x1, y2)), ((x1, y2), (x1, y1))):
+        _scan_stroke(p, q)
+for x in (2.45, 2.55):
+    _scan_stroke((x, 0.2), (x, 3.8))
+addon.raster.write_pgm(scan_path, _SCAN_W, _SCAN_H, _scan_pixels)
+
+# Without raster.json the route must refuse, naming the decisions.
+bare_report = commands.run("auto_model", {"path": scan_path, "height": 2.8})
+check("a scan with no stated scale and layer is refused, with the reason",
+      not bare_report["stages"][0]["ok"]
+      and "human decisions" in bare_report["stages"][0]["note"],
+      str(bare_report["stages"][0]))
+
+with open(os.path.join(scan_dir, "raster.json"), "w") as handle:
+    handle.write('{"metres_per_pixel": 0.02, "layer": "WALLS"}')
+
+scan_report = commands.run("auto_model", {"path": scan_path, "height": 2.8})
+scan_read = scan_report["stages"][0]
+check("the scan reads, deskewed and rejoined by its own note",
+      scan_read["ok"] and "deskewed" in scan_read["note"]
+      and "rejoined" in scan_read["note"], str(scan_read))
+check("every stage of the ordinary pipeline ran on the scan",
+      all(entry["ok"] for entry in scan_report["stages"]),
+      str([f"{e['stage']}: {e['note']}" for e in scan_report["stages"]
+           if not e["ok"]]))
+scan_walls = scan_report["walls"]
+check("four perimeter walls and the partition, at drawn thicknesses",
+      len(scan_walls) == 5
+      and sorted(round(w["thickness"], 1) for w in scan_walls)
+      == [0.1, 0.2, 0.2, 0.2, 0.2],
+      str([(round(w["thickness"], 3), round(w["length"], 2)) for w in scan_walls]))
+check("every scanned wall carries its SCAN provenance",
+      all(any(str(s).startswith("SCAN:#") for s in w["sources"])
+          for w in scan_walls),
+      str([w["sources"] for w in scan_walls]))
+scan_spaces = scan_report["spaces"]
+check("both rooms close at their drawn areas, unlabelled and saying so",
+      sorted(round(s["area"], 1) for s in scan_spaces) == [8.1, 11.7]
+      and all(s["label"] is None for s in scan_spaces),
+      str([(round(s["area"], 2), s["label"]) for s in scan_spaces]))
+scan_wall_entity = bridge.Ifc.get().by_guid(scan_walls[0]["ifc_guid"])
+check("the scanned walls are real IfcWalls",
+      scan_wall_entity.is_a("IfcWall"))
+
+
 # --- Theme -------------------------------------------------------------------
 #
 # The one thing this add-on changes outside its own tab, so the promise that it

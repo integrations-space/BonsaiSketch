@@ -68,6 +68,84 @@ def _as_dxf(path: str, context) -> tuple[Optional[str], str]:
     return importer.convert_dwg(path, converter)
 
 
+#: Bitmap extensions the scan route accepts. PGM is read here without
+#: any imaging library; the rest go through Blender's own image loader.
+RASTER_EXTENSIONS = (".pgm", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp")
+
+
+def _load_bitmap(path: str):
+    """((width, height, pixels), why_not): one greyscale bitmap, rows top
+    to bottom, by whichever loader can read it."""
+    from . import raster
+
+    if path.lower().endswith(".pgm"):
+        try:
+            return raster.read_pgm(path), ""
+        except (OSError, ValueError) as exc:
+            return None, f"could not read the scan: {exc}"
+    try:
+        image = bpy.data.images.load(path)
+    except RuntimeError as exc:
+        return None, f"could not load the image: {exc}"
+    try:
+        width, height = image.size
+        floats = image.pixels[:]
+        pixels = bytearray(width * height)
+        # Blender stores rows bottom-up; the raster reader expects the
+        # scan's own order, top-down.
+        for y in range(height):
+            source_row = (height - 1 - y) * width * 4
+            target_row = y * width
+            for x in range(width):
+                base = source_row + x * 4
+                grey = (0.2126 * floats[base] + 0.7152 * floats[base + 1]
+                        + 0.0722 * floats[base + 2])
+                pixels[target_row + x] = min(255, int(grey * 255.0 + 0.5))
+    finally:
+        bpy.data.images.remove(image)
+    return (width, height, pixels), ""
+
+
+def _read_sheet(path: str, context):
+    """(drawing, notes, why_not): a sheet's geometry however it is stored.
+
+    A DXF (or a DWG through the converter) parses as ever. A scan takes
+    the rule-based raster route -- and needs a ``raster.json`` beside it
+    stating the scale and the linework layer, because both are human
+    decisions a bitmap cannot make.
+    """
+    if path.lower().endswith(RASTER_EXTENSIONS):
+        import json as _json
+
+        from . import raster
+
+        config_path = os.path.join(os.path.dirname(path), "raster.json")
+        if not os.path.isfile(config_path):
+            return None, [], (
+                "a scanned sheet needs raster.json beside it, stating "
+                "metres_per_pixel (or dpi and paper_scale) and the linework "
+                "layer -- a scan's scale and meaning are human decisions")
+        try:
+            with open(config_path, encoding="utf-8") as handle:
+                config = _json.load(handle)
+        except (OSError, ValueError) as exc:
+            return None, [], f"raster.json is unreadable: {exc}"
+        bitmap, why_not = _load_bitmap(path)
+        if bitmap is None:
+            return None, [], why_not
+        width, height, pixels = bitmap
+        return raster.interpret(width, height, pixels, config)
+
+    dxf_path, why_not = _as_dxf(path, context)
+    if dxf_path is None:
+        return None, [], why_not
+    try:
+        with open(dxf_path, encoding="utf-8", errors="replace") as handle:
+            return dxf.parse(handle.read()), [], None
+    except OSError as exc:
+        return None, [], f"could not read {dxf_path}: {exc}"
+
+
 def _prism_object(context, name: str, polygon, height: float, z0: float = 0.0):
     """A standing solid over a stated polygon: the one shape this pipeline
     ever builds, because everything it believes is a footprint and a
@@ -275,16 +353,11 @@ def run(
         return report
 
     # READ ------------------------------------------------------------------
+    scan_notes = []
     if drawing is None:
-        dxf_path, why_not = _as_dxf(path, context)
-        if dxf_path is None:
+        drawing, scan_notes, why_not = _read_sheet(path, context)
+        if drawing is None:
             stage("READ", False, why_not)
-            return finish()
-        try:
-            with open(dxf_path, encoding="utf-8", errors="replace") as handle:
-                drawing = dxf.parse(handle.read())
-        except OSError as exc:
-            stage("READ", False, f"could not read {dxf_path}: {exc}")
             return finish()
     if not drawing.layers:
         skipped = ", ".join(sorted(drawing.skipped)) or "nothing at all"
@@ -296,9 +369,11 @@ def run(
         if drawing.skipped
         else ""
     )
+    scan_note = "; " + "; ".join(scan_notes) if scan_notes else ""
     stage(
         "READ", True,
-        f"{len(drawing.layers)} layer(s) read in {drawing.unit_name}{skipped_note}",
+        f"{len(drawing.layers)} layer(s) read in {drawing.unit_name}"
+        f"{skipped_note}{scan_note}",
         layers=sorted(drawing.layers),
     )
 
@@ -771,22 +846,15 @@ def run_set(
     candidates = []
     for index, path in enumerate(paths, 1):
         drawing_id = "D%02d" % index
-        dxf_path, why_not = _as_dxf(path, context)
-        if dxf_path is None:
+        sheet, scan_notes, why_not = _read_sheet(path, context)
+        if sheet is None:
             broken = ir.DrawingCandidate(drawing_id, os.path.basename(path))
             broken.diagnostics.append(why_not)
             candidates.append(broken)
             continue
-        try:
-            with open(dxf_path, encoding="utf-8", errors="replace") as handle:
-                sheet = dxf.parse(handle.read())
-        except OSError as exc:
-            broken = ir.DrawingCandidate(drawing_id, os.path.basename(path))
-            broken.diagnostics.append(f"could not read: {exc}")
-            candidates.append(broken)
-            continue
         stem = os.path.splitext(os.path.basename(path))[0]
         candidate = drawings_module.classify(drawing_id, stem, sheet)
+        candidate.evidence.extend(scan_notes)
         parsed[drawing_id] = (path, sheet)
         candidates.append(candidate)
 

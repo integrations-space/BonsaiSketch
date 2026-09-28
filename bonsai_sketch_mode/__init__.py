@@ -34,7 +34,7 @@ import os
 
 import bpy
 
-from . import align, bridge, camera, classify, derive, drawings, dxf, failures, ground, heal, ir, keyconfig, marks, ops, pipeline, reconcile, requirements, sections, sidebar, spaces, storeys, style, textmodel, theme, tools, walls, workspace
+from . import align, bridge, camera, classify, derive, drawings, dxf, failures, ground, heal, ir, keyconfig, marks, ops, pipeline, raster, reconcile, requirements, sections, sidebar, spaces, storeys, style, textmodel, theme, tools, walls, workspace
 
 _keyconfig_status: tuple[bool, str] = (False, "Not yet loaded")
 _workspace_status: tuple[bool, str] = (False, "Not yet loaded")
