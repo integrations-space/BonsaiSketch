@@ -5,10 +5,13 @@
 Visual QA a machine can start and only a person can finish: the frames
 come from the delivered IFC's own tessellated geometry -- never from
 the tool that made the model -- so anything that looks wrong in the
-video is wrong in the model. Colours follow the same class palette
-autobuild styles elements with; glazing stays transparent so the
-interior reads through it, and the camera orbits at a gentle elevation
-so massing reads the way concept sketches draw it.
+video is wrong in the model. Colours come from each element's own
+assigned IfcMaterial where one is named (timber reads timber, dark
+render reads dark), falling back to the class palette autobuild styles
+elements with; glazing stays transparent so the interior reads through
+it; the sun casts a flat projected shadow on the ground so the massing
+sits instead of floating. The camera orbits at a gentle elevation so
+massing reads the way concept sketches draw it.
 
 Pure Python plus numpy and ifcopenshell for geometry; the encode needs
 imageio and imageio-ffmpeg (pip install imageio imageio-ffmpeg), and
@@ -22,6 +25,7 @@ import numpy as np
 try:
     import ifcopenshell
     import ifcopenshell.geom
+    import ifcopenshell.util.element
 except ImportError as exc:
     sys.exit(f"ifcopenshell is required: {exc}")
 try:
@@ -34,15 +38,37 @@ if len(sys.argv) < 3:
     sys.exit(__doc__.strip().splitlines()[2].strip())
 IFC_PATH, OUT_PATH = sys.argv[1], sys.argv[2]
 FRAME_COUNT = int(sys.argv[3]) if len(sys.argv) > 3 else 180
+
 LOOK = {
     'IfcWall': ((.93, .91, .87), 0), 'IfcCurtainWall': ((.55, .73, .88), .55),
     'IfcSlab': ((.83, .81, .77), 0), 'IfcRoof': ((.37, .40, .43), 0),
     'IfcColumn': ((.79, .76, .71), 0), 'IfcDoor': ((.56, .38, .25), 0),
-    'IfcWindow': ((.61, .80, .92), .5),
+    'IfcWindow': ((.61, .80, .92), .5), 'IfcCovering': ((.85, .83, .80), 0),
 }
+#: Named materials override the class palette; matched by substring so
+#: "Timber decking" and "Timber cladding" both read as timber.
+MATERIALS = (
+    ("timber", (0.70, 0.53, 0.34)),
+    ("wood", (0.70, 0.53, 0.34)),
+    ("dark", (0.30, 0.32, 0.34)),
+    ("charcoal", (0.30, 0.32, 0.34)),
+    ("white", (0.95, 0.95, 0.93)),
+    ("glass", (0.61, 0.80, 0.92)),
+)
 SKY_TOP = np.array([0.639, 0.745, 0.855])
 SKY_BOTTOM = np.array([0.97, 0.97, 0.96])
 GROUND = np.array([0.878, 0.867, 0.827])
+
+
+def material_name(element):
+    try:
+        material = ifcopenshell.util.element.get_material(element)
+    except Exception:
+        return ""
+    if material is None:
+        return ""
+    return (getattr(material, "Name", "") or "").lower()
+
 
 model = ifcopenshell.open(IFC_PATH)
 settings = ifcopenshell.geom.settings()
@@ -63,6 +89,11 @@ for element in model.by_type("IfcElement"):
     verts = np.array(shape.geometry.verts, dtype=float).reshape(-1, 3)
     faces = np.array(shape.geometry.faces, dtype=int).reshape(-1, 3)
     colour, alpha = LOOK.get(element.is_a(), ((0.8, 0.8, 0.8), 0))
+    named = material_name(element)
+    for token, override in MATERIALS:
+        if token in named:
+            colour = override
+            break
     bucket = glass if alpha > 0 else opaque
     bucket.append((verts, faces, np.array(colour), alpha))
 
@@ -70,19 +101,22 @@ everything = np.vstack([v for v, _f, _c, _a in opaque + glass])
 low, high = everything.min(axis=0), everything.max(axis=0)
 centre = (low + high) / 2.0
 radius = float(np.linalg.norm((high - low)[:2])) * 0.62 + 6.0
+GROUND_Z = float(low[2]) - 0.01
 
 WIDTH, HEIGHT, FRAMES, FPS = 960, 540, FRAME_COUNT, 30
 FOCAL = 1.35  # ~35 mm feel
-LIGHT = np.array([0.45, 0.3, 0.84])
+LIGHT = np.array([-0.42, -0.38, 0.82])
 LIGHT = LIGHT / np.linalg.norm(LIGHT)
+#: The sun's travel: where LIGHT comes from, shadows go the other way.
+SHADOW_DIR = -LIGHT
 
 row_gradient = np.linspace(0.0, 1.0, HEIGHT)[:, None]
 background = (SKY_TOP[None, None, :] * (1 - row_gradient[..., None])
               + SKY_BOTTOM[None, None, :] * row_gradient[..., None])
 background = np.repeat(background, WIDTH, axis=1)
 
-# The ground: a lawn of small tiles just below the carport slab, small
-# enough that only tiles genuinely behind the camera are culled.
+# The ground: a lawn of small tiles, small enough that only tiles
+# genuinely behind the camera are culled.
 G, TILE = 60.0, 5.0
 ground_verts, ground_faces = [], []
 steps = int(2 * G / TILE)
@@ -91,16 +125,25 @@ for iy in range(steps):
         x0 = centre[0] - G + ix * TILE
         y0 = centre[1] - G + iy * TILE
         base = len(ground_verts)
-        ground_verts += [[x0, y0, -0.21], [x0 + TILE, y0, -0.21],
-                         [x0 + TILE, y0 + TILE, -0.21], [x0, y0 + TILE, -0.21]]
+        ground_verts += [[x0, y0, GROUND_Z], [x0 + TILE, y0, GROUND_Z],
+                         [x0 + TILE, y0 + TILE, GROUND_Z], [x0, y0 + TILE, GROUND_Z]]
         ground_faces += [[base, base + 1, base + 2], [base, base + 2, base + 3]]
 ground_verts = np.array(ground_verts)
 ground_faces = np.array(ground_faces)
 
 
-def rasterise(frame, zbuf, pts, faces, colour, shade_only=None, alpha=0.0):
+def shadow_of(verts):
+    """Vertices dropped along the sun onto the ground plane."""
+    t = (GROUND_Z - verts[:, 2]) / SHADOW_DIR[2]
+    flat = verts + t[:, None] * SHADOW_DIR
+    flat[:, 2] = GROUND_Z + 0.002
+    return flat
+
+
+def rasterise(frame, zbuf, pts, faces, colour, shade_only=None, alpha=0.0,
+              mask=None):
     for tri in faces:
-        p = pts[tri]  # 3 x (x_px, y_px, depth) with camera-space normal shade
+        p = pts[tri]
         if np.any(p[:, 2] <= 0.1):
             continue
         xs, ys = p[:, 0], p[:, 1]
@@ -115,12 +158,15 @@ def rasterise(frame, zbuf, pts, faces, colour, shade_only=None, alpha=0.0):
         w0 = ((xs[1] - gx) * (ys[2] - gy) - (xs[2] - gx) * (ys[1] - gy)) / d
         w1 = ((xs[2] - gx) * (ys[0] - gy) - (xs[0] - gx) * (ys[2] - gy)) / d
         w2 = 1.0 - w0 - w1
-        mask = (w0 >= -1e-6) & (w1 >= -1e-6) & (w2 >= -1e-6)
-        if not mask.any():
+        inside = (w0 >= -1e-6) & (w1 >= -1e-6) & (w2 >= -1e-6)
+        if not inside.any():
+            continue
+        if mask is not None:
+            mask[y0:y1 + 1, x0:x1 + 1] |= inside
             continue
         depth = w0 * p[0, 2] + w1 * p[1, 2] + w2 * p[2, 2]
         window = zbuf[y0:y1 + 1, x0:x1 + 1]
-        closer = mask & (depth < window - (1e-4 if alpha else 0.0))
+        closer = inside & (depth < window - (1e-4 if alpha else 0.0))
         if not closer.any():
             continue
         shaded = colour * (0.55 + 0.45 * shade_only[0]) if shade_only else colour
@@ -143,14 +189,7 @@ def project(verts, eye, forward, right, up):
     return np.stack([sx, sy, cz], axis=1)
 
 
-writer = imageio.get_writer(OUT_PATH, fps=FPS, codec="libx264", quality=8,
-                            macro_block_size=None)
-for index in range(FRAMES):
-    angle = 2.0 * math.pi * index / FRAMES - math.radians(35)
-    eye = np.array([centre[0] + radius * math.cos(angle),
-                    centre[1] + radius * math.sin(angle),
-                    3.4])
-    look = np.array([centre[0], centre[1], 1.5])
+def draw_frame(eye, look):
     forward = look - eye
     forward = forward / np.linalg.norm(forward)
     right = np.cross(forward, np.array([0.0, 0.0, 1.0]))
@@ -162,31 +201,40 @@ for index in range(FRAMES):
 
     pts = project(ground_verts, eye, forward, right, up)
     rasterise(frame, zbuf, pts, ground_faces, GROUND, shade_only=[1.0])
+    grounded = np.isfinite(zbuf)
 
-    for verts, faces, colour, _alpha in opaque:
-        pts = project(verts, eye, forward, right, up)
-        for tri in faces:
-            v = verts[tri]
-            normal = np.cross(v[1] - v[0], v[2] - v[0])
-            length = np.linalg.norm(normal)
-            if length < 1e-12:
-                continue
-            shade = abs(float(normal @ LIGHT) / length)
-            rasterise(frame, zbuf, pts, tri[None, :], colour,
-                      shade_only=[shade])
-    for verts, faces, colour, alpha in glass:
-        pts = project(verts, eye, forward, right, up)
-        for tri in faces:
-            v = verts[tri]
-            normal = np.cross(v[1] - v[0], v[2] - v[0])
-            length = np.linalg.norm(normal)
-            if length < 1e-12:
-                continue
-            shade = abs(float(normal @ LIGHT) / length)
-            rasterise(frame, zbuf, pts, tri[None, :], colour,
-                      shade_only=[shade], alpha=alpha)
+    # The sun's flat shadow, once per pixel however many casters overlap.
+    shadow_mask = np.zeros((HEIGHT, WIDTH), dtype=bool)
+    for verts, faces, _colour, _alpha in opaque + glass:
+        pts = project(shadow_of(verts), eye, forward, right, up)
+        rasterise(frame, zbuf, pts, faces, None, mask=shadow_mask)
+    frame[shadow_mask & grounded] *= 0.80
 
-    writer.append_data((np.clip(frame, 0, 1) * 255).astype(np.uint8))
+    for bucket, blend in ((opaque, False), (glass, True)):
+        for verts, faces, colour, alpha in bucket:
+            pts = project(verts, eye, forward, right, up)
+            for tri in faces:
+                v = verts[tri]
+                normal = np.cross(v[1] - v[0], v[2] - v[0])
+                length = np.linalg.norm(normal)
+                if length < 1e-12:
+                    continue
+                shade = abs(float(normal @ LIGHT) / length)
+                rasterise(frame, zbuf, pts, tri[None, :], colour,
+                          shade_only=[shade], alpha=alpha if blend else 0.0)
+    return frame
+
+
+writer = imageio.get_writer(OUT_PATH, fps=FPS, codec="libx264", quality=8,
+                            macro_block_size=None)
+for index in range(FRAMES):
+    angle = 2.0 * math.pi * index / FRAMES - math.radians(35)
+    eye = np.array([centre[0] + radius * math.cos(angle),
+                    centre[1] + radius * math.sin(angle),
+                    3.4])
+    look = np.array([centre[0], centre[1], 1.5])
+    writer.append_data(
+        (np.clip(draw_frame(eye, look), 0, 1) * 255).astype(np.uint8))
     if index % 30 == 0:
         print("frame", index)
 writer.close()
