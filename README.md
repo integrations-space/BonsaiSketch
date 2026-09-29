@@ -1,11 +1,11 @@
-# BonsaiSketch
+# Bonsai Sketch Mode
 
 A direct-modelling interaction layer for [Bonsai](https://bonsaibim.org/), the
 open-source native IFC authoring platform for Blender.
 
 Bonsai's IFC capability is excellent. Its adoption barrier is Blender's
-interface — and most architects already know a direct modeller. BonsaiSketch
-presents Bonsai's existing authoring tools through a familiar interaction
+interface — and most architects already know a direct modeller. Bonsai Sketch
+Mode presents Bonsai's existing authoring tools through a familiar interaction
 model: single-key tools, inference snapping, and a measurement box. The IFC
 layer underneath is untouched.
 
@@ -16,13 +16,35 @@ Three layers, each running inside the one below:
 ```
 Blender 5.0 / 5.2      the application you install and launch
   └─ Bonsai 0.8.4/0.8.5  add-on: turns Blender into an IFC/BIM authoring tool
-       └─ BonsaiSketch add-on: gives Bonsai a direct-modelling UI
+       └─ Bonsai Sketch Mode add-on: gives Bonsai a direct-modelling UI
 ```
 
-You install all three. BonsaiSketch does not replace Bonsai — it sits on top of
-it and calls into it.
+You install all three. Bonsai Sketch Mode does not replace Bonsai — it sits on
+top of it and calls into it.
 
 ## Quick start
+
+### Windows: automatic add-on installation
+
+Install Blender **5.0 or 5.2**, save your work and close it, then download
+[Install-Bonsai-Sketch.cmd](https://github.com/integrations-space/BonsaiSketch/releases/latest/download/Install-Bonsai-Sketch.cmd)
+and double-click it. The installer downloads,
+installs and enables **Bonsai and Bonsai Sketch Mode**. Open Blender and select
+the **Sketch** tab when it finishes. No ZIP extraction or folder moving is needed.
+
+The installer uses the newest supported Blender it finds in the standard Windows
+installation folders or on PATH. For portable Blender, set `BLENDER_EXE` to its
+`blender.exe` path. Internet access is required. Windows may ask you to allow the
+downloaded script to run. Blender itself is installed separately.
+
+When run from a source checkout, the same button builds and installs that
+checkout. Otherwise it installs the latest published release. If you have the
+old **BonsaiBIM Sketch Mode** enabled, remove it first in Blender Preferences.
+Development links must also be removed before replacing them with an installation.
+Errors and completed steps are kept in the temporary folder printed by the
+installer; rerun it after fixing an error.
+
+The manual steps below also work on macOS and Linux.
 
 Nothing here assumes you have used Blender before. Roughly fifteen minutes,
 most of it downloading.
@@ -55,9 +77,9 @@ tab appears in the bar across the top of the window.
 > at Python 3.11. If something misbehaves, your Bonsai version is the first
 > thing to put in a bug report.
 
-### Step 3 — Install BonsaiSketch
+### Step 3 — Install Bonsai Sketch Mode
 
-Download **`bonsaibim_sketch_mode-0.3.0.zip`** from
+Download the add-on zip — **`bonsai_sketch_mode-<version>.zip`** — from
 [the latest release](https://github.com/integrations-space/BonsaiSketch/releases/latest).
 Do not unzip it. Then, in Blender:
 
@@ -66,6 +88,19 @@ Do not unzip it. Then, in Blender:
 
 A **`Sketch`** tab appears in the top bar next to `BIM`, immediately — no
 restart, no reopening a file.
+
+> **Upgrading from 0.3.0 or earlier?** Remove the old add-on first. This was
+> called *BonsaiBIM Sketch Mode* up to and including 0.3.0, after the upstream
+> project it sits on, which renamed itself to Bonsai. The extension id changed
+> with the name, and Blender keys extensions by id — so the new one installs
+> *beside* the old one rather than replacing it, leaving two copies competing
+> for the same single-key shortcuts. Releases up to 0.3.0 are named
+> `bonsaibim_sketch_mode-<version>.zip`; anything later uses the new name.
+>
+> Being enabled is a saved preference keyed by the same id, so the old entry
+> stays switched on pointing at nothing, and the new one arrives switched off.
+> If the `Sketch` tab does not appear, that is why: find **Bonsai Sketch Mode**
+> in `Add-ons` and tick it.
 
 If Bonsai is missing or broken, the add-on's own preferences panel says so, in
 words, instead of failing quietly.
@@ -112,8 +147,17 @@ approximation teaches the wrong habit.
 Everything above is plain geometry, not IFC. That is the point: sketch first,
 decide what it *is* second.
 
-When a shape is right, select it, switch to the **`BIM`** tab and use Bonsai's
-**Assign IFC Class** to make it a wall, a slab, or whatever it actually is.
+The **`IFC`** panel in the Sketch sidebar is where that happens, without
+leaving the tab. It shows one of two things:
+
+- **No IFC project yet** — a **New IFC Project** button. Make one first.
+  Bonsai's Wall, Slab, Door and Window tools share the Sketch toolbar, and
+  without a project every one of them just reads `No IFC Project`.
+- **A project is open** — select a finished sketch, pick a class, press
+  **Assign**. It becomes a real `IfcWall`, `IfcSlab`, or whatever you chose.
+
+Anything past that — construction types, properties, spatial structure — is
+still Bonsai's **`BIM`** tab, which has the room for it.
 
 Push/Pull deliberately **refuses** to touch an element that is already IFC. Its
 shape is generated from material layers or a profile, and overwriting that with
@@ -146,6 +190,48 @@ design than at schematic — so set the **project stage** in the 3D View sidebar
 before a stage change, before the typology was set, or before the add-on was
 installed.
 
+### Already have a plan drawn?
+
+For the new modular drawing-project prototype, its example IFC, supported
+components and remaining work, see [Drawing-to-model workflow](DRAWING_WORKFLOW.md).
+
+On the **Sketch** workspace, use the viewport's **Sketch > Import DXF / DWG...**
+menu, or press **N** and choose **Sketch > Import 2D Drawing > Import DXF / DWG...**.
+One button opens the file picker; select a drawing and confirm the import.
+Set **Extrude** in the picker to stand closed outlines up during the same import.
+The imported layers are selected, ready for **Stand Up Outlines** or IFC assignment.
+
+Import, gap repair and extrusion run locally with no API key or AI charges.
+Sketch Agents can propose supported modelling commands for your approval, but
+currently receives object names, dimensions and transforms rather than complete
+drawing linework. It does not automatically recognise walls, doors or rooms in
+an arbitrary plan. Its optional Anthropic API calls are billed by the provider.
+
+**`File` > `Import` > `CAD Drawing (.dxf/.dwg)`** brings a DXF in as sketch
+geometry, one object per layer, so choosing the layers that matter is ordinary
+selection and every tool above works on what arrives. Outlines the drafter
+left almost-closed are healed up to an adjustable gap tolerance and become
+faces; set an **Extrude** height in the import options and every closed
+outline stands up as a solid — a plan of room outlines becomes massing in one
+step, and all three values can be re-adjusted in the panel after the import
+without re-importing. Gaps wider than the tolerance stay open on purpose: a
+doorway is not a drafting error, and the import says what it healed and what
+it left alone.
+
+Different layers want different heights: import flat, then select a layer's
+object and run **`Object` > `Stand Up Outlines`** — the same healing and
+extrusion with its own height, gap and weld, re-adjustable in the panel after
+each run. WALLS at 3 m, PARTITIONS at 2.4 m, one selection at a time. Layers
+already standing are left alone rather than doubled.
+
+DWG needs [ODA File Converter](https://www.opendesign.com/guestfiles/oda_file_converter)
+installed; standard installations are detected automatically, and a custom path
+can be set in the add-on preferences or DWG file picker. DWG is a proprietary
+format, and converting is the honest route. Without it, the import explains
+itself instead of failing. ODA's [FAQ](https://www.opendesign.com/faq/question/what-are-oda-viewer-and-oda-file-converter)
+limits use by non-members to non-commercial applications; check its terms for
+your use. DXF import does not require ODA.
+
 ### If something does not work
 
 | Symptom | Cause |
@@ -154,6 +240,8 @@ installed.
 | No `Sketch` tab after installing | The add-on is installed but not ticked in `Preferences > Add-ons` |
 | `Sketch` tab present, letter keys do nothing | You are on a different tab. The keymap is only live on `Sketch` |
 | Tools greyed out, or an error in their settings bar | Bonsai is missing or failed to load — check the `BIM` tab exists |
+| Wall/Door/Window tools say `No IFC Project` | There is no project yet. `IFC` panel in the sidebar → **New IFC Project** |
+| No `IFC` panel in the sidebar | The sidebar is closed — press `N`, or re-tick **IFC sidebar** in the add-on preferences |
 | Push/Pull or Offset says "no face under the cursor" | Hover directly over a face. Both also decline objects that have modifiers |
 | Eraser says "no edge under the cursor" | Aim within a few pixels of a sketch edge. IFC elements are refused — delete those through Bonsai |
 
@@ -186,6 +274,85 @@ touch an IFC element rather than tessellate away its parametric definition,
 and the Eraser refuses to delete one — that is a modelled decision with data
 hanging off it, for Bonsai's own delete.
 
+## IFC+SG and Sketch Agents
+
+**IFC+SG field setup now comes with Sketch.** Its bundled CORENET X mapping
+(4 December 2025) adds applicable property sets and empty, typed fields to new
+IFC4 elements created in **BIM or Sketch**. No separate download or AI key is
+needed. Plain sketches receive IFC fields when classified. Existing values are
+preserved; enter design values in Bonsai's property editor. The per-scene
+**Set up IFC+SG fields automatically** switch is in the Sketch IFC+SG panel.
+
+The published mapping covers a subset of classes/subtypes. Unsupported or
+ambiguous mappings are skipped, and existing models are not backfilled on open.
+Automatic setup does not certify compliance or guess fire ratings, material
+grades, dimensions or other design values. The stage checklist below remains
+a separate review tool. See the [scope and source details](bonsai_sketch_mode/AGENTS_WORKFLOW.md#automatic-fields-bundled-with-sketch).
+
+The **Sketch > IFC+SG Requirements** sidebar panel shows candidate requirements
+for the selected IFC element and project stage. **Check Selected IFC+SG** writes
+an evidence report to Blender's Text Editor. The bundled source is *IFC+SG Model
+Content Requirements V2.0, 20 Mar 2026*. These are name-presence checks; exact
+SGPset bindings, controlled values, applicability and submission validation still
+require the official CORENET X mapping and validators.
+
+In **Sketch > Sketch Agents**, type a request and choose **Plan with Agents**.
+Geometry, BIM/IFC and Compliance specialists review the model; the Coordinator
+proposes commands; QA reviews the exact plan. Generation does not edit geometry.
+Use **Open Full Review** to inspect `Sketch Agent Review.json` in the Text Editor
+(change the editor back to 3D View to return). **Approve and Apply** previews the
+commands and then executes them. **Reject Plan** discards the proposal. Edit your
+request and generate again to resolve questions or QA findings.
+
+Add an Anthropic API key under **Preferences > Add-ons > Bonsai Sketch Mode**,
+or set `ANTHROPIC_API_KEY`. Select a Claude model available to your account.
+Each proposal makes five API calls and sends the request, model context and
+stage requirements to Anthropic. Keys stay in Blender preferences or the local
+environment and are not included in model context or review reports.
+
+Plans are single-use and expire when the model, selection or stage changes.
+Approved commands use Bonsai's IFC undo transaction. A failed command stops the
+run and records completed operations in `Sketch Agent Execution.json`; partial
+changes can remain and should be inspected before another proposal.
+
+See [the agent workflow guide](bonsai_sketch_mode/AGENTS_WORKFLOW.md) for supported
+commands, source limitations, architecture and test instructions.
+
+## Text to model
+
+An optional command channel, so something other than a person at a mouse can
+drive this Blender -- an agent, a script, a CI job. It lives in its own package
+(`bonsai_sketch_mode/textmodel/`), it is closed unless you open it, it listens on
+loopback only, and every request carries a token generated for that session.
+
+Open it in **Preferences > Add-ons > Bonsai Sketch Mode > Text to Model**. The
+port and token are published to a file the client finds on its own:
+
+```
+python tools/textmodel_client.py ping
+python tools/textmodel_client.py create_project
+python tools/textmodel_client.py create_type '{"ifc_class": "IfcWallType"}'
+python tools/textmodel_client.py add_walls '{"points": [[0,0],[6,0],[6,4],[0,4],[0,0]], "height": 3}'
+```
+
+That last line produces four real walls with material layers and thickness, not
+a mesh box called a wall -- it drives Bonsai's own wall generator.
+
+| Verb | |
+| --- | --- |
+| `ping` | What is running, and whether a project is open |
+| `describe` | The model in one reply: counts by class, types, loose sketches |
+| `list_elements` | Elements of a class, with their objects |
+| `create_project` | The gate everything else is behind |
+| `create_type` | A construction type, such as `IfcWallType` |
+| `add_walls` | Parametric walls along a run of points |
+| `sketch_polyline` | Plain sketch geometry, as the Line tool leaves it |
+| `push_pull` | Extrude one face of a sketch |
+| `assign_class` | Turn a finished sketch into an IFC element |
+
+Anything that reaches this socket can rewrite the model — there is no
+proposal step and no undo. It is a local development channel, not a service.
+
 ## Status
 
 Early, but usable for sketching. Working:
@@ -194,6 +361,7 @@ Early, but usable for sketching. Working:
 - The `Sketch` workspace tab, added automatically on file load
 - A complete `Sketch` keyconfig
 - Line, Rectangle, Push/Pull, Offset, Eraser and Tape Measure
+- DXF/DWG import by layer, with gap healing and one-step extrusion
 - IFC+SG required parameters attached automatically as elements are created,
   per project stage
 - Project Delivery parameters per building typology, including the
@@ -201,7 +369,7 @@ Early, but usable for sketching. Working:
 
 Not yet built: Follow Me, Paint, and Push/Pull on parametric IFC elements.
 `B` is left unbound rather than pointed at an approximation. See the roadmap
-in [bonsaibim_sketch_mode/README.md](bonsaibim_sketch_mode/README.md).
+in [bonsai_sketch_mode/README.md](bonsai_sketch_mode/README.md).
 
 ## Testing it, and telling us what broke
 
@@ -233,22 +401,34 @@ same terms. Nothing here is locked down.
 ```text
 git clone https://github.com/integrations-space/BonsaiSketch
 cd BonsaiSketch
-blender --command extension build --source-dir bonsaibim_sketch_mode --output-dir dist
+blender --command extension build --source-dir bonsai_sketch_mode --output-dir dist
 ```
 
-That produces `dist/bonsaibim_sketch_mode-<version>.zip`, which installs
+The repository is still called `BonsaiSketch`, from before the add-on settled on
+its name. That is an address rather than a name — renaming it would break every
+existing clone, issue link and release URL — so it stays as it is, the same way
+Bonsai's own docs read "Bonsai" while living at `bonsaibim.org`. Everything the
+software calls itself is **Bonsai Sketch Mode**.
+
+That produces `dist/bonsai_sketch_mode-<version>.zip`, which installs
 exactly like a release build via `Install from Disk`. A fork needs no other
 change — but do give it a different `id` and `name` in
-`bonsaibim_sketch_mode/blender_manifest.toml` if both versions might end up
+`bonsai_sketch_mode/blender_manifest.toml` if both versions might end up
 installed side by side, since Blender keys extensions by `id`.
 
 ## Development
+
+The Windows installer is generated from `tools/windows_installer.ps1`. After
+editing it, run `python tools/build_windows_installer.py`, then
+`powershell -NoProfile -File tools/windows_installer_check.ps1`. CI checks the
+generated launcher and uploads it as a separate installer artifact. Include
+`Install-Bonsai-Sketch.cmd` alongside the extension ZIP when publishing a release.
 
 Junction the add-on directory into Blender's user extension repository so edits
 are picked up in place:
 
 ```text
-mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsaibim_sketch_mode" "C:\2026_bonsai\bonsaibim_sketch_mode"
+mklink /J "%APPDATA%\Blender Foundation\Blender\5.0\extensions\user_default\bonsai_sketch_mode" "C:\2026_bonsai\bonsai_sketch_mode"
 ```
 
 Check it registers and its geometry is correct:
@@ -265,23 +445,23 @@ Push/Pull ultimately perform. Verified against Blender 5.0 and Bonsai 0.8.4.
 Build a distributable package:
 
 ```text
-blender --command extension build --source-dir bonsaibim_sketch_mode --output-dir dist
+blender --command extension build --source-dir bonsai_sketch_mode --output-dir dist
 ```
 
 Regenerate the workspace `.blend` after changing the layout:
 
 ```text
-blender -b --factory-startup --python tools/gen_workspace.py -- bonsaibim_sketch_mode/data/workspace.blend
+blender -b --factory-startup --python tools/gen_workspace.py -- bonsai_sketch_mode/data/workspace.blend
 ```
 
 All coupling to Bonsai is confined to
-[bonsaibim_sketch_mode/bridge.py](bonsaibim_sketch_mode/bridge.py). Bonsai is a
+[bonsai_sketch_mode/bridge.py](bonsai_sketch_mode/bridge.py). Bonsai is a
 rolling release with no stable public API contract, so when an upgrade breaks
 this add-on, that file should be the only one needing attention.
 
 ## Licence
 
-GPL-3.0-or-later. See [LICENSE](bonsaibim_sketch_mode/LICENSE).
+GPL-3.0-or-later. See [LICENSE](bonsai_sketch_mode/LICENSE).
 
 This add-on imports Bonsai, which is GPL-3.0-or-later, and is therefore a
 derivative work. If you distribute it — free or paid — you must ship the

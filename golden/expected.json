@@ -1,0 +1,196 @@
+{
+ "_comment": [
+  "The golden project's truth, stated by hand from the drawings'",
+  "arithmetic -- never captured from the compiler's output, because an",
+  "expectation file regenerated from output locks in whatever bug was",
+  "live the day it was written. Every future capability must compile",
+  "golden/ to exactly this. A deliberate change to the fixture changes",
+  "tools/gen_golden.py and this file together, reviewed as one decision.",
+  "",
+  "Deliberate imperfections are part of the truth: D1's width is",
+  "asserted at 1000 against a measured 900 (one conflict, human review),",
+  "D9 is cited by the section but drawn nowhere (unmatched), and the",
+  "windows' OverallHeight is asserted by nothing (a caught missing",
+  "value). Zero silent resolutions is the gate."
+ ],
+ "drawings": {
+  "view_types": [
+   "PLAN",
+   "PLAN",
+   "SECTION"
+  ]
+ },
+ "transforms": {
+  "T01": {
+   "status": "ACCEPTED",
+   "rotation_degrees": 0.0,
+   "translation": [
+    0.0,
+    0.0
+   ]
+  },
+  "T02": {
+   "status": "ACCEPTED",
+   "rotation_degrees": 0.0,
+   "translation": [
+    -12.5,
+    8.2
+   ],
+   "max_residual": 1e-06
+  }
+ },
+ "storeys": [
+  {
+   "elevation": 0.0,
+   "floor_to_floor": 3.6
+  },
+  {
+   "elevation": 3.6,
+   "floor_to_floor": null
+  }
+ ],
+ "per_storey": {
+  "walls": 6,
+  "wall_thicknesses": [
+   0.1,
+   0.2
+  ],
+  "wall_lengths": [
+   2.8,
+   2.8,
+   2.8,
+   2.8,
+   3.8,
+   3.8
+  ],
+  "junction_kinds": [
+   "L",
+   "L",
+   "L",
+   "L",
+   "T",
+   "T",
+   "T",
+   "T"
+  ],
+  "openings": [
+   {
+    "classification": "DOOR",
+    "width": 0.9,
+    "connects_spaces": 2
+   },
+   {
+    "classification": "WINDOW",
+    "width": 0.6,
+    "connects_spaces": 1
+   }
+  ],
+  "space_areas": [
+   2.21,
+   3.12,
+   3.25
+  ]
+ },
+ "spaces": {
+  "labels": [
+   "BED 1",
+   "BED 2",
+   "BED 3",
+   "DEN",
+   "HALL",
+   "SNUG"
+  ]
+ },
+ "openings": {
+  "door_marks": [
+   "D1",
+   "D2"
+  ],
+  "window_marks": [
+   "W1",
+   "W2"
+  ],
+  "all_resolved": true
+ },
+ "reconcile": {
+  "fills": [
+   {
+    "mark": "D1",
+    "property": "OverallHeight",
+    "value": 2.1
+   },
+   {
+    "mark": "D2",
+    "property": "OverallHeight",
+    "value": 2.1
+   }
+  ],
+  "conflicts": [
+   {
+    "property": "OverallWidth",
+    "values": [
+     0.9,
+     1.0
+    ],
+    "action": "HUMAN_REVIEW"
+   }
+  ],
+  "unmatched_marks": [
+   "D9"
+  ]
+ },
+ "evidence": {
+  "assertions": 4,
+  "values_filled": 2,
+  "conflicts_detected": 1,
+  "conflicts_escalated": 1,
+  "silently_resolved": 0
+ },
+ "qa": {
+  "wall_alignment": {
+   "compared": 6,
+   "unmatched_above": 0,
+   "max_deviation_below": 1e-06
+  },
+  "space_stacking": {
+   "stacked": 3,
+   "upper_spaces": 3
+  },
+  "extents": {
+   "x": [
+    0.0,
+    4.0
+   ],
+   "y": [
+    0.0,
+    3.0
+   ]
+  }
+ },
+ "georeference": {
+  "crs": "FIXTURE:0001",
+  "eastings": 28001.0
+ },
+ "ledger": {
+  "ALIGN": 2,
+  "PAIR": 16,
+  "JUNCTION": 16,
+  "EXTEND": 24,
+  "MERGE": 4,
+  "OPEN": 4,
+  "ENCLOSE": 6,
+  "LABEL": 6,
+  "CONNECT": 6,
+  "EMIT": 28,
+  "ASSERT": 4,
+  "CONFLICT": 1,
+  "GEOREF": 1
+ },
+ "failures": {
+  "F10": 1,
+  "F11": 1
+ },
+ "acceptance": {
+  "schema_validation_messages": 0
+ }
+}

@@ -16,3 +16,8 @@ __pycache__/
 # are not ours to assume, and 10 MB to carry 943 rows. tools/extract_ifc_sg.py
 # turns it into the small JSON that is committed.
 asset/
+
+# Real hold-out projects are private client drawings and this repo is public.
+# Only the README is tracked; each holdout-NNN/ stays on this machine.
+holdouts/*
+!holdouts/README.md

@@ -1,0 +1,376 @@
+{
+  "schema": "bonsai.drawing-project/1",
+  "name": "Synthetic drawing workflow example",
+  "storeys": [
+    {
+      "name": "Basement",
+      "elevation_m": -3
+    },
+    {
+      "name": "L1",
+      "elevation_m": 0
+    },
+    {
+      "name": "L2",
+      "elevation_m": 3
+    }
+  ],
+  "components": [
+    {
+      "id": "door",
+      "kind": "door",
+      "storey": "L1",
+      "host": "walls:1",
+      "host_depth_m": 0.2,
+      "width_m": 0.9,
+      "origin_m": [
+        1,
+        0,
+        0
+      ],
+      "evidence": {
+        "plan": "Synthetic plan, not a construction drawing",
+        "section": "Synthetic section",
+        "elevation": "Synthetic elevation"
+      }
+    },
+    {
+      "id": "window",
+      "kind": "window",
+      "storey": "L1",
+      "host": "walls:1",
+      "host_depth_m": 0.2,
+      "width_m": 1.2,
+      "height_m": 1.2,
+      "origin_m": [
+        3,
+        0,
+        1
+      ],
+      "evidence": {
+        "plan": "Synthetic plan, not a construction drawing",
+        "section": "Synthetic section",
+        "elevation": "Synthetic elevation"
+      }
+    },
+    {
+      "id": "slab",
+      "kind": "slab",
+      "storey": "L2",
+      "height_m": 0.2,
+      "profile": {
+        "outer": [
+          [
+            0,
+            0
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            0,
+            5
+          ]
+        ],
+        "holes": [
+          [
+            [
+              2,
+              2
+            ],
+            [
+              3,
+              2
+            ],
+            [
+              3,
+              3
+            ],
+            [
+              2,
+              3
+            ]
+          ]
+        ]
+      },
+      "evidence": {
+        "plan": "Synthetic plan, not a construction drawing",
+        "section": "Synthetic section",
+        "elevation": "Synthetic elevation"
+      }
+    },
+    {
+      "id": "column",
+      "kind": "column",
+      "storey": "Basement",
+      "height_m": 3,
+      "radius_m": 0.15,
+      "origin_m": [
+        0,
+        3,
+        0
+      ],
+      "evidence": {
+        "plan": "Synthetic plan, not a construction drawing",
+        "section": "Synthetic section",
+        "elevation": "Synthetic elevation"
+      }
+    },
+    {
+      "id": "beam",
+      "kind": "beam",
+      "storey": "L1",
+      "height_m": 4,
+      "profile": {
+        "outer": [
+          [
+            -0.1,
+            -0.2
+          ],
+          [
+            0.1,
+            -0.2
+          ],
+          [
+            0.1,
+            0.2
+          ],
+          [
+            -0.1,
+            0.2
+          ]
+        ]
+      },
+      "origin_m": [
+        0,
+        3,
+        2.8
+      ],
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "evidence": {
+        "plan": "Synthetic plan, not a construction drawing",
+        "section": "Synthetic section",
+        "elevation": "Synthetic elevation"
+      }
+    },
+    {
+      "id": "footing",
+      "kind": "footing",
+      "storey": "Basement",
+      "height_m": 0.4,
+      "profile": {
+        "outer": [
+          [
+            -0.5,
+            2.5
+          ],
+          [
+            0.5,
+            2.5
+          ],
+          [
+            0.5,
+            3.5
+          ],
+          [
+            -0.5,
+            3.5
+          ]
+        ]
+      },
+      "origin_m": [
+        0,
+        0,
+        -0.4
+      ],
+      "evidence": {
+        "plan": "Synthetic plan, not a construction drawing",
+        "section": "Synthetic section",
+        "elevation": "Synthetic elevation"
+      }
+    },
+    {
+      "id": "stair",
+      "kind": "stair",
+      "storey": "L1",
+      "risers": 18,
+      "rise_m": 3,
+      "tread_m": 0.25,
+      "width_m": 1,
+      "origin_m": [
+        0,
+        6,
+        0
+      ],
+      "evidence": {
+        "plan": "Synthetic plan, not a construction drawing",
+        "section": "Synthetic section",
+        "elevation": "Synthetic elevation"
+      }
+    },
+    {
+      "id": "ramp",
+      "kind": "ramp",
+      "storey": "L1",
+      "shape": {
+        "type": "sloping_slab",
+        "length_m": 4,
+        "width_m": 3,
+        "thickness_m": 0.2,
+        "rise_m": 0.5
+      },
+      "origin_m": [
+        0,
+        -5,
+        0
+      ],
+      "evidence": {
+        "plan": "Synthetic plan, not a construction drawing",
+        "section": "Synthetic section",
+        "elevation": "Synthetic elevation"
+      }
+    },
+    {
+      "id": "roof",
+      "kind": "pitched_roof",
+      "storey": "L2",
+      "shape": {
+        "type": "sloping_slab",
+        "length_m": 3,
+        "width_m": 5,
+        "thickness_m": 0.2,
+        "rise_m": 1
+      },
+      "origin_m": [
+        0,
+        0,
+        3
+      ],
+      "material": "Roof tiles",
+      "evidence": {
+        "plan": "Synthetic plan, not a construction drawing",
+        "section": "Synthetic section",
+        "elevation": "Synthetic elevation"
+      }
+    },
+    {
+      "id": "terrain",
+      "kind": "terrain",
+      "shape": {
+        "type": "terrain",
+        "points": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            10,
+            0,
+            0.5
+          ],
+          [
+            10,
+            10,
+            1
+          ],
+          [
+            0,
+            10,
+            0.2
+          ],
+          [
+            5,
+            5,
+            0.4
+          ]
+        ],
+        "boundary": [
+          [
+            0,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            0,
+            10
+          ]
+        ]
+      },
+      "evidence": {
+        "plan": "Synthetic plan, not a construction drawing",
+        "section": "Synthetic section",
+        "elevation": "Synthetic elevation"
+      }
+    },
+    {
+      "id": "boundary",
+      "kind": "boundary",
+      "polylines": [
+        {
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              10,
+              10
+            ],
+            [
+              0,
+              10
+            ]
+          ],
+          "closed": true
+        }
+      ],
+      "evidence": {
+        "plan": "Synthetic plan, not a construction drawing",
+        "section": "Synthetic section",
+        "elevation": "Synthetic elevation"
+      }
+    }
+  ],
+  "drawings": [
+    {
+      "id": "plan",
+      "path": "plan.dxf",
+      "scale_to_m": 1,
+      "references": [
+        "Synthetic demonstration only"
+      ]
+    }
+  ],
+  "layers": [
+    {
+      "id": "walls",
+      "drawing": "plan",
+      "layer": "WALLS",
+      "kind": "wall",
+      "storey": "L1",
+      "height_m": 3,
+      "gap_m": 0.02
+    }
+  ]
+}

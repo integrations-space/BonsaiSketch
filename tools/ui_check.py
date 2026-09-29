@@ -22,8 +22,9 @@ import sys
 import traceback
 
 import bpy
+from mathutils import Vector
 
-ADDON = "bl_ext.user_default.bonsaibim_sketch_mode"
+ADDON = "bl_ext.user_default.bonsai_sketch_mode"
 
 REPORT = sys.argv[-1] if "--" in sys.argv else "ui_check.txt"
 
@@ -73,6 +74,7 @@ def run():
     tools = addon.tools
     ops = addon.ops
     workspace = addon.workspace
+    viewport = addon.viewport
 
     # The question a new user asks first: they enabled the add-on, is the tab
     # there? Enabling does not fire load_post, so this only passes because
@@ -116,15 +118,25 @@ def run():
                     space = next(s for s in area_.spaces if s.type == "VIEW_3D")
                     break
         check("tool palette shown", space is not None and space.show_region_toolbar)
-        check("properties sidebar hidden", space is not None and not space.show_region_ui)
+        # The sidebar used to be asserted closed, and that was right while it
+        # was empty. It now carries the Sketch tab's only route into IFC --
+        # New IFC Project, and Assign IFC Class -- so an open sidebar is the
+        # correct state, and the assertion is inverted rather than deleted.
+        check("IFC sidebar shown", space is not None and space.show_region_ui)
         check("perspective view", space is not None and space.region_3d.view_perspective == "PERSP")
         check("solid shading", space is not None and space.shading.type == "SOLID")
-        # A light canvas, without needing the global theme change.
-        check("flat light canvas, not the dark default",
-              space is not None and space.shading.background_type == "VIEWPORT")
-        check("canvas is light",
-              space is not None and min(space.shading.background_color) > 0.7,
-              f"colour {list(space.shading.background_color) if space else '?'}")
+        # The canvas is raised when the workspace is added, so the Sketch tab
+        # shows sky over ground rather than the flat colour it ships with.
+        check("viewport reads the theme canvas, not a flat colour",
+              space is not None and space.shading.background_type == "THEME",
+              f"background_type {space.shading.background_type if space else '?'}")
+        gradients = bpy.context.preferences.themes[0].view_3d.space.gradients
+        check("canvas is a two-tone gradient",
+              gradients.background_type == "LINEAR", gradients.background_type)
+        check("sky sits above ground, and both are light",
+              min(gradients.high_gradient) > 0.5 and min(gradients.gradient) > 0.5
+              and gradients.high_gradient[2] > gradients.high_gradient[0],
+              f"sky {list(gradients.high_gradient)} ground {list(gradients.gradient)}")
         check("grid reaches past the model",
               space is not None and space.overlay.grid_lines >= 64,
               f"grid_lines {space.overlay.grid_lines if space else '?'}")
@@ -170,6 +182,136 @@ def run():
                 detail = str(exc)
             check(f"{tool_cls.bl_label} activates", ok, detail)
 
+        # Bonsai's own tools share this toolbar, because the Sketch workspace
+        # does not filter tools by owner. That is worth checking rather than
+        # assuming: a user who clicks the Door tool before creating a project
+        # gets one "No IFC Project" label and no route forward from this tab,
+        # and the tool reads as broken when it is only gated. These checks
+        # separate the two -- present and activating, but with nothing behind
+        # them until an IFC project exists.
+        #
+        # Headless cannot reach any of this: bonsai/bim/module/model/__init__.py
+        # guards register_tool with `if not bpy.app.background`.
+        from bl_ui.space_toolsystem_common import ToolSelectPanelHelper
+
+        import bonsai.tool as bonsai_tool
+
+        present = set()
+        try:
+            panel = ToolSelectPanelHelper._tool_class_from_space_type("VIEW_3D")
+            for item in ToolSelectPanelHelper._tools_flatten(panel._tools["OBJECT"]):
+                if item is not None:
+                    present.add(item.idname)
+        except Exception as exc:
+            check("3D View toolbar is readable", False, str(exc))
+
+        BONSAI_TOOLS = (
+            "bim.wall_tool",
+            "bim.slab_tool",
+            "bim.door_tool",
+            "bim.window_tool",
+            "bim.column_tool",
+            "bim.beam_tool",
+            "bim.bim_tool",
+        )
+        for idname in BONSAI_TOOLS:
+            check(f"Bonsai {idname} is in the toolbar", idname in present)
+        check(
+            "the Sketch tools are in the same toolbar",
+            all(t.bl_idname in present for t in tools.tools),
+        )
+
+        sketch_ws = bpy.data.workspaces.get(workspace.WORKSPACE_NAME)
+        check(
+            "the Sketch workspace does not filter tools by owner",
+            sketch_ws is not None and not sketch_ws.use_filter_by_owner,
+            "filtering is on, so Bonsai's tools would be hidden here",
+        )
+
+        # The gate itself. If this ever passes with a project loaded the check
+        # is meaningless, so it asserts the precondition too.
+        check(
+            "no IFC project in a fresh session",
+            bonsai_tool.Ifc.get() is None,
+            "something created a project; the gating check below proves nothing",
+        )
+        for idname in ("bim.wall_tool", "bim.door_tool"):
+            try:
+                bpy.ops.wm.tool_set_by_id(name=idname)
+                active = context.workspace.tools.from_space_view3d_mode("OBJECT")
+                ok = active is not None and active.idname == idname
+                detail = f"active is {active.idname if active else None!r}"
+            except Exception as exc:
+                ok, detail = False, str(exc)
+            check(f"Bonsai {idname} activates without a project", ok, detail)
+
+        # The sidebar is the only route from this tab into IFC, so "is it on
+        # screen" is a product check, not a cosmetic one. It ships closed in
+        # workspace.blend and is opened by workspace.py at append time; if that
+        # ever stops happening the route is still there but unfindable.
+        sidebar = addon.sidebar
+        sketch_ws = bpy.data.workspaces.get(workspace.WORKSPACE_NAME)
+        spaces = list(addon.theme.viewports(workspace.WORKSPACE_NAME))
+        check("Sketch viewport found for the sidebar check", bool(spaces))
+        check(
+            "the IFC sidebar is open on the Sketch tab",
+            all(sp.show_region_ui for sp in spaces),
+            "show_region_ui is False, so the only route into IFC is hidden",
+        )
+        check(
+            "the sidebar panel is registered",
+            hasattr(bpy.types, "BONSAI_SKETCH_MODE_PT_ifc"),
+        )
+
+        check(
+            "it is filed under the Sketch category",
+            sidebar.BONSAI_SKETCH_MODE_PT_ifc.bl_category == sidebar.CATEGORY,
+        )
+        # The gate this whole panel exists to open: with no project, Bonsai's
+        # BIM tools draw "No IFC Project" and stop, and before this panel
+        # nothing on the tab could create one.
+        check(
+            "no IFC project yet, so the panel offers to create one",
+            not bridge.has_project(),
+        )
+        check(
+            "and the sidebar can be closed again",
+            sidebar.set_sidebar(workspace.WORKSPACE_NAME, False) == len(spaces)
+            and all(not sp.show_region_ui for sp in spaces),
+        )
+        sidebar.set_sidebar(workspace.WORKSPACE_NAME, True)
+
+        # Push/Pull's inference decides between candidates in pixels, which
+        # needs a region to project into. Headlessly there is none, so
+        # smoke_test can only check which candidates exist -- whether they can
+        # be compared at all is answerable only here.
+        centre = Vector((0.0, 0.0, 0.0))
+        projected = viewport.project_point(context, centre)
+        check("a world point projects into the region", projected is not None)
+        if projected is not None:
+            check(
+                "the projection lands inside the region",
+                0 <= projected.x <= region.width and 0 <= projected.y <= region.height,
+                f"{tuple(round(v, 1) for v in projected)} in {region.width}x{region.height}",
+            )
+            # Two points a metre apart along the view's vertical must land in
+            # different places, or every candidate would measure zero pixels
+            # away and inference would snap to whichever it saw first.
+            above = viewport.project_point(context, Vector((0.0, 0.0, 1.0)))
+            check(
+                "points a metre apart project apart",
+                above is not None and (above - projected).length > 1.0,
+                f"{(above - projected).length if above else '?'} px",
+            )
+
+        # A point behind the camera has no honest answer, and inference has to
+        # cope with being told so rather than snapping to a mirrored ghost.
+        behind = viewport.project_point(context, context.region_data.view_matrix.inverted()
+                                        .translation + context.region_data.view_rotation
+                                        @ Vector((0.0, 0.0, 5.0)))
+        check("a point behind the camera projects to nothing", behind is None,
+              f"got {behind}")
+
         # Bonsai's overlay is installed on every polyline tool invoke and torn
         # down on exit. A draw handler that fails to register would take the
         # whole viewport down with it.
@@ -212,6 +354,26 @@ def entered_sketch():
     addon = sys.modules[ADDON]
     workspace = addon.workspace
     window = state["window"]
+
+    # A sidebar region reads its category as UNSUPPORTED until it has been
+    # drawn, which is why this is asserted here and not when the tab was
+    # appended -- and why the add-on raises it on entering the tab rather than
+    # on creating it. Without that, the sidebar opens on Item/Transform and the
+    # IFC route is a collapsed tab down the edge: present, and still unfindable.
+    regions = [
+        region
+        for screen in bpy.data.workspaces[workspace.WORKSPACE_NAME].screens
+        for area_ in screen.areas
+        if area_.type == "VIEW_3D"
+        for region in area_.regions
+        if region.type == "UI"
+    ]
+    check("the Sketch viewport has a sidebar region", bool(regions))
+    check(
+        "the sidebar opens on the Sketch tab, not Item",
+        bool(regions) and all(r.active_panel_category == addon.sidebar.CATEGORY for r in regions),
+        "categories: %s" % [r.active_panel_category for r in regions],
+    )
 
     check(
         "Sketch tab is the active workspace",
