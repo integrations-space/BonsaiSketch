@@ -537,3 +537,18 @@ drawings.
   and both rooms at their drawn areas (8.1 / 11.7 m^2) -- no learned
   model anywhere in the chain. The smoke drives the same scan through
   auto_model in Blender to real IfcWalls with SCAN:#n provenance.
+- **2026-09-29** — The machine half of visual QA (item 03): a first
+  image-route modelling exercise ran end to end -- a perspective
+  concept sketch interpreted by hand into the autobuild description
+  (every dimension an assumption anchored on drawn cars and figures,
+  unseen elevations flagged as such), compiled by autobuild.py with
+  zero refusals, read back by modelcheck.py (open edges exactly the
+  open carport and porch; materials honestly unconfirmed; all IFC+SG
+  placeholders empty), and rendered as an orbit video for a person to
+  judge against the source image. The renderer stays: tools/
+  ifc_orbit.py draws the delivered IFC's own tessellated geometry --
+  never the tool that made it -- into a turntable MP4 with a software
+  z-buffer, so a modelling run's visual check needs no Blender and no
+  GPU. The study itself remains outside this public repository: it
+  derives from another designer's concept image, and holdout
+  discipline keeps project data off the tree anyway.
