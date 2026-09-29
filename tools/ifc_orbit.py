@@ -48,6 +48,7 @@ LOOK = {
 #: Named materials override the class palette; matched by substring so
 #: "Timber decking" and "Timber cladding" both read as timber.
 MATERIALS = (
+    ("dark timber", (0.36, 0.27, 0.20)),
     ("timber", (0.70, 0.53, 0.34)),
     ("wood", (0.70, 0.53, 0.34)),
     ("dark", (0.30, 0.32, 0.34)),
@@ -141,7 +142,7 @@ def shadow_of(verts):
 
 
 def rasterise(frame, zbuf, pts, faces, colour, shade_only=None, alpha=0.0,
-              mask=None):
+              mask=None, idbuf=None, element_id=0):
     for tri in faces:
         p = pts[tri]
         if np.any(p[:, 2] <= 0.1):
@@ -169,13 +170,22 @@ def rasterise(frame, zbuf, pts, faces, colour, shade_only=None, alpha=0.0,
         closer = inside & (depth < window - (1e-4 if alpha else 0.0))
         if not closer.any():
             continue
-        shaded = colour * (0.55 + 0.45 * shade_only[0]) if shade_only else colour
+        if shade_only:
+            a = shade_only[0]
+            band = 1.0 if a > 0.62 else 0.86 if a > 0.28 else 0.72
+            shaded = colour * band
+        else:
+            shaded = colour
         target = frame[y0:y1 + 1, x0:x1 + 1]
         if alpha:
             target[closer] = target[closer] * alpha + shaded * (1 - alpha)
+            if idbuf is not None:
+                idbuf[y0:y1 + 1, x0:x1 + 1][closer] = element_id
         else:
             window[closer] = depth[closer]
             target[closer] = shaded
+            if idbuf is not None:
+                idbuf[y0:y1 + 1, x0:x1 + 1][closer] = element_id
 
 
 def project(verts, eye, forward, right, up):
@@ -198,6 +208,7 @@ def draw_frame(eye, look):
 
     frame = background.copy()
     zbuf = np.full((HEIGHT, WIDTH), np.inf)
+    idbuf = np.zeros((HEIGHT, WIDTH), dtype=np.int32)
 
     pts = project(ground_verts, eye, forward, right, up)
     rasterise(frame, zbuf, pts, ground_faces, GROUND, shade_only=[1.0])
@@ -210,8 +221,10 @@ def draw_frame(eye, look):
         rasterise(frame, zbuf, pts, faces, None, mask=shadow_mask)
     frame[shadow_mask & grounded] *= 0.80
 
+    element_id = 1
     for bucket, blend in ((opaque, False), (glass, True)):
         for verts, faces, colour, alpha in bucket:
+            element_id += 1
             pts = project(verts, eye, forward, right, up)
             for tri in faces:
                 v = verts[tri]
@@ -221,7 +234,25 @@ def draw_frame(eye, look):
                     continue
                 shade = abs(float(normal @ LIGHT) / length)
                 rasterise(frame, zbuf, pts, tri[None, :], colour,
-                          shade_only=[shade], alpha=alpha if blend else 0.0)
+                          shade_only=[shade], alpha=alpha if blend else 0.0,
+                          idbuf=idbuf, element_id=element_id)
+
+    # The ink pass: a dark line wherever depth jumps or one element ends
+    # and another begins -- the silhouette-and-crease language concept
+    # sketches are drawn in.
+    depth = np.where(np.isfinite(zbuf), zbuf, 1e6)
+    edge = np.zeros((HEIGHT, WIDTH), dtype=bool)
+    # Depth jumps ink only where an element is involved: bare ground at
+    # grazing incidence has huge honest gradients that are not lines.
+    element_here = idbuf > 0
+    edge[:, 1:] |= ((np.abs(np.diff(depth, axis=1)) > 0.015 * depth[:, 1:])
+                    & (element_here[:, 1:] | element_here[:, :-1]))
+    edge[1:, :] |= ((np.abs(np.diff(depth, axis=0)) > 0.015 * depth[1:, :])
+                    & (element_here[1:, :] | element_here[:-1, :]))
+    edge[:, 1:] |= np.diff(idbuf, axis=1) != 0
+    edge[1:, :] |= np.diff(idbuf, axis=0) != 0
+    ink = np.array([0.16, 0.16, 0.18])
+    frame[edge] = frame[edge] * 0.25 + ink * 0.75
     return frame
 
 
